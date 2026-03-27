@@ -1,0 +1,15 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#0A0A0F"/>
+  <rect x="32" y="32" width="1136" height="566" rx="32" fill="url(#paint0_radial)" fill-opacity="0.2"/>
+  <rect x="80" y="80" width="1040" height="470" rx="28" fill="#FFFFFF" fill-opacity="0.04" stroke="#FFFFFF" stroke-opacity="0.1"/>
+  <text x="110" y="220" fill="#F59E0B" font-family="Arial, sans-serif" font-size="22" letter-spacing="8">NEXUS LEAGUE</text>
+  <text x="110" y="310" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="88" font-weight="700">Transfermarket</text>
+  <text x="110" y="405" fill="#C4B5FD" font-family="Arial, sans-serif" font-size="88" font-weight="700">for LoL leagues</text>
+  <text x="110" y="470" fill="#94A3B8" font-family="Arial, sans-serif" font-size="28">Valorisation, effectifs, matchs, statistiques Riot.</text>
+  <defs>
+    <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(600 315) rotate(90) scale(315 600)">
+      <stop stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#0A0A0F" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

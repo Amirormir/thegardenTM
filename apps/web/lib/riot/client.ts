@@ -1,0 +1,83 @@
+import axios, { type AxiosError } from 'axios';
+
+export type RiotErrorCode = 'RATE_LIMITED' | 'FORBIDDEN' | 'NOT_FOUND' | 'SERVER_ERROR' | 'UNKNOWN';
+
+export class RiotApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: RiotErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'RiotApiError';
+  }
+}
+
+const RIOT_REGIONAL_BASE_URL = 'https://europe.api.riotgames.com';
+const RIOT_PLATFORM_BASE_URL = 'https://euw1.api.riotgames.com';
+
+function mapAxiosError(error: AxiosError) {
+  const status = error.response?.status ?? 500;
+
+  if (status === 429) {
+    return new RiotApiError(status, 'RATE_LIMITED', 'Riot API rate limit exceeded.');
+  }
+
+  if (status === 403) {
+    return new RiotApiError(
+      status,
+      'FORBIDDEN',
+      'Riot API access forbidden. The dev key is likely missing or expired.',
+    );
+  }
+
+  if (status === 404) {
+    return new RiotApiError(status, 'NOT_FOUND', 'Requested Riot resource was not found.');
+  }
+
+  if (status >= 500) {
+    return new RiotApiError(status, 'SERVER_ERROR', 'Riot API is currently unavailable.');
+  }
+
+  return new RiotApiError(status, 'UNKNOWN', error.message);
+}
+
+function createRiotAxiosClient(baseURL: string) {
+  const client = axios.create({
+    baseURL,
+    timeout: 12000,
+  });
+
+  client.interceptors.request.use((config) => {
+    const apiKey = process.env.RIOT_API_KEY;
+
+    if (!apiKey) {
+      throw new RiotApiError(
+        403,
+        'FORBIDDEN',
+        'RIOT_API_KEY is not configured or the development key has expired.',
+      );
+    }
+
+    config.headers.set('X-Riot-Token', apiKey);
+    return config;
+  });
+
+  client.interceptors.response.use(
+    (response) => response,
+    (error: unknown) => {
+      if (axios.isAxiosError(error)) {
+        return Promise.reject(mapAxiosError(error));
+      }
+
+      return Promise.reject(
+        new RiotApiError(500, 'UNKNOWN', 'Unexpected Riot API transport error.'),
+      );
+    },
+  );
+
+  return client;
+}
+
+export const regionalRiotClient = createRiotAxiosClient(RIOT_REGIONAL_BASE_URL);
+export const platformRiotClient = createRiotAxiosClient(RIOT_PLATFORM_BASE_URL);
