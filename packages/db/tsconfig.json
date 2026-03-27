@@ -1,0 +1,8 @@
+{
+  "extends": "@nexus/config/typescript/base",
+  "compilerOptions": {
+    "types": ["node"],
+    "baseUrl": "."
+  },
+  "include": ["index.ts", "prisma/**/*.ts", "prisma.config.ts"]
+}

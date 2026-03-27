@@ -1,0 +1,312 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  USER
+  TEAM_CAPTAIN
+  ADMIN
+}
+
+enum PlayerRole {
+  TOP
+  JUNGLE
+  MID
+  ADC
+  SUPPORT
+}
+
+enum ContractStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+  LOAN
+}
+
+enum MatchFormat {
+  BO1
+  BO3
+  BO5
+}
+
+enum MatchResult {
+  WIN
+  LOSS
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  name                String?
+  email               String               @unique
+  emailVerified       DateTime?
+  image               String?
+  passwordHash        String?
+  role                UserRole             @default(USER)
+  accounts            Account[]
+  sessions            Session[]
+  captainedTeam       Team?                @relation("TeamCaptain")
+  auditLogs           AuditLog[]
+  marketValueChanges  MarketValueHistory[] @relation("MarketValueChangedBy")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([role])
+}
+
+model Team {
+  id               String             @id @default(cuid())
+  name             String             @unique
+  slug             String             @unique
+  shortCode        String             @unique
+  logoUrl          String?
+  budget           Int                @default(1200000)
+  captainId        String?            @unique
+  captain          User?              @relation("TeamCaptain", fields: [captainId], references: [id], onDelete: SetNull)
+  players          Player[]
+  homeMatches      Match[]            @relation("HomeTeam")
+  awayMatches      Match[]            @relation("AwayTeam")
+  wonMatches       Match[]            @relation("WinnerTeam")
+  blueSideGames    MatchGame[]        @relation("BlueSideTeam")
+  redSideGames     MatchGame[]        @relation("RedSideTeam")
+  wonGames         MatchGame[]        @relation("GameWinnerTeam")
+  contracts        Contract[]
+  teamTrophies     Trophy[]           @relation("TeamTrophies")
+  playerMatchStats PlayerMatchStats[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([captainId])
+}
+
+model Player {
+  id                 String               @id @default(cuid())
+  firstName          String
+  lastName           String
+  slug               String               @unique
+  gameName           String
+  tagLine            String
+  puuid              String?              @unique
+  summonerId         String?              @unique
+  role               PlayerRole
+  age                Int?
+  nationality        String?
+  marketValue        Int                  @default(0)
+  salary             Int                  @default(0)
+  isActive           Boolean              @default(true)
+  teamId             String
+  team               Team                 @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  contracts          Contract[]
+  marketValueHistory MarketValueHistory[]
+  playerMatchStats   PlayerMatchStats[]
+  playerTrophies     Trophy[]             @relation("PlayerTrophies")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@unique([gameName, tagLine])
+  @@index([teamId])
+  @@index([teamId, role])
+  @@index([marketValue])
+}
+
+model Contract {
+  id            String         @id @default(cuid())
+  playerId      String
+  teamId        String
+  status        ContractStatus @default(ACTIVE)
+  salary        Int
+  startDate     DateTime
+  endDate       DateTime
+  transferFee   Int?
+  releaseClause Int?
+  terminatedAt  DateTime?
+  notes         String?
+  player        Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team          Team           @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([playerId, teamId, startDate])
+  @@index([playerId, status])
+  @@index([teamId, status])
+}
+
+model Season {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  slug       String   @unique
+  year       Int
+  isCurrent  Boolean  @default(false)
+  startDate  DateTime
+  endDate    DateTime
+  matches    Match[]
+  trophies   Trophy[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([year, slug])
+  @@index([isCurrent])
+}
+
+model Match {
+  id           String      @id @default(cuid())
+  seasonId     String
+  homeTeamId   String
+  awayTeamId   String
+  winnerTeamId String?
+  format       MatchFormat
+  scheduledAt  DateTime
+  playedAt     DateTime?
+  isCompleted  Boolean     @default(false)
+  homeScore    Int         @default(0)
+  awayScore    Int         @default(0)
+  notes        String?
+  season       Season      @relation(fields: [seasonId], references: [id], onDelete: Restrict)
+  homeTeam     Team        @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Restrict)
+  awayTeam     Team        @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Restrict)
+  winnerTeam   Team?       @relation("WinnerTeam", fields: [winnerTeamId], references: [id], onDelete: SetNull)
+  games        MatchGame[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([seasonId, homeTeamId, awayTeamId, scheduledAt])
+  @@index([seasonId, scheduledAt])
+  @@index([homeTeamId, awayTeamId])
+  @@index([winnerTeamId])
+}
+
+model MatchGame {
+  id              String             @id @default(cuid())
+  matchId         String
+  gameNumber      Int
+  riotMatchId     String?            @unique
+  blueTeamId      String
+  redTeamId       String
+  winnerTeamId    String?
+  playedAt        DateTime?
+  durationSeconds Int?
+  match           Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  blueTeam        Team               @relation("BlueSideTeam", fields: [blueTeamId], references: [id], onDelete: Restrict)
+  redTeam         Team               @relation("RedSideTeam", fields: [redTeamId], references: [id], onDelete: Restrict)
+  winnerTeam      Team?              @relation("GameWinnerTeam", fields: [winnerTeamId], references: [id], onDelete: SetNull)
+  playerStats     PlayerMatchStats[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@unique([matchId, gameNumber])
+  @@index([matchId])
+  @@index([blueTeamId, redTeamId])
+}
+
+model PlayerMatchStats {
+  id            String      @id @default(cuid())
+  playerId      String
+  matchGameId   String
+  teamId        String
+  champion      String
+  kills         Int         @default(0)
+  deaths        Int         @default(0)
+  assists       Int         @default(0)
+  cs            Int         @default(0)
+  gold          Int         @default(0)
+  damage        Int         @default(0)
+  visionScore   Int         @default(0)
+  side          String
+  result        MatchResult
+  player        Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  matchGame     MatchGame   @relation(fields: [matchGameId], references: [id], onDelete: Cascade)
+  team          Team        @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  createdAt     DateTime    @default(now())
+
+  @@unique([playerId, matchGameId])
+  @@index([teamId])
+  @@index([champion])
+  @@index([result])
+}
+
+model MarketValueHistory {
+  id            String   @id @default(cuid())
+  playerId      String
+  previousValue Int
+  newValue      Int
+  reason        String?
+  changedById   String?
+  player        Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  changedBy     User?    @relation("MarketValueChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+  changedAt     DateTime @default(now())
+
+  @@index([playerId, changedAt])
+  @@index([changedById])
+}
+
+model Trophy {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  seasonId    String
+  teamId      String?
+  playerId    String?
+  awardedAt   DateTime @default(now())
+  season      Season   @relation(fields: [seasonId], references: [id], onDelete: Restrict)
+  team        Team?    @relation("TeamTrophies", fields: [teamId], references: [id], onDelete: SetNull)
+  player      Player?  @relation("PlayerTrophies", fields: [playerId], references: [id], onDelete: SetNull)
+
+  @@index([seasonId, awardedAt])
+  @@index([teamId])
+  @@index([playerId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  entity    String
+  entityId  String
+  details   Json?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([entity, entityId])
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sessionToken])
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

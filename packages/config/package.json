@@ -1,0 +1,25 @@
+{
+  "name": "@nexus/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint/base": "./eslint/base.mjs",
+    "./eslint/next": "./eslint/next.mjs",
+    "./typescript/base": "./typescript/base.json",
+    "./typescript/nextjs": "./typescript/nextjs.json",
+    "./tailwind/nexus-theme.css": "./tailwind/nexus-theme.css"
+  },
+  "dependencies": {
+    "@next/eslint-plugin-next": "15.5.14",
+    "@eslint/js": "9.39.1",
+    "eslint-config-next": "15.5.14",
+    "globals": "17.4.0",
+    "typescript-eslint": "8.57.2"
+  },
+  "scripts": {
+    "build": "echo \"No build required for @nexus/config\"",
+    "lint": "echo \"No lint required for @nexus/config\"",
+    "typecheck": "echo \"No typecheck required for @nexus/config\""
+  }
+}

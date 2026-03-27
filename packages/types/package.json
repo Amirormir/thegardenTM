@@ -1,0 +1,22 @@
+{
+  "name": "@nexus/types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./player": "./player.ts",
+    "./team": "./team.ts",
+    "./match": "./match.ts",
+    "./riot": "./riot.ts"
+  },
+  "devDependencies": {
+    "@nexus/config": "workspace:*",
+    "@types/node": "25.5.0"
+  },
+  "scripts": {
+    "build": "echo \"No build required for @nexus/types\"",
+    "lint": "echo \"No lint required for @nexus/types\"",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}
