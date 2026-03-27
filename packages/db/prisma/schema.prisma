@@ -93,14 +93,16 @@ model Player {
   tagLine            String
   puuid              String?              @unique
   summonerId         String?              @unique
+  imageUrl           String?
   role               PlayerRole
+  secondaryRoles     PlayerRole[]         @default([])
   age                Int?
   nationality        String?
   marketValue        Int                  @default(0)
   salary             Int                  @default(0)
   isActive           Boolean              @default(true)
-  teamId             String
-  team               Team                 @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  teamId             String?
+  team               Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
   contracts          Contract[]
   marketValueHistory MarketValueHistory[]
   playerMatchStats   PlayerMatchStats[]

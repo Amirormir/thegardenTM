@@ -28,18 +28,38 @@ export function PlayerCard({ player }: PlayerCardProps) {
   return (
     <Card className="h-full">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={player.role}>{player.role}</Badge>
-            <Badge variant={tier}>{tier}</Badge>
+        <div className="flex min-w-0 gap-4">
+          {player.imageUrl ? (
+            <img
+              src={player.imageUrl}
+              alt={player.gameName}
+              className="h-16 w-16 shrink-0 rounded-2xl object-cover ring-1 ring-white/10"
+            />
+          ) : (
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/8 text-sm font-semibold text-white ring-1 ring-white/10">
+              {player.gameName.slice(0, 2).toUpperCase()}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={player.role}>{player.role}</Badge>
+              {player.secondaryRoles?.map((secondaryRole) => (
+                <Badge key={secondaryRole} variant={secondaryRole}>
+                  {secondaryRole}
+                </Badge>
+              ))}
+              <Badge variant={tier}>{tier}</Badge>
+            </div>
+            <h3 className="mt-4 font-display text-2xl font-bold text-white">
+              {player.gameName}
+              <span className="ml-1 text-base font-medium text-text-secondary">
+                #{player.tagLine}
+              </span>
+            </h3>
+            <p className="mt-1 text-sm text-text-secondary">
+              {player.firstName} {player.lastName} / {player.teamName}
+            </p>
           </div>
-          <h3 className="mt-4 font-display text-2xl font-bold text-white">
-            {player.gameName}
-            <span className="ml-1 text-base font-medium text-text-secondary">#{player.tagLine}</span>
-          </h3>
-          <p className="mt-1 text-sm text-text-secondary">
-            {player.firstName} {player.lastName} • {player.teamName}
-          </p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-[0.18em] text-text-secondary">
           Salary {player.salary.toLocaleString('fr-FR')}

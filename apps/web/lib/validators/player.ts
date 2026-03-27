@@ -1,6 +1,38 @@
 import { z } from 'zod';
 
 export const playerRoleSchema = z.enum(['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']);
+export const playerRolesSchema = z
+  .array(playerRoleSchema)
+  .min(1)
+  .max(5)
+  .refine((roles) => new Set(roles).size === roles.length, {
+    message: 'Roles must be unique.',
+  });
+
+const optionalTrimmedString = z
+  .string()
+  .trim()
+  .transform((value) => (value.length > 0 ? value : undefined))
+  .optional();
+
+const optionalNullableIdSchema = z
+  .string()
+  .trim()
+  .transform((value) => (value.length > 0 ? value : null))
+  .nullable()
+  .optional();
+
+const optionalImageUrlSchema = z
+  .union([z.string().trim(), z.null()])
+  .transform((value) => {
+    if (value === null || value.length === 0) {
+      return null;
+    }
+
+    return value;
+  })
+  .pipe(z.string().url().nullable())
+  .optional();
 
 export const playerIdSchema = z.object({
   id: z.string().min(1),
@@ -18,26 +50,48 @@ export const playerListQuerySchema = z.object({
     .optional(),
 });
 
-export const playerCreateSchema = z.object({
+const playerBaseInputSchema = z.object({
   firstName: z.string().min(1).max(50),
   lastName: z.string().min(1).max(50),
-  slug: z.string().min(1).max(60),
+  slug: z.string().min(1).max(60).optional(),
   gameName: z.string().min(1).max(40),
   tagLine: z.string().min(1).max(10),
   role: playerRoleSchema,
-  teamId: z.string().min(1),
+  secondaryRoles: z.array(playerRoleSchema).max(4).default([]),
+  teamId: optionalNullableIdSchema,
+  imageUrl: optionalImageUrlSchema,
   age: z.number().int().positive().max(99).optional(),
-  nationality: z.string().min(2).max(50).optional(),
+  nationality: optionalTrimmedString.pipe(z.string().min(2).max(50).optional()),
   marketValue: z.number().int().nonnegative(),
   salary: z.number().int().nonnegative(),
-  puuid: z.string().min(1).optional(),
-  summonerId: z.string().min(1).optional(),
+  puuid: optionalTrimmedString.pipe(z.string().min(1).optional()),
+  summonerId: optionalTrimmedString.pipe(z.string().min(1).optional()),
   isActive: z.boolean().optional(),
 });
 
-export const playerUpdateSchema = playerCreateSchema.partial().extend({
-  id: z.string().min(1),
-});
+export const playerCreateSchema = playerBaseInputSchema.refine(
+  (input) => !input.secondaryRoles.includes(input.role),
+  {
+    message: 'Primary role cannot be duplicated in secondary roles.',
+    path: ['secondaryRoles'],
+  },
+);
+
+export const playerUpdateSchema = playerBaseInputSchema
+  .partial()
+  .extend({
+    id: z.string().min(1),
+  })
+  .refine(
+    (input) =>
+      input.role === undefined ||
+      input.secondaryRoles === undefined ||
+      !input.secondaryRoles.includes(input.role),
+    {
+      message: 'Primary role cannot be duplicated in secondary roles.',
+      path: ['secondaryRoles'],
+    },
+  );
 
 export const playerDeleteSchema = z.object({
   id: z.string().min(1),
@@ -47,4 +101,44 @@ export const updateMarketValueSchema = z.object({
   playerId: z.string().min(1),
   newValue: z.number().int().nonnegative(),
   reason: z.string().min(1).max(255).optional(),
+});
+
+export const marketValueHistoryCreateSchema = z.object({
+  playerId: z.string().min(1),
+  newValue: z.number().int().nonnegative(),
+  reason: optionalTrimmedString.pipe(z.string().max(255).optional()),
+  changedAt: z.coerce.date(),
+});
+
+export const marketValueHistoryUpdateSchema = z.object({
+  id: z.string().min(1),
+  newValue: z.number().int().nonnegative(),
+  reason: optionalTrimmedString.pipe(z.string().max(255).optional()),
+  changedAt: z.coerce.date(),
+});
+
+export const marketValueHistoryDeleteSchema = z.object({
+  id: z.string().min(1),
+});
+
+export const playerTrophyCreateSchema = z.object({
+  playerId: z.string().min(1),
+  seasonId: z.string().min(1),
+  teamId: optionalNullableIdSchema,
+  name: z.string().trim().min(1).max(120),
+  description: optionalTrimmedString.pipe(z.string().max(255).optional()),
+  awardedAt: z.coerce.date(),
+});
+
+export const playerTrophyUpdateSchema = z.object({
+  id: z.string().min(1),
+  seasonId: z.string().min(1),
+  teamId: optionalNullableIdSchema,
+  name: z.string().trim().min(1).max(120),
+  description: optionalTrimmedString.pipe(z.string().max(255).optional()),
+  awardedAt: z.coerce.date(),
+});
+
+export const playerTrophyDeleteSchema = z.object({
+  id: z.string().min(1),
 });
