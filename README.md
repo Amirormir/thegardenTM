@@ -88,6 +88,9 @@ CLOUDINARY_URL=""
 - Les modèles Prisma `Account`, `Session` et `VerificationToken` ont été ajoutés, car ils sont requis par l’adapter Prisma d’Auth.js même s’ils ne sont pas listés explicitement dans la spec métier.
 - Le routage Riot est fixé à `europe` pour les endpoints régionaux et `euw1` pour les endpoints plateforme, en cohérence avec l’exemple `EUW1_*` de la spec.
 - Un champ `Team.budget` a été ajouté pour supporter le dashboard d’équipe et le calculateur budget sans inventer de logique métier supplémentaire.
+- Les joueurs peuvent être `Free Agent` via `teamId = null` au lieu d’une pseudo-team système, ce qui limite les effets de bord sur les statistiques et le transfermarket.
+- Les rôles multiples sont modélisés avec un rôle principal `Player.role` et des rôles secondaires `Player.secondaryRoles`, afin de rester compatibles avec le tri et les badges publics déjà en place.
+- La photo de profil admin est gérée comme une URL d’image (`Player.imageUrl`) plutôt qu’un upload direct, pour ne pas bloquer le back-office tant que Cloudinary n’est pas branché.
 - `metadataBase` est initialisé à `http://localhost:3004` par défaut pour éviter les warnings Open Graph en local.
 - Le seed Credentials utilise des comptes de démonstration avec mot de passe commun `NexusLeague!2026`.
 

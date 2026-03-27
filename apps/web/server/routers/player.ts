@@ -1,18 +1,82 @@
+import type { PlayerRole, Prisma } from '@nexus/db';
 import { TRPCError } from '@trpc/server';
 import { getAccountByRiotId } from '@/lib/riot';
 import {
+  marketValueHistoryCreateSchema,
+  marketValueHistoryDeleteSchema,
+  marketValueHistoryUpdateSchema,
   playerByTeamSchema,
   playerCreateSchema,
   playerDeleteSchema,
   playerIdSchema,
   playerListQuerySchema,
+  playerTrophyCreateSchema,
+  playerTrophyDeleteSchema,
+  playerTrophyUpdateSchema,
   playerUpdateSchema,
   updateMarketValueSchema,
 } from '@/lib/validators/player';
 import { buildAuditLogInput } from '@/server/utils/audit';
 import { adminProcedure, createTRPCRouter, publicProcedure } from '@/server/trpc';
 
-async function resolvePuuid(gameName: string, tagLine: string, currentPuuid?: string) {
+const FREE_AGENT_NAME = 'Free Agent';
+const FREE_AGENT_SHORT_CODE = 'FA';
+
+function normalizeSecondaryRoles(
+  roles: PlayerRole[] | undefined,
+  primaryRole: PlayerRole,
+): PlayerRole[] {
+  return [...new Set((roles ?? []).filter((role) => role !== primaryRole))];
+}
+
+function toTeamDisplay(team: { name: string; shortCode: string } | null) {
+  return {
+    teamName: team?.name ?? FREE_AGENT_NAME,
+    teamShortCode: team?.shortCode ?? FREE_AGENT_SHORT_CODE,
+  };
+}
+
+function slugifyPlayer(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+}
+
+async function buildUniquePlayerSlug(
+  client: {
+    player: {
+      count(args: Prisma.PlayerCountArgs): Promise<number>;
+    };
+  },
+  source: string,
+  currentId?: string,
+) {
+  const base = slugifyPlayer(source) || 'player';
+  let candidate = base;
+  let attempt = 1;
+
+  while (true) {
+    const count = await client.player.count({
+      where: {
+        slug: candidate,
+        ...(currentId ? { NOT: { id: currentId } } : {}),
+      },
+    });
+
+    if (count === 0) {
+      return candidate;
+    }
+
+    attempt += 1;
+    candidate = `${base}-${attempt}`;
+  }
+}
+
+async function resolvePuuid(gameName: string, tagLine: string, currentPuuid?: string | null) {
   if (currentPuuid) {
     return currentPuuid;
   }
@@ -25,9 +89,82 @@ async function resolvePuuid(gameName: string, tagLine: string, currentPuuid?: st
   }
 }
 
+async function rebuildPlayerMarketValueHistory(tx: Prisma.TransactionClient, playerId: string) {
+  const entries = await tx.marketValueHistory.findMany({
+    where: { playerId },
+    orderBy: [{ changedAt: 'asc' }, { id: 'asc' }],
+    select: {
+      id: true,
+      newValue: true,
+      previousValue: true,
+    },
+  });
+
+  let previousValue = 0;
+
+  for (const entry of entries) {
+    if (entry.previousValue !== previousValue) {
+      await tx.marketValueHistory.update({
+        where: { id: entry.id },
+        data: {
+          previousValue,
+        },
+      });
+    }
+
+    previousValue = entry.newValue;
+  }
+
+  await tx.player.update({
+    where: { id: playerId },
+    data: {
+      marketValue: previousValue,
+    },
+  });
+
+  return {
+    currentValue: previousValue,
+    count: entries.length,
+  };
+}
+
 export const playerRouter = createTRPCRouter({
   getAll: publicProcedure.input(playerListQuerySchema.optional()).query(async ({ ctx, input }) => {
     const search = input?.search?.trim();
+    const where: Prisma.PlayerWhereInput = {
+      isActive: true,
+      AND: [
+        ...(input?.role
+          ? [
+              {
+                OR: [{ role: input.role }, { secondaryRoles: { has: input.role } }],
+              },
+            ]
+          : []),
+        ...(search
+          ? [
+              {
+                OR: [
+                  { gameName: { contains: search, mode: 'insensitive' as const } },
+                  { firstName: { contains: search, mode: 'insensitive' as const } },
+                  { lastName: { contains: search, mode: 'insensitive' as const } },
+                  { tagLine: { contains: search, mode: 'insensitive' as const } },
+                  {
+                    team: {
+                      name: { contains: search, mode: 'insensitive' as const },
+                    },
+                  },
+                  {
+                    team: {
+                      shortCode: { contains: search, mode: 'insensitive' as const },
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+      ],
+    };
 
     const orderBy =
       input?.sort === 'marketValue-asc'
@@ -41,30 +178,7 @@ export const playerRouter = createTRPCRouter({
               : [{ marketValue: 'desc' as const }];
 
     const players = await ctx.prisma.player.findMany({
-      where: {
-        isActive: true,
-        ...(input?.role ? { role: input.role } : {}),
-        ...(search
-          ? {
-              OR: [
-                { gameName: { contains: search, mode: 'insensitive' } },
-                { firstName: { contains: search, mode: 'insensitive' } },
-                { lastName: { contains: search, mode: 'insensitive' } },
-                { tagLine: { contains: search, mode: 'insensitive' } },
-                {
-                  team: {
-                    name: { contains: search, mode: 'insensitive' },
-                  },
-                },
-                {
-                  team: {
-                    shortCode: { contains: search, mode: 'insensitive' },
-                  },
-                },
-              ],
-            }
-          : {}),
-      },
+      where,
       orderBy,
       select: {
         id: true,
@@ -72,7 +186,9 @@ export const playerRouter = createTRPCRouter({
         lastName: true,
         gameName: true,
         tagLine: true,
+        imageUrl: true,
         role: true,
+        secondaryRoles: true,
         marketValue: true,
         salary: true,
         teamId: true,
@@ -83,7 +199,7 @@ export const playerRouter = createTRPCRouter({
           },
         },
         marketValueHistory: {
-          orderBy: { changedAt: 'desc' },
+          orderBy: [{ changedAt: 'desc' }, { id: 'desc' }],
           take: 1,
           select: {
             previousValue: true,
@@ -99,7 +215,9 @@ export const playerRouter = createTRPCRouter({
       lastName: player.lastName,
       gameName: player.gameName,
       tagLine: player.tagLine,
+      imageUrl: player.imageUrl,
       role: player.role,
+      secondaryRoles: player.secondaryRoles,
       marketValue: player.marketValue,
       marketValueDelta:
         player.marketValueHistory[0]?.newValue !== undefined
@@ -107,8 +225,7 @@ export const playerRouter = createTRPCRouter({
           : 0,
       salary: player.salary,
       teamId: player.teamId,
-      teamName: player.team.name,
-      teamShortCode: player.team.shortCode,
+      ...toTeamDisplay(player.team),
     }));
   }),
 
@@ -124,12 +241,15 @@ export const playerRouter = createTRPCRouter({
         tagLine: true,
         puuid: true,
         summonerId: true,
+        imageUrl: true,
         role: true,
+        secondaryRoles: true,
         age: true,
         nationality: true,
         marketValue: true,
         salary: true,
         isActive: true,
+        teamId: true,
         team: {
           select: {
             id: true,
@@ -153,8 +273,8 @@ export const playerRouter = createTRPCRouter({
           },
         },
         marketValueHistory: {
-          orderBy: { changedAt: 'desc' },
-          take: 10,
+          orderBy: [{ changedAt: 'desc' }, { id: 'desc' }],
+          take: 20,
           select: {
             id: true,
             previousValue: true,
@@ -213,6 +333,29 @@ export const playerRouter = createTRPCRouter({
             },
           },
         },
+        playerTrophies: {
+          orderBy: [{ awardedAt: 'desc' }, { id: 'desc' }],
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            awardedAt: true,
+            season: {
+              select: {
+                id: true,
+                name: true,
+                year: true,
+              },
+            },
+            team: {
+              select: {
+                id: true,
+                name: true,
+                shortCode: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -233,31 +376,189 @@ export const playerRouter = createTRPCRouter({
         lastName: true,
         gameName: true,
         tagLine: true,
+        imageUrl: true,
         role: true,
+        secondaryRoles: true,
         marketValue: true,
         salary: true,
         isActive: true,
+        teamId: true,
       },
     }),
   ),
 
+  getAdminRegistry: adminProcedure.query(async ({ ctx }) => {
+    const players = await ctx.prisma.player.findMany({
+      orderBy: [{ isActive: 'desc' }, { marketValue: 'desc' }, { gameName: 'asc' }],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        gameName: true,
+        tagLine: true,
+        imageUrl: true,
+        role: true,
+        secondaryRoles: true,
+        marketValue: true,
+        salary: true,
+        isActive: true,
+        teamId: true,
+        team: {
+          select: {
+            name: true,
+            shortCode: true,
+          },
+        },
+      },
+    });
+
+    return players.map((player) => ({
+      id: player.id,
+      firstName: player.firstName,
+      lastName: player.lastName,
+      gameName: player.gameName,
+      tagLine: player.tagLine,
+      imageUrl: player.imageUrl,
+      role: player.role,
+      secondaryRoles: player.secondaryRoles,
+      marketValue: player.marketValue,
+      salary: player.salary,
+      isActive: player.isActive,
+      teamId: player.teamId,
+      ...toTeamDisplay(player.team),
+    }));
+  }),
+
+  getAdminOptions: adminProcedure.query(async ({ ctx }) => {
+    const [teams, seasons] = await Promise.all([
+      ctx.prisma.team.findMany({
+        orderBy: { name: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          shortCode: true,
+        },
+      }),
+      ctx.prisma.season.findMany({
+        orderBy: [{ isCurrent: 'desc' }, { year: 'desc' }, { startDate: 'desc' }],
+        select: {
+          id: true,
+          name: true,
+          year: true,
+          isCurrent: true,
+        },
+      }),
+    ]);
+
+    return {
+      teams,
+      seasons,
+    };
+  }),
+
+  getAdminDetails: adminProcedure.input(playerIdSchema).query(async ({ ctx, input }) => {
+    const player = await ctx.prisma.player.findUnique({
+      where: { id: input.id },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        slug: true,
+        gameName: true,
+        tagLine: true,
+        imageUrl: true,
+        puuid: true,
+        summonerId: true,
+        role: true,
+        secondaryRoles: true,
+        age: true,
+        nationality: true,
+        marketValue: true,
+        salary: true,
+        isActive: true,
+        teamId: true,
+        team: {
+          select: {
+            id: true,
+            name: true,
+            shortCode: true,
+          },
+        },
+        marketValueHistory: {
+          orderBy: [{ changedAt: 'desc' }, { id: 'desc' }],
+          select: {
+            id: true,
+            previousValue: true,
+            newValue: true,
+            reason: true,
+            changedAt: true,
+            changedBy: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        playerTrophies: {
+          orderBy: [{ awardedAt: 'desc' }, { id: 'desc' }],
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            awardedAt: true,
+            seasonId: true,
+            season: {
+              select: {
+                id: true,
+                name: true,
+                year: true,
+              },
+            },
+            teamId: true,
+            team: {
+              select: {
+                id: true,
+                name: true,
+                shortCode: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!player) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Player not found.' });
+    }
+
+    return player;
+  }),
+
   create: adminProcedure.input(playerCreateSchema).mutation(async ({ ctx, input }) => {
-    const puuid = await resolvePuuid(input.gameName, input.tagLine, input.puuid);
+    const secondaryRoles = normalizeSecondaryRoles(input.secondaryRoles, input.role);
+    const slug = await buildUniquePlayerSlug(
+      ctx.prisma,
+      input.slug ?? input.gameName ?? `${input.firstName}-${input.lastName}`,
+    );
+    const puuid = await resolvePuuid(input.gameName, input.tagLine, input.puuid ?? null);
 
     return ctx.prisma.$transaction(async (tx) => {
       const player = await tx.player.create({
         data: {
           firstName: input.firstName,
           lastName: input.lastName,
-          slug: input.slug,
+          slug,
           gameName: input.gameName,
           tagLine: input.tagLine,
           role: input.role,
-          teamId: input.teamId,
-          marketValue: input.marketValue,
-          salary: input.salary,
+          secondaryRoles,
+          teamId: input.teamId ?? null,
+          imageUrl: input.imageUrl ?? null,
           ...(input.age !== undefined ? { age: input.age } : {}),
           ...(input.nationality ? { nationality: input.nationality } : {}),
+          marketValue: input.marketValue,
+          salary: input.salary,
           ...(puuid ? { puuid } : {}),
           ...(input.summonerId ? { summonerId: input.summonerId } : {}),
           ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
@@ -267,8 +568,11 @@ export const playerRouter = createTRPCRouter({
           gameName: true,
           tagLine: true,
           role: true,
+          secondaryRoles: true,
           marketValue: true,
           salary: true,
+          teamId: true,
+          imageUrl: true,
         },
       });
 
@@ -291,7 +595,9 @@ export const playerRouter = createTRPCRouter({
           details: {
             gameName: player.gameName,
             role: player.role,
+            secondaryRoles: player.secondaryRoles,
             marketValue: player.marketValue,
+            teamId: player.teamId,
           },
         }),
       });
@@ -306,12 +612,21 @@ export const playerRouter = createTRPCRouter({
       where: { id },
       select: {
         id: true,
+        firstName: true,
+        lastName: true,
+        slug: true,
         gameName: true,
         tagLine: true,
         puuid: true,
-        teamId: true,
+        imageUrl: true,
         role: true,
+        secondaryRoles: true,
+        teamId: true,
         marketValue: true,
+        salary: true,
+        age: true,
+        nationality: true,
+        isActive: true,
       },
     });
 
@@ -319,14 +634,23 @@ export const playerRouter = createTRPCRouter({
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Player not found.' });
     }
 
+    const nextRole = data.role ?? existing.role;
+    const secondaryRoles = normalizeSecondaryRoles(
+      data.secondaryRoles ?? existing.secondaryRoles,
+      nextRole,
+    );
     const puuid =
       data.gameName || data.tagLine || data.puuid !== undefined
         ? await resolvePuuid(
             data.gameName ?? existing.gameName,
             data.tagLine ?? existing.tagLine,
-            data.puuid ?? existing.puuid ?? undefined,
+            data.puuid ?? existing.puuid,
           )
         : existing.puuid;
+    const slug =
+      data.slug !== undefined
+        ? await buildUniquePlayerSlug(ctx.prisma, data.slug, existing.id)
+        : undefined;
 
     return ctx.prisma.$transaction(async (tx) => {
       const updatedPlayer = await tx.player.update({
@@ -334,11 +658,13 @@ export const playerRouter = createTRPCRouter({
         data: {
           ...(data.firstName ? { firstName: data.firstName } : {}),
           ...(data.lastName ? { lastName: data.lastName } : {}),
-          ...(data.slug ? { slug: data.slug } : {}),
+          ...(slug ? { slug } : {}),
           ...(data.gameName ? { gameName: data.gameName } : {}),
           ...(data.tagLine ? { tagLine: data.tagLine } : {}),
-          ...(data.role ? { role: data.role } : {}),
-          ...(data.teamId ? { teamId: data.teamId } : {}),
+          ...(data.imageUrl !== undefined ? { imageUrl: data.imageUrl } : {}),
+          role: nextRole,
+          secondaryRoles,
+          ...(data.teamId !== undefined ? { teamId: data.teamId } : {}),
           ...(data.age !== undefined ? { age: data.age } : {}),
           ...(data.nationality ? { nationality: data.nationality } : {}),
           ...(data.marketValue !== undefined ? { marketValue: data.marketValue } : {}),
@@ -351,8 +677,10 @@ export const playerRouter = createTRPCRouter({
           id: true,
           gameName: true,
           role: true,
+          secondaryRoles: true,
           teamId: true,
           marketValue: true,
+          imageUrl: true,
         },
       });
 
@@ -366,6 +694,8 @@ export const playerRouter = createTRPCRouter({
             changedById: ctx.session.user.id,
           },
         });
+
+        await rebuildPlayerMarketValueHistory(tx, id);
       }
 
       await tx.auditLog.create({
@@ -451,6 +781,8 @@ export const playerRouter = createTRPCRouter({
           },
         });
 
+        await rebuildPlayerMarketValueHistory(tx, input.playerId);
+
         await tx.auditLog.create({
           data: buildAuditLogInput({
             userId: ctx.session.user.id,
@@ -468,4 +800,290 @@ export const playerRouter = createTRPCRouter({
         return updated;
       });
     }),
+
+  createMarketValueHistory: adminProcedure
+    .input(marketValueHistoryCreateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const player = await ctx.prisma.player.findUnique({
+        where: { id: input.playerId },
+        select: {
+          id: true,
+          gameName: true,
+        },
+      });
+
+      if (!player) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Player not found.' });
+      }
+
+      return ctx.prisma.$transaction(async (tx) => {
+        const entry = await tx.marketValueHistory.create({
+          data: {
+            playerId: input.playerId,
+            previousValue: 0,
+            newValue: input.newValue,
+            changedAt: input.changedAt,
+            changedById: ctx.session.user.id,
+            ...(input.reason !== undefined ? { reason: input.reason } : {}),
+          },
+          select: {
+            id: true,
+            playerId: true,
+            newValue: true,
+            changedAt: true,
+          },
+        });
+
+        await rebuildPlayerMarketValueHistory(tx, input.playerId);
+
+        await tx.auditLog.create({
+          data: buildAuditLogInput({
+            userId: ctx.session.user.id,
+            action: 'CREATE',
+            entity: 'MarketValueHistory',
+            entityId: entry.id,
+            details: {
+              playerId: input.playerId,
+              gameName: player.gameName,
+              newValue: input.newValue,
+              changedAt: input.changedAt,
+            },
+          }),
+        });
+
+        return entry;
+      });
+    }),
+
+  updateMarketValueHistory: adminProcedure
+    .input(marketValueHistoryUpdateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.prisma.marketValueHistory.findUnique({
+        where: { id: input.id },
+        select: {
+          id: true,
+          playerId: true,
+          previousValue: true,
+          newValue: true,
+          reason: true,
+          changedAt: true,
+        },
+      });
+
+      if (!existing) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Market value entry not found.' });
+      }
+
+      return ctx.prisma.$transaction(async (tx) => {
+        const updated = await tx.marketValueHistory.update({
+          where: { id: input.id },
+          data: {
+            newValue: input.newValue,
+            changedAt: input.changedAt,
+            changedById: ctx.session.user.id,
+            ...(input.reason !== undefined ? { reason: input.reason } : {}),
+          },
+          select: {
+            id: true,
+            playerId: true,
+            newValue: true,
+            changedAt: true,
+          },
+        });
+
+        await rebuildPlayerMarketValueHistory(tx, existing.playerId);
+
+        await tx.auditLog.create({
+          data: buildAuditLogInput({
+            userId: ctx.session.user.id,
+            action: 'UPDATE',
+            entity: 'MarketValueHistory',
+            entityId: input.id,
+            details: {
+              before: existing,
+              after: updated,
+            },
+          }),
+        });
+
+        return updated;
+      });
+    }),
+
+  deleteMarketValueHistory: adminProcedure
+    .input(marketValueHistoryDeleteSchema)
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.prisma.marketValueHistory.findUnique({
+        where: { id: input.id },
+        select: {
+          id: true,
+          playerId: true,
+          newValue: true,
+          changedAt: true,
+        },
+      });
+
+      if (!existing) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Market value entry not found.' });
+      }
+
+      return ctx.prisma.$transaction(async (tx) => {
+        await tx.marketValueHistory.delete({
+          where: { id: input.id },
+        });
+
+        await rebuildPlayerMarketValueHistory(tx, existing.playerId);
+
+        await tx.auditLog.create({
+          data: buildAuditLogInput({
+            userId: ctx.session.user.id,
+            action: 'DELETE',
+            entity: 'MarketValueHistory',
+            entityId: input.id,
+            details: existing,
+          }),
+        });
+
+        return { success: true };
+      });
+    }),
+
+  createTrophy: adminProcedure.input(playerTrophyCreateSchema).mutation(async ({ ctx, input }) => {
+    const player = await ctx.prisma.player.findUnique({
+      where: { id: input.playerId },
+      select: {
+        id: true,
+        gameName: true,
+      },
+    });
+
+    if (!player) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Player not found.' });
+    }
+
+    return ctx.prisma.$transaction(async (tx) => {
+      const trophy = await tx.trophy.create({
+        data: {
+          playerId: input.playerId,
+          seasonId: input.seasonId,
+          teamId: input.teamId ?? null,
+          name: input.name,
+          awardedAt: input.awardedAt,
+          ...(input.description !== undefined ? { description: input.description } : {}),
+        },
+        select: {
+          id: true,
+          name: true,
+          seasonId: true,
+          teamId: true,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: buildAuditLogInput({
+          userId: ctx.session.user.id,
+          action: 'CREATE',
+          entity: 'Trophy',
+          entityId: trophy.id,
+          details: {
+            playerId: input.playerId,
+            gameName: player.gameName,
+            name: input.name,
+            seasonId: input.seasonId,
+            teamId: input.teamId ?? null,
+          },
+        }),
+      });
+
+      return trophy;
+    });
+  }),
+
+  updateTrophy: adminProcedure.input(playerTrophyUpdateSchema).mutation(async ({ ctx, input }) => {
+    const existing = await ctx.prisma.trophy.findUnique({
+      where: { id: input.id },
+      select: {
+        id: true,
+        playerId: true,
+        seasonId: true,
+        teamId: true,
+        name: true,
+        description: true,
+        awardedAt: true,
+      },
+    });
+
+    if (!existing) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Trophy not found.' });
+    }
+
+    return ctx.prisma.$transaction(async (tx) => {
+      const updated = await tx.trophy.update({
+        where: { id: input.id },
+        data: {
+          seasonId: input.seasonId,
+          teamId: input.teamId ?? null,
+          name: input.name,
+          awardedAt: input.awardedAt,
+          ...(input.description !== undefined ? { description: input.description } : {}),
+        },
+        select: {
+          id: true,
+          playerId: true,
+          seasonId: true,
+          teamId: true,
+          name: true,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: buildAuditLogInput({
+          userId: ctx.session.user.id,
+          action: 'UPDATE',
+          entity: 'Trophy',
+          entityId: input.id,
+          details: {
+            before: existing,
+            after: updated,
+          },
+        }),
+      });
+
+      return updated;
+    });
+  }),
+
+  deleteTrophy: adminProcedure.input(playerTrophyDeleteSchema).mutation(async ({ ctx, input }) => {
+    const existing = await ctx.prisma.trophy.findUnique({
+      where: { id: input.id },
+      select: {
+        id: true,
+        playerId: true,
+        name: true,
+        seasonId: true,
+      },
+    });
+
+    if (!existing) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Trophy not found.' });
+    }
+
+    return ctx.prisma.$transaction(async (tx) => {
+      await tx.trophy.delete({
+        where: { id: input.id },
+      });
+
+      await tx.auditLog.create({
+        data: buildAuditLogInput({
+          userId: ctx.session.user.id,
+          action: 'DELETE',
+          entity: 'Trophy',
+          entityId: input.id,
+          details: existing,
+        }),
+      });
+
+      return { success: true };
+    });
+  }),
 });

@@ -52,30 +52,55 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
     player.marketValueHistory[0]?.newValue !== undefined
       ? player.marketValueHistory[0].newValue - player.marketValueHistory[0].previousValue
       : 0;
+  const teamName = player.team?.name ?? 'Free Agent';
+  const teamShortCode = player.team?.shortCode ?? 'FA';
 
   return (
     <div className="space-y-8">
       <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <Card elevated className="space-y-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge variant={player.role}>{player.role}</Badge>
-            <Badge variant="actif">{player.isActive ? 'actif' : 'inactif'}</Badge>
+          <div className="flex flex-col gap-6 md:flex-row md:items-start">
+            {player.imageUrl ? (
+              <img
+                src={player.imageUrl}
+                alt={player.gameName}
+                className="h-28 w-28 rounded-[28px] object-cover ring-1 ring-white/10"
+              />
+            ) : (
+              <div className="flex h-28 w-28 items-center justify-center rounded-[28px] bg-white/8 font-display text-3xl font-bold text-white ring-1 ring-white/10">
+                {player.gameName.slice(0, 2).toUpperCase()}
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge variant={player.role}>{player.role}</Badge>
+                {player.secondaryRoles.map((secondaryRole) => (
+                  <Badge key={secondaryRole} variant={secondaryRole}>
+                    {secondaryRole}
+                  </Badge>
+                ))}
+                <Badge variant="actif">{player.isActive ? 'actif' : 'inactif'}</Badge>
+              </div>
+              <div className="mt-4">
+                <p className="text-kicker">
+                  {teamName} / {teamShortCode}
+                </p>
+                <h1 className="mt-2 font-display text-5xl font-bold text-white">
+                  {player.gameName}
+                  <span className="ml-2 text-2xl font-medium text-text-secondary">
+                    #{player.tagLine}
+                  </span>
+                </h1>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-text-secondary">
+                  Profil public alimente par Prisma via tRPC. On y retrouve la valorisation
+                  actuelle, les informations contractuelles, les performances stockees localement
+                  et le palmares officiel du joueur.
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="text-kicker">
-              {player.team.name} • {player.team.shortCode}
-            </p>
-            <h1 className="mt-2 font-display text-5xl font-bold text-white">
-              {player.gameName}
-              <span className="ml-2 text-2xl font-medium text-text-secondary">
-                #{player.tagLine}
-              </span>
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-text-secondary">
-              Profil public alimente par Prisma via tRPC. On y retrouve la valorisation actuelle,
-              les informations contractuelles et les dernieres performances stockees localement.
-            </p>
-          </div>
+
           <div className="grid gap-4 md:grid-cols-4">
             <Card className="border-white/8 bg-white/4">
               <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Name</p>
@@ -100,7 +125,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
               <p className="mt-2 text-lg font-semibold text-white">
                 {[player.nationality, player.age ? `${player.age} ans` : null]
                   .filter(Boolean)
-                  .join(' • ') || 'Non renseigne'}
+                  .join(' / ') || 'Non renseigne'}
               </p>
             </Card>
           </div>
@@ -138,6 +163,36 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
 
       <Card className="space-y-5">
         <div>
+          <p className="text-kicker">Palmares</p>
+          <h2 className="mt-2 font-display text-3xl font-bold text-white">Distinctions du joueur</h2>
+        </div>
+        {player.playerTrophies.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {player.playerTrophies.map((trophy) => (
+              <Card key={trophy.id} className="border-white/8 bg-white/4">
+                <p className="text-kicker">{trophy.season.name}</p>
+                <h3 className="mt-2 font-display text-2xl font-bold text-white">{trophy.name}</h3>
+                <p className="mt-3 text-sm leading-7 text-text-secondary">
+                  {trophy.description ?? 'Distinction officielle enregistree dans Nexus League.'}
+                </p>
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-[0.18em] text-text-secondary">
+                  <span>
+                    {trophy.team ? `${trophy.team.name} (${trophy.team.shortCode})` : 'Individuel'}
+                  </span>
+                  <span>{formatCompactDate(trophy.awardedAt)}</span>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm leading-7 text-text-secondary">
+            Aucun palmares n&apos;est encore enregistre pour ce joueur.
+          </p>
+        )}
+      </Card>
+
+      <Card className="space-y-5">
+        <div>
           <p className="text-kicker">Recent stored matches</p>
           <h2 className="mt-2 font-display text-3xl font-bold text-white">Dernieres stats</h2>
         </div>
@@ -161,7 +216,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                       {stat.matchGame.match.homeTeam.shortCode} vs {stat.matchGame.match.awayTeam.shortCode}
                     </div>
                     <div className="text-xs text-text-secondary">
-                      Game {stat.matchGame.gameNumber} •{' '}
+                      Game {stat.matchGame.gameNumber} /{' '}
                       {formatCompactDate(stat.matchGame.playedAt ?? stat.matchGame.match.scheduledAt)}
                     </div>
                   </TableCell>
