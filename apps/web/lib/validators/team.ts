@@ -4,6 +4,10 @@ export const teamIdSchema = z.object({
   id: z.string().min(1),
 });
 
+export const teamSlugSchema = z.object({
+  slug: z.string().min(1),
+});
+
 export const standingsInputSchema = z
   .object({
     seasonId: z.string().min(1).optional(),
@@ -16,13 +20,24 @@ export const teamCreateSchema = z.object({
   shortCode: z.string().min(2).max(8),
   logoUrl: z.string().url().optional(),
   budget: z.number().int().positive().optional(),
-  captainId: z.string().min(1).optional(),
+  captainId: z.string().min(1).nullable().optional(),
 });
 
 export const teamUpdateSchema = teamCreateSchema.partial().extend({
   id: z.string().min(1),
 });
 
+export const teamCaptainCandidatesSchema = z
+  .object({
+    teamId: z.string().min(1).optional(),
+  })
+  .optional();
+
 export const teamDeleteSchema = z.object({
   id: z.string().min(1),
+});
+
+export const teamUpdatePlayerRoleSchema = z.object({
+  playerId: z.string().min(1),
+  teamRole: z.enum(['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']),
 });

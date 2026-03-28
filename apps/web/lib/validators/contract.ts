@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-export const contractStatusSchema = z.enum(['ACTIVE', 'EXPIRED', 'TERMINATED', 'LOAN']);
+export const contractStatusSchema = z.enum([
+  'PENDING_APPROVAL',
+  'ACTIVE',
+  'EXPIRED',
+  'TERMINATED',
+  'LOAN',
+]);
 
 export const contractPlayerSchema = z.object({
   playerId: z.string().min(1),
@@ -13,21 +19,43 @@ export const contractTeamSchema = z.object({
 export const contractCreateSchema = z.object({
   playerId: z.string().min(1),
   teamId: z.string().min(1),
-  status: contractStatusSchema.optional(),
   salary: z.number().int().nonnegative(),
-  startDate: z.coerce.date(),
-  endDate: z.coerce.date(),
+  durationBo3: z.number().int().positive(),
+  releaseClause: z.number().int().positive(),
   transferFee: z.number().int().nonnegative().optional(),
-  releaseClause: z.number().int().nonnegative().optional(),
   notes: z.string().max(500).optional(),
 });
 
-export const contractUpdateSchema = contractCreateSchema.partial().extend({
+export const contractUpdateSchema = z.object({
   id: z.string().min(1),
+  salary: z.number().int().nonnegative().optional(),
+  durationBo3: z.number().int().positive().optional(),
+  releaseClause: z.number().int().positive().optional(),
+  transferFee: z.number().int().nonnegative().optional(),
+  notes: z.string().max(500).optional(),
+});
+
+export const contractApproveSchema = z.object({
+  id: z.string().min(1),
+});
+
+export const contractRejectSchema = z.object({
+  id: z.string().min(1),
+  reason: z.string().max(500).optional(),
 });
 
 export const contractTerminateSchema = z.object({
   id: z.string().min(1),
   terminatedAt: z.coerce.date().optional(),
   reason: z.string().max(500).optional(),
+});
+
+// Renewal = expire the current active contract + submit new terms for admin approval
+export const contractRenewSchema = z.object({
+  id: z.string().min(1),
+  salary: z.number().int().nonnegative(),
+  durationBo3: z.number().int().positive(),
+  releaseClause: z.number().int().positive(),
+  transferFee: z.number().int().nonnegative().optional(),
+  notes: z.string().max(500).optional(),
 });

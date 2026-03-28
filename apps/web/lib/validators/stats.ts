@@ -23,3 +23,20 @@ export const scheduleSchema = z
     seasonId: z.string().min(1).optional(),
   })
   .optional();
+
+export const seasonCreateSchema = z.object({
+  name: z.string().min(1).max(80),
+  slug: z.string().min(1).max(80),
+  year: z.number().int().positive(),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  isCurrent: z.boolean().default(false),
+});
+
+export const seasonUpdateSchema = seasonCreateSchema.partial().extend({
+  id: z.string().min(1),
+});
+
+export const seasonDeleteSchema = z.object({
+  id: z.string().min(1),
+});
