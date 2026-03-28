@@ -28,10 +28,28 @@ if (!['prisma', 'tsx'].includes(commandName)) {
 }
 
 const pnpmExecutable = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+const commandEnv = { ...process.env };
+
+const isPrismaGenerateCommand =
+  commandName === 'prisma' && commandArgs[0] === 'generate';
+
+if (
+  isPrismaGenerateCommand &&
+  !commandArgs.includes('--no-engine') &&
+  !commandArgs.includes('--accelerate') &&
+  !commandArgs.includes('--data-proxy')
+) {
+  // This workspace uses direct Postgres URLs. If a global env var forces
+  // `prisma generate --no-engine`, Prisma silently generates a Data Proxy
+  // client that later rejects `postgresql://...` at runtime.
+  delete commandEnv.PRISMA_GENERATE_NO_ENGINE;
+  delete commandEnv.PRISMA_GENERATE_ACCELERATE;
+  delete commandEnv.PRISMA_GENERATE_DATAPROXY;
+}
 
 const result = spawnSync(pnpmExecutable, ['exec', commandName, ...commandArgs], {
   cwd: packageDirectory,
-  env: process.env,
+  env: commandEnv,
   shell: process.platform === 'win32',
   stdio: 'inherit',
 });

@@ -26,7 +26,7 @@ interface SeedTeam {
 
 interface SeedPlayer {
   id: string;
-  teamId: string;
+  teamId: string | null;
   firstName: string;
   lastName: string;
   slug: string;
@@ -83,6 +83,7 @@ const teams: SeedTeam[] = [
   { id: 'team-2', name: 'Crimson Nova', slug: 'crimson-nova', shortCode: 'CN', budget: 1150000, captainId: 'user-captain-2' },
   { id: 'team-3', name: 'Golden Echo', slug: 'golden-echo', shortCode: 'GE', budget: 1100000, captainId: 'user-captain-3' },
   { id: 'team-4', name: 'Void Sentinels', slug: 'void-sentinels', shortCode: 'VS', budget: 1250000, captainId: 'user-captain-4' },
+  { id: 'team-test', name: 'Admin Test Squad', slug: 'admin-test-squad', shortCode: 'ADM', budget: 1350000, captainId: 'user-admin' },
 ];
 
 const players: SeedPlayer[] = [
@@ -106,6 +107,11 @@ const players: SeedPlayer[] = [
   { id: 'player-18', teamId: 'team-4', firstName: 'Ayman', lastName: 'Robert', slug: 'zeropulse', gameName: 'ZeroPulse', tagLine: 'EUW', puuid: 'puuid-player-18', summonerId: 'summoner-player-18', role: PlayerRole.MID, age: 21, nationality: 'France', marketValue: 980000, salary: 235000 },
   { id: 'player-19', teamId: 'team-4', firstName: 'Tom', lastName: 'Bernard', slug: 'abyssal', gameName: 'Abyssal', tagLine: 'EUW', puuid: 'puuid-player-19', summonerId: 'summoner-player-19', role: PlayerRole.ADC, age: 23, nationality: 'France', marketValue: 970000, salary: 232000 },
   { id: 'player-20', teamId: 'team-4', firstName: 'Bilal', lastName: 'Lemoine', slug: 'wardlock', gameName: 'Wardlock', tagLine: 'EUW', puuid: 'puuid-player-20', summonerId: 'summoner-player-20', role: PlayerRole.SUPPORT, age: 25, nationality: 'France', marketValue: 690000, salary: 166000 },
+  { id: 'player-21', teamId: null, firstName: 'Nathan', lastName: 'Vidal', slug: 'stonewall', gameName: 'Stonewall', tagLine: 'EUW', puuid: 'puuid-player-21', summonerId: 'summoner-player-21', role: PlayerRole.TOP, age: 22, nationality: 'France', marketValue: 560000, salary: 0 },
+  { id: 'player-22', teamId: null, firstName: 'Rami', lastName: 'Santos', slug: 'wildpath', gameName: 'WildPath', tagLine: 'EUW', puuid: 'puuid-player-22', summonerId: 'summoner-player-22', role: PlayerRole.JUNGLE, age: 21, nationality: 'Portugal', marketValue: 590000, salary: 0 },
+  { id: 'player-23', teamId: null, firstName: 'Hugo', lastName: 'Morel', slug: 'glasslane', gameName: 'GlassLane', tagLine: 'EUW', puuid: 'puuid-player-23', summonerId: 'summoner-player-23', role: PlayerRole.MID, age: 20, nationality: 'France', marketValue: 610000, salary: 0 },
+  { id: 'player-24', teamId: null, firstName: 'Yassine', lastName: 'Belaid', slug: 'skyrift', gameName: 'SkyRift', tagLine: 'EUW', puuid: 'puuid-player-24', summonerId: 'summoner-player-24', role: PlayerRole.ADC, age: 23, nationality: 'Belgium', marketValue: 605000, salary: 0 },
+  { id: 'player-25', teamId: null, firstName: 'Eliot', lastName: 'Martin', slug: 'anchorpoint', gameName: 'AnchorPoint', tagLine: 'EUW', puuid: 'puuid-player-25', summonerId: 'summoner-player-25', role: PlayerRole.SUPPORT, age: 24, nationality: 'France', marketValue: 530000, salary: 0 },
 ];
 
 const seasonId = 'season-2026-spring';
@@ -248,24 +254,30 @@ function buildMarketValueHistory() {
 }
 
 function buildContracts() {
-  return players.map((player, index) => ({
-    id: `contract-${player.id}`,
-    playerId: player.id,
-    teamId: player.teamId,
-    status: ContractStatus.ACTIVE,
-    salary: player.salary,
-    startDate: new Date('2026-01-15T00:00:00.000Z'),
-    endDate: new Date('2026-11-15T00:00:00.000Z'),
-    transferFee: 90000 + index * 12000,
-    releaseClause: player.marketValue * 2,
-    notes: 'Initial spring split contract',
-  }));
+  return players
+    .filter((player) => player.teamId)
+    .map((player, index) => ({
+      id: `contract-${player.id}`,
+      playerId: player.id,
+      teamId: player.teamId!,
+      status: ContractStatus.ACTIVE,
+      salary: player.salary,
+      durationBo3: 10 + index,
+      transferFee: 90000 + index * 12000,
+      releaseClause: player.marketValue * 2,
+      approvedAt: new Date('2026-01-15T00:00:00.000Z'),
+      notes: 'Initial spring split contract',
+    }));
 }
 
 function buildPlayerMatchStats() {
   const playersByTeam = new Map<string, SeedPlayer[]>();
 
   for (const player of players) {
+    if (!player.teamId) {
+      continue;
+    }
+
     const current = playersByTeam.get(player.teamId) ?? [];
     current.push(player);
     playersByTeam.set(player.teamId, current);
@@ -374,6 +386,7 @@ async function main() {
   await prisma.player.createMany({
     data: players.map((player) => ({
       ...player,
+      teamId: player.teamId ?? null,
       isActive: true,
     })),
   });

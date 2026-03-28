@@ -5,6 +5,7 @@ import {
   Plus_Jakarta_Sans,
 } from 'next/font/google';
 import type { ReactNode } from 'react';
+import { AppProviders } from './providers';
 import './globals.css';
 
 const orbitron = Orbitron({
@@ -51,7 +52,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       suppressHydrationWarning
     >
       <body>
-        {children}
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

@@ -23,6 +23,7 @@ enum PlayerRole {
 }
 
 enum ContractStatus {
+  PENDING_APPROVAL
   ACTIVE
   EXPIRED
   TERMINATED
@@ -40,6 +41,15 @@ enum MatchResult {
   LOSS
 }
 
+enum TransferOfferStatus {
+  PENDING
+  COUNTER_PROPOSED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
 model User {
   id                  String               @id @default(cuid())
   name                String?
@@ -53,6 +63,7 @@ model User {
   captainedTeam       Team?                @relation("TeamCaptain")
   auditLogs           AuditLog[]
   marketValueChanges  MarketValueHistory[] @relation("MarketValueChangedBy")
+  notifications       Notification[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -75,11 +86,13 @@ model Team {
   blueSideGames    MatchGame[]        @relation("BlueSideTeam")
   redSideGames     MatchGame[]        @relation("RedSideTeam")
   wonGames         MatchGame[]        @relation("GameWinnerTeam")
-  contracts        Contract[]
-  teamTrophies     Trophy[]           @relation("TeamTrophies")
-  playerMatchStats PlayerMatchStats[]
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  contracts            Contract[]
+  teamTrophies         Trophy[]           @relation("TeamTrophies")
+  playerMatchStats     PlayerMatchStats[]
+  outgoingTransfers    TransferOffer[]    @relation("BuyingTeam")
+  incomingTransfers    TransferOffer[]    @relation("SellingTeam")
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
 
   @@index([captainId])
 }
@@ -95,6 +108,7 @@ model Player {
   summonerId         String?              @unique
   imageUrl           String?
   role               PlayerRole
+  teamRole           PlayerRole?
   secondaryRoles     PlayerRole[]         @default([])
   age                Int?
   nationality        String?
@@ -107,6 +121,7 @@ model Player {
   marketValueHistory MarketValueHistory[]
   playerMatchStats   PlayerMatchStats[]
   playerTrophies     Trophy[]             @relation("PlayerTrophies")
+  transferOffers     TransferOffer[]
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
@@ -120,12 +135,12 @@ model Contract {
   id            String         @id @default(cuid())
   playerId      String
   teamId        String
-  status        ContractStatus @default(ACTIVE)
+  status        ContractStatus @default(PENDING_APPROVAL)
   salary        Int
-  startDate     DateTime
-  endDate       DateTime
+  durationBo3   Int
+  releaseClause Int
   transferFee   Int?
-  releaseClause Int?
+  approvedAt    DateTime?
   terminatedAt  DateTime?
   notes         String?
   player        Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
@@ -133,7 +148,7 @@ model Contract {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  @@unique([playerId, teamId, startDate])
+  @@unique([playerId, teamId, createdAt])
   @@index([playerId, status])
   @@index([teamId, status])
 }
@@ -311,4 +326,42 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model TransferOffer {
+  id              String              @id @default(cuid())
+  playerId        String
+  fromTeamId      String
+  toTeamId        String
+  offeredFee      Int
+  status          TransferOfferStatus @default(PENDING)
+  message         String?
+  rejectionReason String?
+  counterOffer    Int?
+  counterMessage  String?
+  respondedAt     DateTime?
+  player          Player              @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  fromTeam        Team                @relation("BuyingTeam", fields: [fromTeamId], references: [id], onDelete: Restrict)
+  toTeam          Team                @relation("SellingTeam", fields: [toTeamId], references: [id], onDelete: Restrict)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([toTeamId, status])
+  @@index([fromTeamId, status])
+  @@index([playerId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
+  metadata  Json?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead, createdAt])
 }
