@@ -6,6 +6,7 @@ export interface PlayerValueProps {
   value: number;
   delta?: number;
   size?: 'sm' | 'lg';
+  tone?: 'default' | 'neutral';
 }
 
 function resolveTier(value: number) {
@@ -21,15 +22,21 @@ function resolveTier(value: number) {
   return 'C';
 }
 
-export function PlayerValue({ value, delta = 0, size = 'lg' }: PlayerValueProps) {
+export function PlayerValue({
+  value,
+  delta = 0,
+  size = 'lg',
+  tone = 'default',
+}: PlayerValueProps) {
   const tier = resolveTier(value);
 
   return (
     <div
       className={cn(
         'rounded-[24px] border border-white/10 bg-black/20 p-4',
-        tier === 'S' && 'glow-gold',
-        tier === 'A' && 'glow-violet',
+        tone === 'default' && tier === 'S' && 'glow-gold',
+        tone === 'default' && tier === 'A' && 'glow-violet',
+        tone === 'neutral' && 'bg-white/5 ring-1 ring-white/10',
       )}
     >
       <div className="text-kicker">Market Value</div>

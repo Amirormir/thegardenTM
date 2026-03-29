@@ -3,7 +3,10 @@ import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { PlayerLink } from '@/components/ui/player-link';
 import { PlayerValue } from '@/components/ui/player-value';
+import { TeamAvatar } from '@/components/ui/team-avatar';
+import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 
 export interface PlayerCardProps {
   player: PlayerListItem;
@@ -24,6 +27,7 @@ function resolveTier(value: number): 'S' | 'A' | 'B' | 'C' {
 
 export function PlayerCard({ player }: PlayerCardProps) {
   const tier = resolveTier(player.marketValue);
+  const riotId = buildPlayerRiotId(player);
 
   return (
     <Card className="h-full">
@@ -32,12 +36,12 @@ export function PlayerCard({ player }: PlayerCardProps) {
           {player.imageUrl ? (
             <img
               src={player.imageUrl}
-              alt={player.gameName}
+              alt={player.displayName}
               className="h-24 w-24 shrink-0 rounded-2xl object-cover ring-1 ring-white/10"
             />
           ) : (
             <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white/8 text-lg font-semibold text-white ring-1 ring-white/10">
-              {player.gameName.slice(0, 2).toUpperCase()}
+              {getPlayerInitials(player.displayName)}
             </div>
           )}
           <div className="min-w-0">
@@ -50,15 +54,29 @@ export function PlayerCard({ player }: PlayerCardProps) {
               ))}
               <Badge variant={tier}>{tier}</Badge>
             </div>
-            <h3 className="mt-4 font-display text-2xl font-bold text-white">
-              {player.gameName}
-              <span className="ml-1 text-base font-medium text-text-secondary">
-                #{player.tagLine}
+            <div className="mt-4 min-w-0">
+              <PlayerLink
+                playerId={player.id}
+                className="block truncate font-display text-2xl font-bold text-white"
+              >
+                {player.displayName}
+              </PlayerLink>
+              <p className="mt-1 truncate text-sm font-medium text-text-secondary" title={riotId}>
+                {riotId}
+              </p>
+            </div>
+            <div className="mt-2 flex min-w-0 items-center gap-2 text-sm text-text-secondary">
+              <TeamAvatar
+                name={player.teamName}
+                shortCode={player.teamShortCode ?? 'FA'}
+                logoUrl={player.teamLogoUrl ?? null}
+                size="sm"
+                className="h-5 w-5 rounded-md text-[0.55rem]"
+              />
+              <span className="truncate" title={player.teamName}>
+                {player.teamName}
               </span>
-            </h3>
-            <p className="mt-1 text-sm text-text-secondary">
-              {player.firstName} {player.lastName} / {player.teamName}
-            </p>
+            </div>
           </div>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-[0.18em] text-text-secondary">
@@ -67,7 +85,12 @@ export function PlayerCard({ player }: PlayerCardProps) {
       </div>
 
       <div className="mt-6">
-        <PlayerValue value={player.marketValue} delta={player.marketValueDelta ?? 0} size="sm" />
+        <PlayerValue
+          value={player.marketValue}
+          delta={player.marketValueDelta ?? 0}
+          size="sm"
+          tone="neutral"
+        />
       </div>
 
       <Link

@@ -17,13 +17,13 @@ export type BadgeVariant =
   | 'expiré';
 
 const variantMap: Record<BadgeVariant, string> = {
-  TOP: 'bg-sky-500/14 text-sky-200 ring-1 ring-sky-400/24',
-  JG: 'bg-emerald-500/14 text-emerald-200 ring-1 ring-emerald-400/24',
-  JUNGLE: 'bg-emerald-500/14 text-emerald-200 ring-1 ring-emerald-400/24',
-  MID: 'bg-violet-500/14 text-violet-200 ring-1 ring-violet-400/24',
-  ADC: 'bg-amber-500/14 text-amber-100 ring-1 ring-amber-400/24',
-  SUP: 'bg-fuchsia-500/14 text-fuchsia-200 ring-1 ring-fuchsia-400/24',
-  SUPPORT: 'bg-fuchsia-500/14 text-fuchsia-200 ring-1 ring-fuchsia-400/24',
+  TOP: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
+  JG: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
+  JUNGLE: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
+  MID: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
+  ADC: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
+  SUP: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
+  SUPPORT: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
   S: 'glow-gold bg-amber-400/12 text-amber-100 ring-1 ring-amber-300/30',
   A: 'bg-gradient-to-r from-violet-500/22 to-amber-400/18 text-violet-50 ring-1 ring-violet-300/30',
   B: 'bg-violet-500/16 text-violet-100 ring-1 ring-violet-400/24',
