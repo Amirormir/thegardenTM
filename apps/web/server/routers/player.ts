@@ -260,16 +260,17 @@ export const playerRouter = createTRPCRouter({
         },
         contracts: {
           where: { status: 'ACTIVE' },
-          orderBy: { startDate: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: 1,
           select: {
             id: true,
             salary: true,
-            startDate: true,
-            endDate: true,
-            status: true,
+            durationBo3: true,
             releaseClause: true,
             transferFee: true,
+            status: true,
+            approvedAt: true,
+            createdAt: true,
           },
         },
         marketValueHistory: {

@@ -13,6 +13,8 @@ export async function buildStandings(
         id: true,
         name: true,
         slug: true,
+        shortCode: true,
+        logoUrl: true,
       },
     }),
     prisma.match.findMany({
@@ -38,6 +40,8 @@ export async function buildStandings(
         id: team.id,
         name: team.name,
         slug: team.slug,
+        shortCode: team.shortCode,
+        logoUrl: team.logoUrl,
         wins: 0,
         losses: 0,
         mapWins: 0,

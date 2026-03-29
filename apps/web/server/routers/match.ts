@@ -100,6 +100,7 @@ export const matchRouter = createTRPCRouter({
                 gold: true,
                 damage: true,
                 visionScore: true,
+                side: true,
                 result: true,
                 player: {
                   select: {
@@ -254,6 +255,8 @@ export const matchRouter = createTRPCRouter({
       where: { id: input.matchId },
       select: {
         id: true,
+        homeTeamId: true,
+        awayTeamId: true,
         homeScore: true,
         awayScore: true,
         winnerTeamId: true,
@@ -264,14 +267,71 @@ export const matchRouter = createTRPCRouter({
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Match not found.' });
     }
 
-    return ctx.prisma.$transaction(async (tx) => {
-      if (input.games.length > 0) {
-        await tx.matchGame.deleteMany({
-          where: { matchId: input.matchId },
-        });
+    const allowedTeamIds = new Set([existing.homeTeamId, existing.awayTeamId]);
 
-        await tx.matchGame.createMany({
-          data: input.games.map((game) => ({
+    if (input.winnerTeamId && !allowedTeamIds.has(input.winnerTeamId)) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'The selected series winner does not belong to this match.',
+      });
+    }
+
+    for (const game of input.games) {
+      if (!allowedTeamIds.has(game.blueTeamId) || !allowedTeamIds.has(game.redTeamId)) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'A recorded game references a team outside of the match.',
+        });
+      }
+
+      if (game.winnerTeamId && ![game.blueTeamId, game.redTeamId].includes(game.winnerTeamId)) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'A recorded game winner must be one of the teams playing that game.',
+        });
+      }
+    }
+
+    const playerIds = [...new Set(input.games.flatMap((game) => game.playerStats.map((stat) => stat.playerId)))];
+    const playersById = new Map<
+      string,
+      {
+        id: string;
+        teamId: string | null;
+      }
+    >();
+
+    if (playerIds.length > 0) {
+      const players = await ctx.prisma.player.findMany({
+        where: {
+          id: { in: playerIds },
+        },
+        select: {
+          id: true,
+          teamId: true,
+        },
+      });
+
+      for (const player of players) {
+        playersById.set(player.id, player);
+      }
+
+      if (players.length !== playerIds.length) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'One or more selected players could not be found.',
+        });
+      }
+    }
+
+    return ctx.prisma.$transaction(async (tx) => {
+      await tx.matchGame.deleteMany({
+        where: { matchId: input.matchId },
+      });
+
+      for (const game of input.games) {
+        const createdGame = await tx.matchGame.create({
+          data: {
             matchId: input.matchId,
             gameNumber: game.gameNumber,
             ...(game.riotMatchId ? { riotMatchId: game.riotMatchId } : {}),
@@ -280,8 +340,52 @@ export const matchRouter = createTRPCRouter({
             ...(game.winnerTeamId ? { winnerTeamId: game.winnerTeamId } : {}),
             ...(game.playedAt ? { playedAt: game.playedAt } : {}),
             ...(game.durationSeconds ? { durationSeconds: game.durationSeconds } : {}),
-          })),
+          },
+          select: {
+            id: true,
+          },
         });
+
+        if (game.playerStats.length > 0) {
+          const playerStatsData = game.playerStats.map((stat) => {
+            const teamId = stat.side === 'BLUE' ? game.blueTeamId : game.redTeamId;
+            const player = playersById.get(stat.playerId);
+
+            if (!player || player.teamId !== teamId) {
+              throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: 'A selected player is not assigned to the expected team roster.',
+              });
+            }
+
+            if (!game.winnerTeamId) {
+              throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: 'A game winner is required before saving player stats.',
+              });
+            }
+
+            return {
+              playerId: stat.playerId,
+              matchGameId: createdGame.id,
+              teamId,
+              champion: stat.champion,
+              kills: stat.kills,
+              deaths: stat.deaths,
+              assists: stat.assists,
+              cs: stat.cs,
+              gold: stat.gold,
+              damage: stat.damage,
+              visionScore: stat.visionScore,
+              side: stat.side,
+              result: game.winnerTeamId === teamId ? 'WIN' as const : 'LOSS' as const,
+            };
+          });
+
+          await tx.playerMatchStats.createMany({
+            data: playerStatsData,
+          });
+        }
       }
 
       const match = await tx.match.update({
@@ -312,6 +416,10 @@ export const matchRouter = createTRPCRouter({
             before: existing,
             after: match,
             gameCount: input.games.length,
+            playerStatCount: input.games.reduce(
+              (total, game) => total + game.playerStats.length,
+              0,
+            ),
           },
         }),
       });
