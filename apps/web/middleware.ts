@@ -1,23 +1,37 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import type { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
-export default auth((request) => {
-  const session = request.auth;
+function buildSignInUrl(request: NextRequest) {
+  const signInUrl = new URL('/api/auth/signin', request.nextUrl.origin);
+  signInUrl.searchParams.set('callbackUrl', request.nextUrl.pathname);
+  return signInUrl;
+}
+
+export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const secret = process.env.NEXTAUTH_SECRET;
 
-  if (!session?.user) {
-    const signInUrl = new URL('/api/auth/signin', request.nextUrl.origin);
-    signInUrl.searchParams.set('callbackUrl', request.nextUrl.pathname);
-    return NextResponse.redirect(signInUrl);
+  if (!secret) {
+    return NextResponse.redirect(buildSignInUrl(request));
   }
 
-  if (pathname.startsWith('/admin') && session.user.role !== 'ADMIN') {
+  const token = await getToken({
+    req: request,
+    secret,
+  });
+
+  if (!token?.sub) {
+    return NextResponse.redirect(buildSignInUrl(request));
+  }
+
+  if (pathname.startsWith('/admin') && token.role !== 'ADMIN') {
     return NextResponse.redirect(new URL('/team', request.nextUrl.origin));
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
-  matcher: ['/team/:path*', '/admin/:path*'],
+  matcher: ['/team/:path*', '/admin/:path*', '/notifications/:path*', '/profile/:path*'],
 };

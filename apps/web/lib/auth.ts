@@ -18,6 +18,8 @@ async function getAccessData(userId: string) {
     where: { id: userId },
     select: {
       id: true,
+      name: true,
+      image: true,
       role: true,
       captainedTeam: {
         select: {
@@ -29,6 +31,8 @@ async function getAccessData(userId: string) {
 
   return {
     id: user?.id ?? userId,
+    name: user?.name ?? null,
+    image: user?.image ?? null,
     role: user?.role ?? UserRole.USER,
     teamId: user?.captainedTeam?.id ?? null,
   };
@@ -118,6 +122,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user?.id) {
         const accessData = await getAccessData(user.id);
         token.sub = accessData.id;
+        token.name = accessData.name;
+        token.picture = accessData.image;
+        token.role = accessData.role;
+        token.teamId = accessData.teamId;
+        return token;
+      }
+
+      if (token?.sub) {
+        const accessData = await getAccessData(token.sub);
+        token.sub = accessData.id;
+        token.name = accessData.name;
+        token.picture = accessData.image;
         token.role = accessData.role;
         token.teamId = accessData.teamId;
         return token;
@@ -135,6 +151,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user = {
         ...session.user,
         id: token.sub,
+        name: typeof token.name === 'string' ? token.name : (session.user.name ?? null),
+        image: typeof token.picture === 'string' ? token.picture : null,
         role: resolveUserRole(token.role),
         teamId: resolveTeamId(token.teamId),
       };
