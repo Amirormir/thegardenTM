@@ -4,11 +4,14 @@ import { ArrowRight } from 'lucide-react';
 import { MarketValueChart } from '@/components/features/charts/market-value-chart';
 import { PerformanceTrendsChart } from '@/components/features/charts/performance-trends-chart';
 import { RiotFetchButton } from '@/components/features/transfermarket/riot-fetch-button';
+import { TeamLeagueSnapshotCard } from '@/components/features/transfermarket/team-league-snapshot-card';
 import { FreeAgentSignButton } from '@/components/features/transfermarket/free-agent-sign-button';
 import { TransferOfferButton } from '@/components/features/transfermarket/transfer-offer-button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { PlayerValue } from '@/components/ui/player-value';
+import { TeamAvatar } from '@/components/ui/team-avatar';
+import { TeamTintCard, TeamTintMediaFrame } from '@/components/ui/team-tint';
 import {
   Table,
   TableBody,
@@ -18,6 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { auth } from '@/lib/auth';
+import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCompactDate, formatCurrency, formatDateTime } from '@/lib/utils/format';
 import { getServerCaller } from '@/server/caller';
 
@@ -55,7 +59,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
   const userTeamId = session?.user?.teamId ?? null;
   const caller = await getServerCaller();
 
-  const [player, contractHistory] = await Promise.all([
+  const [player, contractHistory, standings] = await Promise.all([
     caller.player.getById({ id: playerId }).catch((error: unknown) => {
       if (isNotFoundError(error)) {
         notFound();
@@ -64,6 +68,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
       throw error;
     }),
     caller.contract.getByPlayer({ playerId }),
+    caller.league.getStandings(),
   ]);
 
   if (!player) {
@@ -77,6 +82,10 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
       : 0;
   const teamName = player.team?.name ?? 'Free Agent';
   const teamShortCode = player.team?.shortCode ?? 'FA';
+  const teamStanding = player.teamId ? standings.find((team) => team.id === player.teamId) : null;
+  const teamStandingPlace = teamStanding
+    ? standings.findIndex((team) => team.id === teamStanding.id) + 1
+    : null;
   const recentStats = player.playerMatchStats;
   const recentTotals = recentStats.reduce(
     (accumulator, stat) => ({
@@ -110,19 +119,29 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
   return (
     <div className="space-y-8">
       <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <Card elevated className="space-y-6">
+        <TeamTintCard
+          elevated
+          className="min-h-full"
+          contentClassName="space-y-6"
+          logoUrl={player.team?.logoUrl}
+        >
           <div className="flex flex-col gap-6 md:flex-row md:items-start">
-            {player.imageUrl ? (
-              <img
-                src={player.imageUrl}
-                alt={player.gameName}
-                className="h-36 w-36 shrink-0 rounded-[28px] object-cover ring-2 ring-white/10 shadow-[0_0_40px_rgba(124,58,237,0.12)]"
-              />
-            ) : (
-              <div className="flex h-36 w-36 shrink-0 items-center justify-center rounded-[28px] bg-white/8 font-display text-4xl font-bold text-white ring-2 ring-white/10 shadow-[0_0_40px_rgba(124,58,237,0.12)]">
-                {player.gameName.slice(0, 2).toUpperCase()}
-              </div>
-            )}
+            <TeamTintMediaFrame
+              logoUrl={player.team?.logoUrl}
+              className="h-36 w-36 shrink-0 rounded-[28px]"
+            >
+              {player.imageUrl ? (
+                <img
+                  src={player.imageUrl}
+                  alt={player.displayName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-white/8 font-display text-4xl font-bold text-white">
+                  {getPlayerInitials(player.displayName)}
+                </div>
+              )}
+            </TeamTintMediaFrame>
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
@@ -136,14 +155,20 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
               </div>
 
               <div className="mt-4">
-                <p className="text-kicker">
-                  {teamName} / {teamShortCode}
-                </p>
-                <h1 className="mt-2 font-display text-5xl font-bold text-white">
-                  {player.gameName}
-                  <span className="ml-2 text-2xl font-medium text-text-secondary">
-                    #{player.tagLine}
+                <div className="flex items-center gap-2 text-kicker">
+                  <TeamAvatar
+                    name={teamName}
+                    shortCode={teamShortCode}
+                    logoUrl={player.team?.logoUrl ?? null}
+                    size="sm"
+                    className="h-5 w-5 rounded-md text-[0.55rem]"
+                  />
+                  <span>
+                    {teamName} / {teamShortCode}
                   </span>
+                </div>
+                <h1 className="mt-2 font-display text-5xl font-bold text-white">
+                  {player.displayName}
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-text-secondary">
                   Profil public alimente par Prisma via tRPC avec historique contractuel,
@@ -164,7 +189,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                   <div className="mt-4">
                     <TransferOfferButton
                       playerId={player.id}
-                      playerName={player.gameName}
+                      playerName={player.displayName}
                       releaseClause={activeContract.releaseClause}
                       buyerTeamId={userTeamId}
                     />
@@ -174,7 +199,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                   <div className="mt-4">
                     <FreeAgentSignButton
                       playerId={player.id}
-                      playerName={player.gameName}
+                      playerName={player.displayName}
                       teamId={userTeamId}
                     />
                   </div>
@@ -185,9 +210,9 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
 
           <div className="grid gap-4 md:grid-cols-4">
             <Card className="border-white/8 bg-white/4">
-              <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Name</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Riot ID</p>
               <p className="mt-2 text-lg font-semibold text-white">
-                {player.firstName} {player.lastName}
+                {buildPlayerRiotId(player)}
               </p>
             </Card>
             <Card className="border-white/8 bg-white/4">
@@ -211,7 +236,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
               </p>
             </Card>
           </div>
-        </Card>
+        </TeamTintCard>
 
         <div className="space-y-4">
           <PlayerValue value={player.marketValue} delta={marketDelta} />
@@ -240,6 +265,17 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
               </p>
             </div>
           </Card>
+          {player.team && teamStanding && teamStandingPlace ? (
+            <TeamLeagueSnapshotCard
+              team={player.team}
+              place={teamStandingPlace}
+              points={teamStanding.points}
+              wins={teamStanding.wins}
+              losses={teamStanding.losses}
+              mapWins={teamStanding.mapWins}
+              mapLosses={teamStanding.mapLosses}
+            />
+          ) : null}
         </div>
       </section>
 
