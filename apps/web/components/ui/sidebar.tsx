@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   BarChart3,
   CalendarRange,
+  FileText,
   LayoutDashboard,
   Menu,
   Shield,
@@ -19,6 +20,7 @@ const items = [
   { href: '/admin/players', label: 'Players', icon: Users },
   { href: '/admin/teams', label: 'Teams', icon: Shield },
   { href: '/admin/matches', label: 'Matches', icon: Swords },
+  { href: '/admin/contracts', label: 'Contracts', icon: FileText },
   { href: '/admin/league', label: 'League', icon: CalendarRange },
 ];
 

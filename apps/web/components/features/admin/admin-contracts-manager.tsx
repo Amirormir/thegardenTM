@@ -1,0 +1,271 @@
+'use client';
+
+import { CheckCircle2, Clock, Filter, Loader2, XCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { api } from '@/lib/trpc/react';
+import { cn } from '@/lib/utils/cn';
+import { formatCurrency, formatDateTime } from '@/lib/utils/format';
+
+interface FeedbackState {
+  type: 'success' | 'error';
+  message: string;
+}
+
+export function AdminContractsManager() {
+  const utils = api.useUtils();
+  const pendingQuery = api.contract.getPendingApprovals.useQuery();
+  const teamsQuery = api.team.getAll.useQuery();
+  const approveMutation = api.contract.approve.useMutation();
+  const rejectMutation = api.contract.reject.useMutation();
+
+  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [teamFilter, setTeamFilter] = useState<string>('');
+
+  const allPending = pendingQuery.data ?? [];
+  const teams = teamsQuery.data ?? [];
+  const pending = useMemo(
+    () => teamFilter ? allPending.filter((c) => c.team.id === teamFilter) : allPending,
+    [allPending, teamFilter],
+  );
+  const mutationPending = approveMutation.isPending || rejectMutation.isPending;
+
+  async function handleApprove(id: string) {
+    setFeedback(null);
+    try {
+      await approveMutation.mutateAsync({ id });
+      await Promise.all([
+        utils.contract.getPendingApprovals.invalidate(),
+        utils.team.getAll.invalidate(),
+        utils.player.getAll.invalidate(),
+      ]);
+      setFeedback({ type: 'success', message: 'Contrat approuve. Le joueur a rejoint le roster.' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "L'approbation a echoue.";
+      setFeedback({ type: 'error', message });
+    }
+  }
+
+  async function handleReject(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!rejectingId) return;
+    setFeedback(null);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    try {
+      await rejectMutation.mutateAsync({
+        id: rejectingId,
+        reason: (formData.get('reason') as string)?.trim() || undefined,
+      });
+      form.reset();
+      setRejectingId(null);
+      await utils.contract.getPendingApprovals.invalidate();
+      setFeedback({ type: 'success', message: 'Contrat rejete.' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Le rejet a echoue.';
+      setFeedback({ type: 'error', message });
+    }
+  }
+
+  return (
+    <Card className="space-y-5">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-kicker">Validation</p>
+          <h2 className="mt-2 font-display text-3xl font-bold text-white">
+            Contrats en attente
+          </h2>
+          <p className="mt-1 text-sm text-text-secondary">
+            Les contrats soumis par les capitaines doivent etre approuves avant activation.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-text-secondary" />
+          <Select
+            value={teamFilter}
+            onChange={(e) => setTeamFilter(e.target.value)}
+            className="w-52"
+          >
+            <option value="">Toutes les equipes</option>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.shortCode} — {team.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
+
+      {feedback ? (
+        <div
+          className={cn(
+            'rounded-2xl border px-4 py-3 text-sm',
+            feedback.type === 'success'
+              ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
+              : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+          )}
+        >
+          {feedback.message}
+        </div>
+      ) : null}
+
+      {pendingQuery.isLoading ? (
+        <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Chargement...
+        </div>
+      ) : pending.length > 0 ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Joueur</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Equipe</TableHead>
+              <TableHead>Salaire</TableHead>
+              <TableHead>Duree</TableHead>
+              <TableHead>Clause</TableHead>
+              <TableHead>Transfert</TableHead>
+              <TableHead>Budget restant</TableHead>
+              <TableHead>Soumis le</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pending.map((contract) => {
+              const budgetRemaining = contract.team.budget - contract.salary;
+              const budgetDanger = budgetRemaining < 0;
+
+              return (
+                <TableRow key={contract.id}>
+                  <TableCell className="font-semibold text-white">
+                    {contract.player.gameName}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={contract.player.role}>{contract.player.role}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-mono text-xs text-text-secondary">
+                      {contract.team.shortCode}
+                    </span>{' '}
+                    {contract.team.name}
+                  </TableCell>
+                  <TableCell className="font-mono">
+                    {formatCurrency(contract.salary)}
+                  </TableCell>
+                  <TableCell>{contract.durationBo3} BO3</TableCell>
+                  <TableCell className="font-mono">
+                    {formatCurrency(contract.releaseClause)}
+                  </TableCell>
+                  <TableCell className="font-mono">
+                    {contract.transferFee != null
+                      ? formatCurrency(contract.transferFee)
+                      : '--'}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={cn(
+                        'font-mono',
+                        budgetDanger ? 'text-rose-400' : 'text-emerald-400',
+                      )}
+                    >
+                      {formatCurrency(budgetRemaining)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-xs text-text-secondary">
+                    {formatDateTime(contract.createdAt)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        icon={
+                          approveMutation.isPending ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          )
+                        }
+                        disabled={mutationPending}
+                        onClick={() => handleApprove(contract.id)}
+                      >
+                        Approuver
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        icon={<XCircle className="h-3.5 w-3.5" />}
+                        disabled={mutationPending}
+                        onClick={() => setRejectingId(contract.id)}
+                      >
+                        Rejeter
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      ) : (
+        <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+          <Clock className="h-4 w-4" />
+          Aucun contrat en attente de validation.
+        </div>
+      )}
+
+      {rejectingId ? (
+        <div className="rounded-3xl border border-rose-400/20 bg-rose-500/8 p-5 space-y-4">
+          <h3 className="font-display text-xl font-bold text-rose-100">Rejeter le contrat</h3>
+          <form className="grid gap-4 md:grid-cols-[1fr_auto]" onSubmit={handleReject}>
+            <div className="space-y-2">
+              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                Motif (optionnel)
+              </label>
+              <Input name="reason" placeholder="Ex: Budget insuffisant, doublon..." />
+            </div>
+            <div className="flex items-end gap-2">
+              <Button
+                type="submit"
+                variant="danger"
+                disabled={mutationPending}
+                icon={
+                  rejectMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <XCircle className="h-4 w-4" />
+                  )
+                }
+              >
+                Confirmer le rejet
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setRejectingId(null)}
+              >
+                Annuler
+              </Button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+    </Card>
+  );
+}

@@ -2,7 +2,7 @@
 
 import type { SharedPlayerRole } from '@nexus/types';
 import type { inferRouterOutputs } from '@trpc/server';
-import { Loader2, PencilLine, Plus, Save, ShieldCheck, Trash2, UserPlus } from 'lucide-react';
+import { Loader2, PencilLine, Plus, Radio, Save, ShieldCheck, Trash2, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -173,6 +173,7 @@ export function AdminPlayersManager() {
   const createTrophy = api.player.createTrophy.useMutation();
   const updateTrophy = api.player.updateTrophy.useMutation();
   const deleteTrophy = api.player.deleteTrophy.useMutation();
+  const fetchFromRiot = api.stats.fetchFromRiot.useMutation();
 
   useEffect(() => {
     if (selectedPlayerQuery.data) {
@@ -293,6 +294,20 @@ export function AdminPlayersManager() {
     }));
   }
 
+  async function handleFetchRiot() {
+    if (!selectedPlayerId) return;
+    setFeedback(null);
+
+    try {
+      await fetchFromRiot.mutateAsync({ playerId: selectedPlayerId, count: 5 });
+      await refreshAdminPlayerData(selectedPlayerId);
+      setFeedback({ type: 'success', message: 'Les donnees Riot ont ete recuperees avec succes.' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Le fetch Riot a echoue.';
+      setFeedback({ type: 'error', message });
+    }
+  }
+
   async function handleCreateHistoryEntry(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -301,16 +316,17 @@ export function AdminPlayersManager() {
     }
 
     setFeedback(null);
+    const form = event.currentTarget;
 
     try {
-      const formData = new FormData(event.currentTarget);
+      const formData = new FormData(form);
       await createHistoryEntry.mutateAsync({
         playerId: selectedPlayerId,
         newValue: parseInteger(getFormValue(formData, 'newValue')),
         changedAt: new Date(getFormValue(formData, 'changedAt')),
         reason: getFormValue(formData, 'reason').trim() || undefined,
       });
-      event.currentTarget.reset();
+      form.reset();
       await refreshAdminPlayerData(selectedPlayerId);
       setFeedback({ type: 'success', message: 'Une nouvelle entree de valorisation a ete ajoutee.' });
     } catch (error) {
@@ -379,9 +395,10 @@ export function AdminPlayersManager() {
     }
 
     setFeedback(null);
+    const form = event.currentTarget;
 
     try {
-      const formData = new FormData(event.currentTarget);
+      const formData = new FormData(form);
       await createTrophy.mutateAsync({
         playerId: selectedPlayerId,
         name: getFormValue(formData, 'name').trim(),
@@ -390,7 +407,7 @@ export function AdminPlayersManager() {
         awardedAt: new Date(getFormValue(formData, 'awardedAt')),
         description: getFormValue(formData, 'description').trim() || undefined,
       });
-      event.currentTarget.reset();
+      form.reset();
       await refreshAdminPlayerData(selectedPlayerId);
       setFeedback({ type: 'success', message: 'Le palmares du joueur a ete enrichi.' });
     } catch (error) {
@@ -810,6 +827,17 @@ export function AdminPlayersManager() {
                     onClick={handleDeletePlayer}
                   >
                     Supprimer
+                  </Button>
+                ) : null}
+                {selectedPlayerId ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={fetchFromRiot.isPending}
+                    icon={fetchFromRiot.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
+                    onClick={handleFetchRiot}
+                  >
+                    Fetch Riot
                   </Button>
                 ) : null}
               </div>

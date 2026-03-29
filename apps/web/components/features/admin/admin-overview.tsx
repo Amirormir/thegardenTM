@@ -1,25 +1,36 @@
 import { StatCard } from '@/components/ui/stat-card';
 
-export function AdminOverview() {
+interface AdminOverviewProps {
+  stats: {
+    players: number;
+    teams: number;
+    activeContracts: number;
+    matches: number;
+    auditLogs: number;
+    currentSeason: { id: string; name: string } | null;
+  };
+}
+
+export function AdminOverview({ stats }: AdminOverviewProps) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <StatCard
         label="Audit events"
-        value="128"
+        value={stats.auditLogs.toString()}
         icon="shield-alert"
-        trend={{ direction: 'up', value: '+14 today' }}
+        trend={{ direction: 'up', value: 'total' }}
       />
       <StatCard
         label="Players indexed"
-        value="20"
+        value={stats.players.toString()}
         icon="users"
-        trend={{ direction: 'up', value: '+3 week' }}
+        trend={{ direction: 'up', value: `${stats.teams} teams` }}
       />
       <StatCard
         label="Active contracts"
-        value="16"
+        value={stats.activeContracts.toString()}
         icon="wallet-cards"
-        trend={{ direction: 'down', value: '-1 expired' }}
+        trend={{ direction: 'up', value: `${stats.matches} matchs` }}
       />
     </div>
   );
