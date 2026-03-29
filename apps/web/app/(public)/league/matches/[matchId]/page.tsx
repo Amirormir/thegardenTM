@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import {
   Table,
@@ -8,7 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { matches, teams } from '@/lib/utils/mock-data';
+import { formatDateTime } from '@/lib/utils/format';
+import { getServerCaller } from '@/server/caller';
 
 interface MatchDetailPageProps {
   params: Promise<{
@@ -16,18 +18,16 @@ interface MatchDetailPageProps {
   }>;
 }
 
+export const revalidate = 60;
+
 export default async function MatchDetailPage({ params }: MatchDetailPageProps) {
   const { matchId } = await params;
-  const match = matches.find((entry) => entry.id === matchId);
+  const caller = await getServerCaller();
 
-  if (!match) {
-    notFound();
-  }
-
-  const homeTeam = teams.find((team) => team.id === match.homeTeamId);
-  const awayTeam = teams.find((team) => team.id === match.awayTeamId);
-
-  if (!homeTeam || !awayTeam) {
+  let match: Awaited<ReturnType<typeof caller.match.getById>>;
+  try {
+    match = await caller.match.getById({ id: matchId });
+  } catch {
     notFound();
   }
 
@@ -38,8 +38,11 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
           <div>
             <p className="text-kicker">{match.format}</p>
             <h1 className="mt-2 font-display text-4xl font-bold text-white">
-              {homeTeam.name} vs {awayTeam.name}
+              {match.homeTeam.name} vs {match.awayTeam.name}
             </h1>
+            <p className="mt-2 text-sm text-text-secondary">
+              {match.season.name} — {formatDateTime(match.scheduledAt)}
+            </p>
           </div>
           <div className="rounded-[24px] border border-white/10 bg-black/20 px-6 py-4 text-center">
             <p className="font-display text-4xl font-bold text-white">
@@ -50,40 +53,93 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
             </p>
           </div>
         </div>
+        {match.notes ? (
+          <p className="text-sm leading-7 text-text-secondary">{match.notes}</p>
+        ) : null}
       </Card>
 
-      <Card className="space-y-5">
-        <div>
-          <p className="text-kicker">Game one sample</p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-white">Scoreboard</h2>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Player</TableHead>
-              <TableHead>Champion</TableHead>
-              <TableHead>K / D / A</TableHead>
-              <TableHead>CS</TableHead>
-              <TableHead>Gold</TableHead>
-              <TableHead>Vision</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {[
-              ['Aero', 'KaiSa', '9 / 2 / 7', '301', '16 120', '24'],
-              ['ZeroPulse', 'Azir', '6 / 1 / 13', '289', '15 400', '19'],
-              ['ScarletFox', 'Taliyah', '4 / 5 / 10', '262', '13 980', '34'],
-              ['Wardlock', 'Rell', '0 / 4 / 18', '42', '9 120', '67'],
-            ].map((row) => (
-              <TableRow key={`${row[0]}-${row[1]}`}>
-                {row.map((cell) => (
-                  <TableCell key={cell}>{cell}</TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      {match.games.length > 0 ? (
+        match.games.map((game) => (
+          <Card key={game.id} className="space-y-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-kicker">Game {game.gameNumber}</p>
+                <h2 className="mt-2 font-display text-3xl font-bold text-white">Scoreboard</h2>
+              </div>
+              <div className="flex items-center gap-3">
+                {game.durationSeconds ? (
+                  <span className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    {Math.floor(game.durationSeconds / 60)}m {game.durationSeconds % 60}s
+                  </span>
+                ) : null}
+                {game.winnerTeamId ? (
+                  <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                    {game.winnerTeamId === match.homeTeam.id
+                      ? match.homeTeam.shortCode
+                      : match.awayTeam.shortCode}{' '}
+                    WIN
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            {game.playerStats.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Player</TableHead>
+                    <TableHead>Champion</TableHead>
+                    <TableHead>K / D / A</TableHead>
+                    <TableHead>CS</TableHead>
+                    <TableHead>Gold</TableHead>
+                    <TableHead>Damage</TableHead>
+                    <TableHead>Vision</TableHead>
+                    <TableHead>Result</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {game.playerStats.map((stat) => (
+                    <TableRow key={stat.id}>
+                      <TableCell className="font-semibold text-white">
+                        {stat.player.gameName}
+                        <span className="ml-2">
+                          <Badge variant={stat.player.role}>{stat.player.role}</Badge>
+                        </span>
+                      </TableCell>
+                      <TableCell>{stat.champion}</TableCell>
+                      <TableCell>
+                        {stat.kills} / {stat.deaths} / {stat.assists}
+                      </TableCell>
+                      <TableCell>{stat.cs}</TableCell>
+                      <TableCell>{stat.gold.toLocaleString('fr-FR')}</TableCell>
+                      <TableCell>{stat.damage.toLocaleString('fr-FR')}</TableCell>
+                      <TableCell>{stat.visionScore}</TableCell>
+                      <TableCell>
+                        <span
+                          className={
+                            stat.result === 'WIN'
+                              ? 'font-semibold text-emerald-400'
+                              : 'text-rose-400'
+                          }
+                        >
+                          {stat.result}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-sm text-text-secondary">Aucune statistique joueur pour cette game.</p>
+            )}
+          </Card>
+        ))
+      ) : (
+        <Card>
+          <p className="text-sm text-text-secondary">
+            Aucune game enregistrée pour ce match.
+          </p>
+        </Card>
+      )}
     </div>
   );
 }

@@ -1,8 +1,12 @@
+import type { TeamStanding } from '@nexus/types';
 import { StandingsTable } from '@/components/features/league/standings-table';
 import { Card } from '@/components/ui/card';
-import { standings } from '@/lib/utils/mock-data';
 
-export function QuickStandings() {
+interface QuickStandingsProps {
+  standings: TeamStanding[];
+}
+
+export function QuickStandings({ standings }: QuickStandingsProps) {
   return (
     <Card className="p-0">
       <div className="border-b border-white/8 px-6 py-5">
@@ -10,7 +14,11 @@ export function QuickStandings() {
         <h2 className="mt-2 font-display text-3xl font-bold text-white">Top standings</h2>
       </div>
       <div className="p-4">
-        <StandingsTable standings={standings} />
+        {standings.length > 0 ? (
+          <StandingsTable standings={standings} />
+        ) : (
+          <p className="px-2 py-4 text-sm text-text-secondary">Aucune donnée de classement.</p>
+        )}
       </div>
     </Card>
   );

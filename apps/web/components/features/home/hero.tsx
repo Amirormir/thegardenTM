@@ -3,14 +3,31 @@ import { Trophy } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
+import { formatCurrency } from '@/lib/utils/format';
 
-export function Hero() {
+interface HeroProps {
+  playerCount: number;
+  matchCount: number;
+  totalMarketValue: number;
+  seasonName: string | null;
+  topTeam: string | null;
+  topPlayer: { gameName: string; role: string; marketValue: number } | null;
+}
+
+export function Hero({
+  playerCount,
+  matchCount,
+  totalMarketValue,
+  seasonName,
+  topTeam,
+  topPlayer,
+}: HeroProps) {
   return (
     <section className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
       <Card elevated className="surface-grid overflow-hidden p-8 md:p-10">
         <p className="text-kicker">Monorepo Ready</p>
         <h1 className="mt-4 max-w-3xl font-display text-4xl font-black leading-tight text-white md:text-6xl">
-          L’univers premium pour piloter une ligue League of Legends comme un vrai{' '}
+          L'univers premium pour piloter une ligue League of Legends comme un vrai{' '}
           <span className="gradient-text">transfermarket esports</span>.
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-7 text-text-secondary md:text-lg">
@@ -31,21 +48,21 @@ export function Hero() {
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           <StatCard
             label="Players tracked"
-            value="20"
+            value={playerCount.toString()}
             icon="shield"
-            trend={{ direction: 'up', value: '+4 this split' }}
+            trend={{ direction: 'up', value: 'live' }}
           />
           <StatCard
             label="Matches synced"
-            value="18"
+            value={matchCount.toString()}
             icon="swords"
-            trend={{ direction: 'up', value: '+6 this week' }}
+            trend={{ direction: 'up', value: 'live' }}
           />
           <StatCard
             label="Market volume"
-            value="16.5M"
+            value={formatCurrency(totalMarketValue)}
             icon="coins"
-            trend={{ direction: 'up', value: '+12%' }}
+            trend={{ direction: 'up', value: 'live' }}
           />
         </div>
       </Card>
@@ -53,9 +70,11 @@ export function Hero() {
       <Card className="flex flex-col justify-between p-7">
         <div>
           <p className="text-kicker">Current split</p>
-          <h2 className="mt-3 font-display text-3xl font-bold text-white">Spring 2026</h2>
+          <h2 className="mt-3 font-display text-3xl font-bold text-white">
+            {seasonName ?? 'Aucune saison'}
+          </h2>
           <p className="mt-3 text-sm leading-7 text-text-secondary">
-            Tableau de bord orienté performance, pilotage d’effectif et audit trail admin.
+            Tableau de bord orienté performance, pilotage d'effectif et audit trail admin.
           </p>
         </div>
         <div className="space-y-4">
@@ -68,17 +87,23 @@ export function Hero() {
                 <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
                   Premium insight
                 </p>
-                <p className="font-semibold text-white">Void Sentinels dominent actuellement.</p>
+                <p className="font-semibold text-white">
+                  {topTeam ? `${topTeam} dominent actuellement.` : 'Aucun match joué.'}
+                </p>
               </div>
             </div>
           </div>
-          <div className="rounded-[24px] border border-accent-primary/16 bg-accent-primary/8 p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-accent-glow">Focus player</p>
-            <p className="mt-2 font-display text-2xl font-bold text-white">ZeroPulse</p>
-            <p className="mt-1 text-sm text-text-secondary">
-              Mid laner valorisé à 980 000, leader KDA sur les trois dernières semaines.
-            </p>
-          </div>
+          {topPlayer ? (
+            <div className="rounded-[24px] border border-accent-primary/16 bg-accent-primary/8 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-accent-glow">Focus player</p>
+              <p className="mt-2 font-display text-2xl font-bold text-white">
+                {topPlayer.gameName}
+              </p>
+              <p className="mt-1 text-sm text-text-secondary">
+                {topPlayer.role} valorisé à {formatCurrency(topPlayer.marketValue)}.
+              </p>
+            </div>
+          ) : null}
         </div>
       </Card>
     </section>

@@ -31,10 +31,10 @@ export const players: PlayerListItem[] = [
 ];
 
 export const standings: TeamStanding[] = [
-  { id: 'team-4', name: 'Void Sentinels', slug: 'void-sentinels', wins: 5, losses: 1, mapWins: 11, mapLosses: 4, points: 16 },
-  { id: 'team-1', name: 'Astral Wolves', slug: 'astral-wolves', wins: 4, losses: 2, mapWins: 10, mapLosses: 6, points: 13 },
-  { id: 'team-2', name: 'Crimson Nova', slug: 'crimson-nova', wins: 2, losses: 4, mapWins: 7, mapLosses: 10, points: 8 },
-  { id: 'team-3', name: 'Golden Echo', slug: 'golden-echo', wins: 1, losses: 5, mapWins: 4, mapLosses: 12, points: 4 },
+  { id: 'team-4', name: 'Void Sentinels', slug: 'void-sentinels', shortCode: 'VS', logoUrl: null, wins: 5, losses: 1, mapWins: 11, mapLosses: 4, points: 16 },
+  { id: 'team-1', name: 'Astral Wolves', slug: 'astral-wolves', shortCode: 'AW', logoUrl: null, wins: 4, losses: 2, mapWins: 10, mapLosses: 6, points: 13 },
+  { id: 'team-2', name: 'Crimson Nova', slug: 'crimson-nova', shortCode: 'CN', logoUrl: null, wins: 2, losses: 4, mapWins: 7, mapLosses: 10, points: 8 },
+  { id: 'team-3', name: 'Golden Echo', slug: 'golden-echo', shortCode: 'GE', logoUrl: null, wins: 1, losses: 5, mapWins: 4, mapLosses: 12, points: 4 },
 ];
 
 export const matches: MatchSummary[] = [

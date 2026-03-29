@@ -1,9 +1,19 @@
 import { MatchCard } from '@/components/features/league/match-card';
 import { StandingsTable } from '@/components/features/league/standings-table';
 import { Card } from '@/components/ui/card';
-import { matches, standings, teams } from '@/lib/utils/mock-data';
+import { getServerCaller } from '@/server/caller';
 
-export default function LeaguePage() {
+export const revalidate = 60;
+
+export default async function LeaguePage() {
+  const caller = await getServerCaller();
+  const [standings, allMatches] = await Promise.all([
+    caller.league.getStandings(),
+    caller.match.getAll(),
+  ]);
+
+  const recentMatches = allMatches.slice(0, 2);
+
   return (
     <div className="space-y-8">
       <div>
@@ -26,23 +36,9 @@ export default function LeaguePage() {
         </Card>
 
         <div className="space-y-4">
-          {matches.slice(0, 2).map((match) => {
-            const homeTeam = teams.find((team) => team.id === match.homeTeamId);
-            const awayTeam = teams.find((team) => team.id === match.awayTeamId);
-
-            if (!homeTeam || !awayTeam) {
-              return null;
-            }
-
-            return (
-              <MatchCard
-                key={match.id}
-                match={match}
-                homeTeam={homeTeam}
-                awayTeam={awayTeam}
-              />
-            );
-          })}
+          {recentMatches.map((match) => (
+            <MatchCard key={match.id} match={match} />
+          ))}
         </div>
       </div>
     </div>
