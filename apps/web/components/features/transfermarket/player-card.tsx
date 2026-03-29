@@ -33,10 +33,10 @@ export function PlayerCard({ player }: PlayerCardProps) {
             <img
               src={player.imageUrl}
               alt={player.gameName}
-              className="h-16 w-16 shrink-0 rounded-2xl object-cover ring-1 ring-white/10"
+              className="h-24 w-24 shrink-0 rounded-2xl object-cover ring-1 ring-white/10"
             />
           ) : (
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/8 text-sm font-semibold text-white ring-1 ring-white/10">
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white/8 text-lg font-semibold text-white ring-1 ring-white/10">
               {player.gameName.slice(0, 2).toUpperCase()}
             </div>
           )}
@@ -76,6 +76,13 @@ export function PlayerCard({ player }: PlayerCardProps) {
       >
         Voir la fiche
         <ArrowRight className="h-4 w-4" />
+      </Link>
+
+      <Link
+        href={`/transfermarket/comparison?playerA=${player.id}`}
+        className="mt-3 inline-flex items-center gap-2 text-sm text-text-secondary transition hover:text-white"
+      >
+        Comparer ce profil
       </Link>
     </Card>
   );

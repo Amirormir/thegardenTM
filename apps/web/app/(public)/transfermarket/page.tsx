@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { MarketFilters } from '@/components/features/transfermarket/market-filters';
 import { PlayerCard } from '@/components/features/transfermarket/player-card';
 import { Card } from '@/components/ui/card';
@@ -66,7 +67,15 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
             et cartes premium exploitables pour le scouting.
           </p>
         </div>
-        <MarketFilters search={search} role={role ?? 'all'} sort={sort} />
+        <div className="flex flex-col gap-3 md:items-end">
+          <Link
+            href="/transfermarket/comparison"
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-accent-primary/40 hover:bg-accent-primary/14"
+          >
+            Comparer des joueurs
+          </Link>
+          <MarketFilters search={search} role={role ?? 'all'} sort={sort} />
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
