@@ -16,6 +16,7 @@ import {
   playerUpdateSchema,
   updateMarketValueSchema,
 } from '@/lib/validators/player';
+import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
 import { buildAuditLogInput } from '@/server/utils/audit';
 import { adminProcedure, createTRPCRouter, publicProcedure } from '@/server/trpc';
 
@@ -29,10 +30,11 @@ function normalizeSecondaryRoles(
   return [...new Set((roles ?? []).filter((role) => role !== primaryRole))];
 }
 
-function toTeamDisplay(team: { name: string; shortCode: string } | null) {
+function toTeamDisplay(team: { name: string; shortCode: string; logoUrl?: string | null } | null) {
   return {
     teamName: team?.name ?? FREE_AGENT_NAME,
     teamShortCode: team?.shortCode ?? FREE_AGENT_SHORT_CODE,
+    teamLogoUrl: team?.logoUrl ?? null,
   };
 }
 
@@ -174,7 +176,7 @@ export const playerRouter = createTRPCRouter({
           : input?.sort === 'salary-asc'
             ? [{ salary: 'asc' as const }]
             : input?.sort === 'name-asc'
-              ? [{ gameName: 'asc' as const }]
+              ? [{ firstName: 'asc' as const }, { gameName: 'asc' as const }]
               : [{ marketValue: 'desc' as const }];
 
     const players = await ctx.prisma.player.findMany({
@@ -196,6 +198,7 @@ export const playerRouter = createTRPCRouter({
           select: {
             name: true,
             shortCode: true,
+            logoUrl: true,
           },
         },
         marketValueHistory: {
@@ -211,6 +214,7 @@ export const playerRouter = createTRPCRouter({
 
     return players.map((player) => ({
       id: player.id,
+      displayName: resolveStoredPlayerDisplayName(player),
       firstName: player.firstName,
       lastName: player.lastName,
       gameName: player.gameName,
@@ -256,6 +260,7 @@ export const playerRouter = createTRPCRouter({
             name: true,
             slug: true,
             shortCode: true,
+            logoUrl: true,
           },
         },
         contracts: {
@@ -364,11 +369,14 @@ export const playerRouter = createTRPCRouter({
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Player not found.' });
     }
 
-    return player;
+    return {
+      ...player,
+      displayName: resolveStoredPlayerDisplayName(player),
+    };
   }),
 
-  getByTeam: publicProcedure.input(playerByTeamSchema).query(({ ctx, input }) =>
-    ctx.prisma.player.findMany({
+  getByTeam: publicProcedure.input(playerByTeamSchema).query(async ({ ctx, input }) => {
+    const players = await ctx.prisma.player.findMany({
       where: { teamId: input.teamId },
       orderBy: [{ role: 'asc' }, { marketValue: 'desc' }],
       select: {
@@ -385,12 +393,17 @@ export const playerRouter = createTRPCRouter({
         isActive: true,
         teamId: true,
       },
-    }),
-  ),
+    });
+
+    return players.map((player) => ({
+      ...player,
+      displayName: resolveStoredPlayerDisplayName(player),
+    }));
+  }),
 
   getAdminRegistry: adminProcedure.query(async ({ ctx }) => {
     const players = await ctx.prisma.player.findMany({
-      orderBy: [{ isActive: 'desc' }, { marketValue: 'desc' }, { gameName: 'asc' }],
+      orderBy: [{ isActive: 'desc' }, { marketValue: 'desc' }, { firstName: 'asc' }],
       select: {
         id: true,
         firstName: true,
@@ -408,6 +421,7 @@ export const playerRouter = createTRPCRouter({
           select: {
             name: true,
             shortCode: true,
+            logoUrl: true,
           },
         },
       },
@@ -415,6 +429,7 @@ export const playerRouter = createTRPCRouter({
 
     return players.map((player) => ({
       id: player.id,
+      displayName: resolveStoredPlayerDisplayName(player),
       firstName: player.firstName,
       lastName: player.lastName,
       gameName: player.gameName,
@@ -533,14 +548,17 @@ export const playerRouter = createTRPCRouter({
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Player not found.' });
     }
 
-    return player;
+    return {
+      ...player,
+      displayName: resolveStoredPlayerDisplayName(player),
+    };
   }),
 
   create: adminProcedure.input(playerCreateSchema).mutation(async ({ ctx, input }) => {
     const secondaryRoles = normalizeSecondaryRoles(input.secondaryRoles, input.role);
     const slug = await buildUniquePlayerSlug(
       ctx.prisma,
-      input.slug ?? input.gameName ?? `${input.firstName}-${input.lastName}`,
+      input.slug ?? input.firstName ?? input.gameName ?? `${input.firstName}-${input.lastName}`,
     );
     const puuid = await resolvePuuid(input.gameName, input.tagLine, input.puuid ?? null);
 

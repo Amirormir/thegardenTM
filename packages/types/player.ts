@@ -2,6 +2,7 @@ export type SharedPlayerRole = 'TOP' | 'JUNGLE' | 'MID' | 'ADC' | 'SUPPORT';
 
 export interface PlayerListItem {
   id: string;
+  displayName: string;
   firstName: string;
   lastName: string;
   gameName: string;
@@ -15,6 +16,7 @@ export interface PlayerListItem {
   teamId?: string | null;
   teamName: string;
   teamShortCode?: string | null;
+  teamLogoUrl?: string | null;
 }
 
 export interface MarketValuePoint {
