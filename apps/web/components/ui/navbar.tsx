@@ -11,6 +11,7 @@ export async function Navbar() {
           ? {
               id: session.user.id,
               name: session.user.name ?? null,
+              image: session.user.image ?? null,
               role: String(session.user.role),
               teamId: session.user.teamId,
             }

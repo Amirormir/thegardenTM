@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { signOut } from 'next-auth/react';
-import { ChevronDown, Shield, UserRound } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { signOut, useSession } from 'next-auth/react';
+import { ChevronDown, Menu, Shield, UserRound, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { buttonVariants } from './button';
+import { NotificationBell } from './notification-bell';
 import { cn } from '@/lib/utils/cn';
 
 const navItems = [
@@ -18,6 +20,7 @@ const navItems = [
 interface NavbarUser {
   id: string;
   name?: string | null;
+  image?: string | null;
   role: string;
   teamId: string | null;
 }
@@ -27,8 +30,11 @@ interface NavbarClientProps {
 }
 
 export function NavbarClient({ user }: NavbarClientProps) {
+  const { data: session } = useSession();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
 
   const signInHref = useMemo(() => {
     if (!pathname) {
@@ -39,8 +45,39 @@ export function NavbarClient({ user }: NavbarClientProps) {
     return `/api/auth/signin?${params.toString()}`;
   }, [pathname]);
 
-  const userName = user?.name ?? 'Guest';
-  const userRole = user?.role ?? 'USER';
+  useEffect(() => {
+    setMobileOpen(false);
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [session?.user?.image, user?.image]);
+
+  const currentUser = session?.user
+    ? {
+        id: session.user.id,
+        name: session.user.name ?? null,
+        image: session.user.image ?? null,
+        role: String(session.user.role),
+        teamId: session.user.teamId,
+      }
+    : user;
+
+  const userName = currentUser?.name ?? 'Guest';
+  const userRole = currentUser?.role ?? 'USER';
+  const showAvatar = Boolean(currentUser?.image) && !avatarLoadFailed;
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/8 bg-[#0b0a10]/80 backdrop-blur-xl">
@@ -74,67 +111,224 @@ export function NavbarClient({ user }: NavbarClientProps) {
           ))}
         </nav>
 
-        <div className="relative">
-          {user ? (
-            <>
-              <button
-                type="button"
-                className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:border-accent-primary/30"
-                onClick={() => setOpen((value) => !value)}
-              >
-                <span className="rounded-full bg-accent-primary/20 p-2 text-accent-glow">
-                  <UserRound className="h-4 w-4" />
-                </span>
-                <span className="hidden text-left md:block">
-                  <span className="block font-semibold">{userName}</span>
-                  <span className="block text-xs uppercase tracking-[0.18em] text-text-secondary">
-                    {userRole}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="rounded-2xl border border-white/10 bg-white/5 p-2.5 text-text-secondary transition hover:text-white md:hidden"
+            onClick={() => setMobileOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
+          {currentUser ? <NotificationBell /> : null}
+
+          <div className="relative">
+            {currentUser ? (
+              <>
+                <button
+                  type="button"
+                  className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:border-accent-primary/30"
+                  onClick={() => setOpen((value) => !value)}
+                >
+                  <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-accent-primary/20 text-accent-glow">
+                    {showAvatar ? (
+                      <img
+                        src={currentUser?.image ?? undefined}
+                        alt={userName}
+                        className="h-full w-full object-cover"
+                        referrerPolicy="no-referrer"
+                        onError={() => setAvatarLoadFailed(true)}
+                      />
+                    ) : (
+                      <UserRound className="h-4 w-4" />
+                    )}
                   </span>
-                </span>
-                <ChevronDown className="h-4 w-4 text-text-secondary" />
-              </button>
-              {open ? (
-                <div className="absolute right-0 mt-3 w-56 rounded-[24px] border border-white/10 bg-[#151421]/95 p-2 shadow-2xl backdrop-blur-xl">
-                  <Link
-                    href="/team"
-                    className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
-                    onClick={() => setOpen(false)}
-                  >
-                    Team Dashboard
-                  </Link>
-                  {user.role === 'ADMIN' ? (
+                  <span className="hidden text-left md:block">
+                    <span className="block font-semibold">{userName}</span>
+                    <span className="block text-xs uppercase tracking-[0.18em] text-text-secondary">
+                      {userRole}
+                    </span>
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-text-secondary" />
+                </button>
+                {open ? (
+                  <div className="absolute right-0 mt-3 w-56 rounded-[24px] border border-white/10 bg-[#151421]/95 p-2 shadow-2xl backdrop-blur-xl">
                     <Link
-                      href="/admin"
+                      href="/profile"
                       className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
                       onClick={() => setOpen(false)}
                     >
-                      Admin Area
+                      Mon profil
                     </Link>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="mt-1 w-full rounded-2xl px-4 py-3 text-left text-sm text-rose-200 transition hover:bg-rose-500/10"
-                    onClick={() => void signOut({ callbackUrl: '/' })}
-                  >
-                    Disconnect
-                  </button>
-                </div>
-              ) : null}
-            </>
-          ) : (
-            <Link
-              href={signInHref}
-              className={cn(
-                buttonVariants({ variant: 'secondary', size: 'sm' }),
-                'inline-flex items-center',
-              )}
-            >
-              <Shield className="h-4 w-4" />
-              Sign In
-            </Link>
-          )}
+                    <Link
+                      href="/notifications"
+                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                      onClick={() => setOpen(false)}
+                    >
+                      Notifications
+                    </Link>
+                    <Link
+                      href="/team"
+                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                      onClick={() => setOpen(false)}
+                    >
+                      Team Dashboard
+                    </Link>
+                    {currentUser.role === 'ADMIN' ? (
+                      <Link
+                        href="/admin"
+                        className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                        onClick={() => setOpen(false)}
+                      >
+                        Admin Area
+                      </Link>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="mt-1 w-full rounded-2xl px-4 py-3 text-left text-sm text-rose-200 transition hover:bg-rose-500/10"
+                      onClick={() => void signOut({ callbackUrl: '/' })}
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <Link
+                href={signInHref}
+                className={cn(
+                  buttonVariants({ variant: 'secondary', size: 'sm' }),
+                  'inline-flex items-center',
+                )}
+              >
+                <Shield className="h-4 w-4" />
+                Sign In
+              </Link>
+            )}
+          </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {mobileOpen ? (
+          <>
+            <motion.div
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+            />
+            <motion.nav
+              className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/10 bg-[#0e0d15]/95 backdrop-blur-xl md:hidden"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 26, stiffness: 300 }}
+            >
+              <div className="flex items-center justify-between border-b border-white/8 px-5 py-5">
+                <div className="font-display text-lg font-bold text-white">Nexus League</div>
+                <button
+                  type="button"
+                  className="rounded-2xl border border-white/10 bg-white/5 p-2 text-text-secondary transition hover:text-white"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="flex-1 space-y-1 px-3 py-4">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'block rounded-2xl px-4 py-3 text-sm font-medium transition',
+                      pathname === item.href || pathname.startsWith(`${item.href}/`)
+                        ? 'bg-accent-primary/14 text-white'
+                        : 'text-text-secondary hover:bg-white/6 hover:text-white',
+                    )}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                {currentUser?.role === 'ADMIN' ? (
+                  <Link
+                    href="/admin"
+                    className={cn(
+                      'block rounded-2xl px-4 py-3 text-sm font-medium transition',
+                      pathname.startsWith('/admin')
+                        ? 'bg-accent-primary/14 text-white'
+                        : 'text-text-secondary hover:bg-white/6 hover:text-white',
+                    )}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Admin Area
+                  </Link>
+                ) : null}
+              </div>
+
+              <div className="border-t border-white/8 px-3 py-4">
+                {currentUser ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 px-4 py-2">
+                      <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-accent-primary/20 text-accent-glow">
+                        {showAvatar ? (
+                          <img
+                            src={currentUser?.image ?? undefined}
+                            alt={userName}
+                            className="h-full w-full object-cover"
+                            referrerPolicy="no-referrer"
+                            onError={() => setAvatarLoadFailed(true)}
+                          />
+                        ) : (
+                          <UserRound className="h-4 w-4" />
+                        )}
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-white">{userName}</p>
+                        <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                          {userRole}
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      href="/profile"
+                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      Mon profil
+                    </Link>
+                    <Link
+                      href="/notifications"
+                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      Notifications
+                    </Link>
+                    <button
+                      type="button"
+                      className="w-full rounded-2xl px-4 py-3 text-left text-sm text-rose-200 transition hover:bg-rose-500/10"
+                      onClick={() => void signOut({ callbackUrl: '/' })}
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    href={signInHref}
+                    className="block rounded-2xl px-4 py-3 text-center text-sm font-medium text-white transition hover:bg-white/6"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Sign In
+                  </Link>
+                )}
+              </div>
+            </motion.nav>
+          </>
+        ) : null}
+      </AnimatePresence>
     </header>
   );
 }
