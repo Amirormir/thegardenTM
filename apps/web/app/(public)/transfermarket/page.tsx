@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { MarketFilters } from '@/components/features/transfermarket/market-filters';
 import { PlayerCard } from '@/components/features/transfermarket/player-card';
+import { TopPlayersShowcase } from '@/components/features/transfermarket/top-players-showcase';
 import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils/format';
 import { getServerCaller } from '@/server/caller';
@@ -108,9 +109,13 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
         </Card>
       </section>
 
+      {players.length >= 3 && sort === 'marketValue-desc' ? (
+        <TopPlayersShowcase players={players} />
+      ) : null}
+
       {players.length > 0 ? (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {players.map((player) => (
+          {(players.length >= 3 && sort === 'marketValue-desc' ? players.slice(3) : players).map((player) => (
             <PlayerCard key={player.id} player={player} />
           ))}
         </div>
