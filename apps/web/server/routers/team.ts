@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { UserRole } from '@nexus/db';
-import type { Prisma } from '@nexus/db';
+import type { PlayerRole, Prisma } from '@nexus/db';
+import type { TeamMarketValueEntry } from '@nexus/types';
 import {
   teamCaptainCandidatesSchema,
   standingsInputSchema,
@@ -20,6 +21,7 @@ import {
   createTRPCRouter,
   publicProcedure,
 } from '@/server/trpc';
+import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
 
 const publicTeamSelect = {
   id: true,
@@ -55,6 +57,44 @@ const publicTeamSelect = {
     },
   },
 } as const;
+
+function toPublicTeam(team: {
+  id: string;
+  name: string;
+  slug: string;
+  shortCode: string;
+  logoUrl: string | null;
+  budget: number;
+  captain: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
+  players: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    gameName: string;
+    tagLine: string;
+    imageUrl: string | null;
+    role: PlayerRole;
+    teamRole: PlayerRole | null;
+    secondaryRoles: PlayerRole[];
+    marketValue: number;
+    salary: number;
+    nationality: string | null;
+    age: number | null;
+    isActive: boolean;
+  }>;
+}) {
+  return {
+    ...team,
+    players: team.players.map((player) => ({
+      ...player,
+      displayName: resolveStoredPlayerDisplayName(player),
+    })),
+  };
+}
 
 async function ensureCaptainAvailability(
   tx: Prisma.TransactionClient,
@@ -219,7 +259,7 @@ export const teamRouter = createTRPCRouter({
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Team not found.' });
     }
 
-    return team;
+    return toPublicTeam(team);
   }),
 
   getBySlug: publicProcedure.input(teamSlugSchema).query(async ({ ctx, input }) => {
@@ -232,7 +272,7 @@ export const teamRouter = createTRPCRouter({
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Team not found.' });
     }
 
-    return team;
+    return toPublicTeam(team);
   }),
 
   getStandings: publicProcedure
@@ -243,6 +283,57 @@ export const teamRouter = createTRPCRouter({
         input?.seasonId ? { seasonId: input.seasonId } : undefined,
       ),
     ),
+
+  getMarketValueRanking: publicProcedure.query(async ({ ctx }): Promise<TeamMarketValueEntry[]> => {
+    const teams = await ctx.prisma.team.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        shortCode: true,
+        logoUrl: true,
+        players: {
+          where: { isActive: true },
+          select: {
+            marketValue: true,
+            salary: true,
+          },
+        },
+      },
+    });
+
+    return teams
+      .map((team) => {
+        const totalMarketValue = team.players.reduce((sum, player) => sum + player.marketValue, 0);
+        const totalSalary = team.players.reduce((sum, player) => sum + player.salary, 0);
+        const playerCount = team.players.length;
+
+        return {
+          id: team.id,
+          name: team.name,
+          slug: team.slug,
+          shortCode: team.shortCode,
+          logoUrl: team.logoUrl,
+          playerCount,
+          totalMarketValue,
+          averageMarketValue: playerCount > 0 ? Math.round(totalMarketValue / playerCount) : 0,
+          totalSalary,
+        };
+      })
+      .sort((left, right) => {
+        const byMarketValue = right.totalMarketValue - left.totalMarketValue;
+        if (byMarketValue !== 0) {
+          return byMarketValue;
+        }
+
+        const byAverageValue = right.averageMarketValue - left.averageMarketValue;
+        if (byAverageValue !== 0) {
+          return byAverageValue;
+        }
+
+        return left.name.localeCompare(right.name);
+      });
+  }),
 
   create: adminProcedure.input(teamCreateSchema).mutation(async ({ ctx, input }) => {
     const created = await ctx.prisma.$transaction(async (tx) => {

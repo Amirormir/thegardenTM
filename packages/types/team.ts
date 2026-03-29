@@ -18,3 +18,15 @@ export interface TeamSummary {
   shortCode: string;
   logoUrl: string | null;
 }
+
+export interface TeamMarketValueEntry {
+  id: string;
+  name: string;
+  slug: string;
+  shortCode: string;
+  logoUrl: string | null;
+  playerCount: number;
+  totalMarketValue: number;
+  averageMarketValue: number;
+  totalSalary: number;
+}

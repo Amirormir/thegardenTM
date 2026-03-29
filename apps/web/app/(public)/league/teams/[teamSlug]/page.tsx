@@ -3,7 +3,10 @@ import { notFound } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { PlayerLink } from '@/components/ui/player-link';
 import { TeamAvatar } from '@/components/ui/team-avatar';
+import { TeamTintCard, TeamTintMediaFrame } from '@/components/ui/team-tint';
+import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCompactDate, formatCurrency, formatDateTime } from '@/lib/utils/format';
 import { getServerCaller } from '@/server/caller';
 
@@ -55,7 +58,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
       return leftIndex - rightIndex;
     }
 
-    return left.gameName.localeCompare(right.gameName);
+    return left.displayName.localeCompare(right.displayName);
   });
 
   const standing = standings.find((entry) => entry.id === team.id) ?? null;
@@ -71,7 +74,12 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
   return (
     <div className="space-y-8">
       <section className="grid gap-6 xl:grid-cols-[1fr_320px]">
-        <Card elevated className="space-y-6">
+        <TeamTintCard
+          elevated
+          className="min-h-full"
+          contentClassName="space-y-6"
+          logoUrl={team.logoUrl}
+        >
           <div className="flex flex-col gap-6 md:flex-row md:items-start">
             <TeamAvatar
               name={team.name}
@@ -126,15 +134,13 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
               </p>
             </Card>
           </div>
-        </Card>
+        </TeamTintCard>
 
         <div className="space-y-4">
           <Card className="space-y-3">
             <p className="text-kicker">Staff</p>
             <h2 className="font-display text-2xl font-bold text-white">Capitaine</h2>
-            <p className="text-sm text-text-secondary">
-              {team.captain?.name ?? 'Non assigne'}
-            </p>
+            <p className="text-sm text-text-secondary">{team.captain?.name ?? 'Non assigne'}</p>
             <p className="text-sm text-text-secondary">
               {team.captain?.email ?? 'Aucune adresse disponible'}
             </p>
@@ -161,19 +167,29 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {sortedPlayers.map((player) => (
-            <Card key={player.id} className="space-y-4">
+            <TeamTintCard
+              key={player.id}
+              className="h-full"
+              contentClassName="space-y-4"
+              logoUrl={team.logoUrl}
+            >
               <div className="flex items-start gap-4">
-                {player.imageUrl ? (
-                  <img
-                    src={player.imageUrl}
-                    alt={player.gameName}
-                    className="h-16 w-16 rounded-2xl object-cover ring-1 ring-white/10"
-                  />
-                ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/8 text-sm font-semibold text-white ring-1 ring-white/10">
-                    {player.gameName.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
+                <TeamTintMediaFrame
+                  logoUrl={team.logoUrl}
+                  className="h-16 w-16 shrink-0 rounded-2xl"
+                >
+                  {player.imageUrl ? (
+                    <img
+                      src={player.imageUrl}
+                      alt={player.displayName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-white/8 text-sm font-semibold text-white">
+                      {getPlayerInitials(player.displayName)}
+                    </div>
+                  )}
+                </TeamTintMediaFrame>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -185,9 +201,14 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                     ))}
                   </div>
                   <h3 className="mt-3 font-display text-2xl font-bold text-white">
-                    {player.gameName}
+                    <PlayerLink
+                      playerId={player.id}
+                      className="font-display text-2xl font-bold text-white"
+                    >
+                      {player.displayName}
+                    </PlayerLink>
                   </h3>
-                  <p className="mt-1 text-sm text-text-secondary">#{player.tagLine}</p>
+                  <p className="mt-1 text-sm text-text-secondary">{buildPlayerRiotId(player)}</p>
                 </div>
               </div>
 
@@ -196,17 +217,13 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                   <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
                     Market value
                   </p>
-                  <p className="mt-2 font-semibold text-white">
-                    {formatCurrency(player.marketValue)}
-                  </p>
+                  <p className="mt-2 font-semibold text-white">{formatCurrency(player.marketValue)}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
                     Salary
                   </p>
-                  <p className="mt-2 font-semibold text-white">
-                    {formatCurrency(player.salary)}
-                  </p>
+                  <p className="mt-2 font-semibold text-white">{formatCurrency(player.salary)}</p>
                 </div>
               </div>
 
@@ -223,7 +240,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                 Voir la fiche transfermarket
                 <ArrowRight className="h-4 w-4" />
               </Link>
-            </Card>
+            </TeamTintCard>
           ))}
         </div>
       </section>
@@ -287,7 +304,9 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-text-secondary">Aucun resultat enregistre pour cette equipe.</p>
+            <p className="text-sm text-text-secondary">
+              Aucun resultat enregistre pour cette equipe.
+            </p>
           )}
         </Card>
       </section>
