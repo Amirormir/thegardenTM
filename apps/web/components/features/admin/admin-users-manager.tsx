@@ -1,0 +1,314 @@
+'use client';
+
+import { Loader2, Shield, ShieldAlert, User, UserCog, X } from 'lucide-react';
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Select } from '@/components/ui/select';
+import { api } from '@/lib/trpc/react';
+import { cn } from '@/lib/utils/cn';
+import { formatDateTime } from '@/lib/utils/format';
+
+interface FeedbackState {
+  type: 'success' | 'error';
+  message: string;
+}
+
+const ROLE_DISPLAY: Record<string, { label: string; color: string; icon: typeof Shield }> = {
+  ADMIN: { label: 'Admin', color: 'text-amber-400', icon: ShieldAlert },
+  TEAM_CAPTAIN: { label: 'Chef d\'equipe', color: 'text-accent-glow', icon: Shield },
+  USER: { label: 'Utilisateur', color: 'text-text-secondary', icon: User },
+};
+
+const ROLE_BADGE_CLASSNAMES: Record<string, string> = {
+  ADMIN: 'bg-amber-400/14 text-amber-100 ring-1 ring-amber-300/26',
+  TEAM_CAPTAIN: 'bg-emerald-500/14 text-emerald-100 ring-1 ring-emerald-400/22',
+  USER: 'bg-white/8 text-slate-200 ring-1 ring-white/10',
+};
+
+function FeedbackBanner({ feedback }: { feedback: FeedbackState | null }) {
+  if (!feedback) return null;
+
+  return (
+    <div
+      className={cn(
+        'rounded-2xl border px-4 py-3 text-sm',
+        feedback.type === 'success'
+          ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
+          : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+      )}
+    >
+      {feedback.message}
+    </div>
+  );
+}
+
+export function AdminUsersManager() {
+  const utils = api.useUtils();
+  const usersQuery = api.user.getAll.useQuery();
+  const teamsQuery = api.team.getAll.useQuery();
+  const updateRole = api.user.updateRole.useMutation();
+  const assignTeam = api.user.assignTeam.useMutation();
+  const removeTeam = api.user.removeTeam.useMutation();
+
+  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+
+  const users = usersQuery.data ?? [];
+  const teams = teamsQuery.data ?? [];
+  const selectedUser = users.find((user) => user.id === selectedUserId) ?? null;
+  const filteredUsers =
+    roleFilter === 'all' ? users : users.filter((user) => user.role === roleFilter);
+  const isPending = updateRole.isPending || assignTeam.isPending || removeTeam.isPending;
+
+  async function invalidateAll() {
+    await Promise.all([
+      utils.user.getAll.invalidate(),
+      utils.team.getAll.invalidate(),
+      utils.team.getById.invalidate(),
+    ]);
+  }
+
+  async function handleUpdateRole(userId: string, role: string) {
+    setFeedback(null);
+
+    try {
+      await updateRole.mutateAsync({ userId, role: role as 'USER' | 'TEAM_CAPTAIN' | 'ADMIN' });
+      await invalidateAll();
+      setFeedback({ type: 'success', message: 'Role mis a jour.' });
+    } catch (error) {
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Echec de la mise a jour.',
+      });
+    }
+  }
+
+  async function handleAssignTeam(userId: string, teamId: string) {
+    setFeedback(null);
+
+    try {
+      await assignTeam.mutateAsync({ userId, teamId });
+      await invalidateAll();
+      setFeedback({ type: 'success', message: 'Equipe assignee.' });
+    } catch (error) {
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Echec de l\'assignation.',
+      });
+    }
+  }
+
+  async function handleRemoveTeam(userId: string) {
+    setFeedback(null);
+
+    try {
+      await removeTeam.mutateAsync({ userId });
+      await invalidateAll();
+      setFeedback({ type: 'success', message: 'Equipe retiree.' });
+    } catch (error) {
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Echec du retrait.',
+      });
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <FeedbackBanner feedback={feedback} />
+
+      <div className="flex flex-wrap gap-2">
+        {['all', 'ADMIN', 'TEAM_CAPTAIN', 'USER'].map((role) => (
+          <button
+            key={role}
+            type="button"
+            onClick={() => setRoleFilter(role)}
+            className={cn(
+              'rounded-full px-4 py-2 text-sm font-semibold transition',
+              roleFilter === role
+                ? 'bg-white text-[#12111a]'
+                : 'border border-white/10 bg-white/5 text-white/60 hover:text-white',
+            )}
+          >
+            {role === 'all'
+              ? `Tous (${users.length})`
+              : `${ROLE_DISPLAY[role]?.label ?? role} (${users.filter((user) => user.role === role).length})`}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_400px]">
+        <Card className="space-y-4 p-0">
+          <div className="border-b border-white/8 px-6 py-5">
+            <h2 className="font-display text-2xl font-bold text-white">Utilisateurs</h2>
+          </div>
+
+          {usersQuery.isLoading ? (
+            <div className="flex items-center gap-3 px-6 py-8 text-sm text-text-secondary">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Chargement...
+            </div>
+          ) : (
+            <div className="divide-y divide-white/5">
+              {filteredUsers.map((user) => {
+                const roleInfo = (ROLE_DISPLAY[user.role] ?? ROLE_DISPLAY.USER)!;
+                const RoleIcon = roleInfo.icon;
+                const active = user.id === selectedUserId;
+
+                return (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => setSelectedUserId(user.id)}
+                    className={cn(
+                      'flex w-full items-center justify-between gap-4 px-6 py-4 text-left transition',
+                      active ? 'bg-accent-primary/8' : 'hover:bg-white/3',
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          'flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5',
+                          roleInfo.color,
+                        )}
+                      >
+                        <RoleIcon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-white">{user.name ?? 'Sans nom'}</p>
+                        <p className="text-xs text-text-secondary">{user.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {user.captainOfTeam ? (
+                        <Badge variant="actif">{user.captainOfTeam.shortCode}</Badge>
+                      ) : null}
+                      <Badge variant="B" className={ROLE_BADGE_CLASSNAMES[user.role] ?? ''}>
+                        {roleInfo.label}
+                      </Badge>
+                    </div>
+                  </button>
+                );
+              })}
+
+              {filteredUsers.length === 0 ? (
+                <p className="px-6 py-8 text-sm text-text-secondary">
+                  Aucun utilisateur pour ce filtre.
+                </p>
+              ) : null}
+            </div>
+          )}
+        </Card>
+
+        {selectedUser ? (
+          <Card className="space-y-6 xl:sticky xl:top-8 xl:h-fit">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                <UserCog className="h-6 w-6 text-accent-glow" />
+              </div>
+              <div>
+                <h3 className="font-display text-xl font-bold text-white">
+                  {selectedUser.name ?? 'Sans nom'}
+                </h3>
+                <p className="text-sm text-text-secondary">{selectedUser.email}</p>
+                <p className="mt-1 text-xs text-text-muted">
+                  Inscrit le {formatDateTime(selectedUser.createdAt)}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                Role
+              </label>
+              <Select
+                value={selectedUser.role}
+                disabled={isPending}
+                onChange={(event) => handleUpdateRole(selectedUser.id, event.target.value)}
+              >
+                <option value="USER">Utilisateur</option>
+                <option value="TEAM_CAPTAIN">Chef d&apos;equipe</option>
+                <option value="ADMIN">Admin</option>
+              </Select>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                Equipe assignee
+              </label>
+
+              {selectedUser.captainOfTeam ? (
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <div>
+                    <p className="font-semibold text-white">{selectedUser.captainOfTeam.name}</p>
+                    <p className="text-xs text-text-secondary">
+                      {selectedUser.captainOfTeam.shortCode}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    disabled={isPending}
+                    icon={
+                      isPending ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <X className="h-3 w-3" />
+                      )
+                    }
+                    onClick={() => handleRemoveTeam(selectedUser.id)}
+                  >
+                    Retirer
+                  </Button>
+                </div>
+              ) : (
+                <Select
+                  value=""
+                  disabled={isPending}
+                  onChange={(event) => {
+                    if (event.target.value) {
+                      void handleAssignTeam(selectedUser.id, event.target.value);
+                    }
+                  }}
+                >
+                  <option value="">Aucune equipe</option>
+                  {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name} ({team.shortCode})
+                    </option>
+                  ))}
+                </Select>
+              )}
+
+              <p className="text-xs text-text-secondary">
+                Assigner une equipe promouvra automatiquement un utilisateur au role chef
+                d&apos;equipe. Plusieurs capitaines par equipe sont possibles.
+              </p>
+            </div>
+
+            {selectedUser.role === 'TEAM_CAPTAIN' && !selectedUser.captainOfTeam ? (
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                Ce chef d&apos;equipe n&apos;a pas d&apos;equipe assignee. Il ne pourra pas acceder
+                au dashboard equipe.
+              </div>
+            ) : null}
+          </Card>
+        ) : (
+          <Card className="flex items-center justify-center py-16 text-center xl:sticky xl:top-8 xl:h-fit">
+            <div>
+              <UserCog className="mx-auto h-8 w-8 text-text-muted" />
+              <p className="mt-3 text-sm text-text-secondary">
+                Selectionnez un utilisateur pour gerer son role et son equipe.
+              </p>
+            </div>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}

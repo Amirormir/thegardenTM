@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { PlayerLink } from '@/components/ui/player-link';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatDateTime } from '@/lib/utils/format';
@@ -202,8 +203,10 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
             <TableBody>
               {incoming.map((offer) => (
                 <TableRow key={offer.id}>
-                  <TableCell className="font-semibold text-white">
-                    {offer.player.gameName}
+                  <TableCell>
+                    <PlayerLink playerId={offer.player.id} className="font-semibold text-white">
+                      {offer.player.displayName}
+                    </PlayerLink>
                   </TableCell>
                   <TableCell>
                     <Badge variant={offer.player.role}>{offer.player.role}</Badge>
@@ -294,8 +297,10 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
             <TableBody>
               {outgoing.map((offer) => (
                 <TableRow key={offer.id}>
-                  <TableCell className="font-semibold text-white">
-                    {offer.player.gameName}
+                  <TableCell>
+                    <PlayerLink playerId={offer.player.id} className="font-semibold text-white">
+                      {offer.player.displayName}
+                    </PlayerLink>
                   </TableCell>
                   <TableCell>
                     <Badge variant={offer.player.role}>{offer.player.role}</Badge>

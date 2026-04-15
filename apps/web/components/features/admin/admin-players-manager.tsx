@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { api } from '@/lib/trpc/react';
+import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatDateTime } from '@/lib/utils/format';
 import type { AppRouter } from '@/server/routers/_app';
@@ -25,8 +26,7 @@ interface FeedbackState {
 }
 
 interface PlayerDraftState {
-  firstName: string;
-  lastName: string;
+  displayName: string;
   gameName: string;
   tagLine: string;
   imageUrl: string;
@@ -42,8 +42,7 @@ interface PlayerDraftState {
 
 function createEmptyPlayerDraft(): PlayerDraftState {
   return {
-    firstName: '',
-    lastName: '',
+    displayName: '',
     gameName: '',
     tagLine: '',
     imageUrl: '',
@@ -60,8 +59,7 @@ function createEmptyPlayerDraft(): PlayerDraftState {
 
 function createPlayerDraft(player: AdminPlayerDetails): PlayerDraftState {
   return {
-    firstName: player.firstName,
-    lastName: player.lastName,
+    displayName: player.displayName,
     gameName: player.gameName,
     tagLine: player.tagLine,
     imageUrl: player.imageUrl ?? '',
@@ -96,18 +94,8 @@ function toDateValue(value: Date | string) {
   return `${year}-${month}-${day}`;
 }
 
-function getInitials(firstName: string, lastName: string, gameName: string) {
-  const combined = `${firstName} ${lastName}`.trim();
-
-  if (combined.length > 0) {
-    return combined
-      .split(' ')
-      .slice(0, 2)
-      .map((part) => part.charAt(0).toUpperCase())
-      .join('');
-  }
-
-  return gameName.slice(0, 2).toUpperCase();
+function getInitials(gameName: string) {
+  return getPlayerInitials(gameName);
 }
 
 function getFormValue(formData: FormData, key: string) {
@@ -192,7 +180,7 @@ export function AdminPlayersManager() {
       return true;
     }
 
-    return [player.gameName, player.firstName, player.lastName, player.teamName, player.tagLine]
+    return [player.displayName, player.gameName, player.teamName, player.tagLine]
       .join(' ')
       .toLowerCase()
       .includes(needle);
@@ -218,9 +206,10 @@ export function AdminPlayersManager() {
     setFeedback(null);
 
     try {
+      const displayName = draft.displayName.trim() || draft.gameName.trim();
       const payload = {
-        firstName: draft.firstName.trim(),
-        lastName: draft.lastName.trim(),
+        firstName: displayName,
+        lastName: displayName,
         gameName: draft.gameName.trim(),
         tagLine: draft.tagLine.trim(),
         imageUrl: draft.imageUrl.trim().length > 0 ? draft.imageUrl.trim() : null,
@@ -499,7 +488,7 @@ export function AdminPlayersManager() {
           </div>
 
           <Input
-            placeholder="Rechercher un joueur, une team, un tag"
+            placeholder="Rechercher un pseudo, une team, un tag"
             value={playerSearch}
             onChange={(event) => setPlayerSearch(event.target.value)}
           />
@@ -533,22 +522,22 @@ export function AdminPlayersManager() {
                       {player.imageUrl ? (
                         <img
                           src={player.imageUrl}
-                          alt={player.gameName}
+                          alt={player.displayName}
                           className="h-14 w-14 rounded-2xl object-cover ring-1 ring-white/10"
                         />
                       ) : (
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/8 text-sm font-semibold text-white ring-1 ring-white/10">
-                          {getInitials(player.firstName, player.lastName, player.gameName)}
+                          {getInitials(player.displayName)}
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate font-semibold text-white">{player.gameName}</p>
+                          <p className="truncate font-semibold text-white">{player.displayName}</p>
                           <Badge variant={player.role}>{player.role}</Badge>
                           {!player.isActive ? <Badge variant="actif">Inactif</Badge> : null}
                         </div>
                         <p className="mt-1 text-sm text-text-secondary">
-                          {player.firstName} {player.lastName} - {player.teamName}
+                          {player.teamName} • {buildPlayerRiotId(player)}
                         </p>
                         <div className="mt-3 flex items-center justify-between text-xs uppercase tracking-[0.18em] text-text-secondary">
                           <span>{formatCurrency(player.marketValue)}</span>
@@ -577,7 +566,7 @@ export function AdminPlayersManager() {
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-7 text-text-secondary">
                   Garde ici la fiche principale du joueur : photo, equipe ou free agent, role
-                  principal, roles secondaires, valorisation et identite publique.
+                  principal, roles secondaires, valorisation, pseudo public et Riot ID.
                 </p>
               </div>
               {selectedPlayer ? (
@@ -597,12 +586,12 @@ export function AdminPlayersManager() {
                     {draft.imageUrl ? (
                       <img
                         src={draft.imageUrl}
-                        alt={draft.gameName || 'Preview'}
+                        alt={draft.displayName || draft.gameName || 'Preview'}
                         className="h-[220px] w-full object-cover"
                       />
                     ) : (
                       <div className="flex h-[220px] items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.22),_transparent_58%)] text-4xl font-display font-bold text-white">
-                        {getInitials(draft.firstName, draft.lastName, draft.gameName || 'NL')}
+                        {getInitials(draft.displayName || draft.gameName || 'NL')}
                       </div>
                     )}
                   </div>
@@ -623,34 +612,24 @@ export function AdminPlayersManager() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-                      Prenom
+                      Pseudo public
                     </label>
                     <Input
                       required
-                      value={draft.firstName}
+                      placeholder="Ex: Bat"
+                      value={draft.displayName}
                       onChange={(event) =>
-                        setDraft((current) => ({ ...current, firstName: event.target.value }))
+                        setDraft((current) => ({ ...current, displayName: event.target.value }))
                       }
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-                      Nom
+                      Pseudo in game
                     </label>
                     <Input
                       required
-                      value={draft.lastName}
-                      onChange={(event) =>
-                        setDraft((current) => ({ ...current, lastName: event.target.value }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-                      In game name
-                    </label>
-                    <Input
-                      required
+                      placeholder="Ex: dragonnet"
                       value={draft.gameName}
                       onChange={(event) =>
                         setDraft((current) => ({ ...current, gameName: event.target.value }))
@@ -659,11 +638,11 @@ export function AdminPlayersManager() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-                      Tag line
+                      Tag in game
                     </label>
                     <Input
                       required
-                      placeholder="EUW"
+                      placeholder="Ex: glide"
                       value={draft.tagLine}
                       onChange={(event) =>
                         setDraft((current) => ({ ...current, tagLine: event.target.value }))

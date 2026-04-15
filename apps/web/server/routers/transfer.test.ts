@@ -93,7 +93,7 @@ describe('transfer router', () => {
         contracts: [{ id: 'c-1', teamId: playerTeamId, releaseClause }],
       };
       const fromTeam = { id: 'team-1', name: 'Buying Team', budget };
-      const sellingTeam = { id: playerTeamId, name: 'Selling Team', captainId: 'captain-selling' };
+      const sellingTeam = { id: playerTeamId, name: 'Selling Team', captains: [{ id: 'captain-selling' }] };
       const offer = { id: 'o-new', status: 'PENDING', offeredFee: validInput.offeredFee, fromTeamId: 'team-1', toTeamId: playerTeamId };
 
       (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(player);
@@ -251,8 +251,8 @@ describe('transfer router', () => {
           gameName: 'TestPlayer',
           contracts: [{ id: 'c-1', releaseClause: 1000000 }],
         },
-        fromTeam: { id: 'team-1', name: 'Buying Team', captainId: 'captain-1' },
-        toTeam: { id: 'team-2', name: 'Selling Team' },
+        fromTeam: { id: 'team-1', name: 'Buying Team', captains: [{ id: 'captain-1' }] },
+        toTeam: { id: 'team-2', name: 'Selling Team', captains: [] },
       };
 
       (prisma.transferOffer.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(offer);
@@ -373,8 +373,8 @@ describe('transfer router', () => {
         offeredFee: 500000,
         status: 'PENDING',
         player: { gameName: 'TestPlayer' },
-        fromTeam: { name: 'Buying Team', captainId: 'captain-1' },
-        toTeam: { name: 'Selling Team' },
+        fromTeam: { name: 'Buying Team', captains: [{ id: 'captain-1' }] },
+        toTeam: { name: 'Selling Team', captains: [] },
       };
 
       (prisma.transferOffer.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(offer);

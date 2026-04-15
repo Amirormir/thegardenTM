@@ -12,9 +12,9 @@ import { ensureTeamAccess } from '@/server/utils/authz';
 import {
   captainProcedure,
   createTRPCRouter,
-  protectedProcedure,
 } from '@/server/trpc';
 import type { Prisma, PrismaClient } from '@nexus/db';
+import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
 
 const ACTIVE_CONTRACT_STATUSES: ContractStatus[] = [
   ContractStatus.ACTIVE,
@@ -62,7 +62,7 @@ export const transferRouter = createTRPCRouter({
           ? { toTeamId: input.teamId }
           : { fromTeamId: input.teamId };
 
-      return ctx.prisma.transferOffer.findMany({
+      const offers = await ctx.prisma.transferOffer.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         take: 50,
@@ -77,6 +77,8 @@ export const transferRouter = createTRPCRouter({
           player: {
             select: {
               id: true,
+              firstName: true,
+              lastName: true,
               gameName: true,
               role: true,
               marketValue: true,
@@ -98,6 +100,14 @@ export const transferRouter = createTRPCRouter({
           },
         },
       });
+
+      return offers.map((offer) => ({
+        ...offer,
+        player: {
+          ...offer.player,
+          displayName: resolveStoredPlayerDisplayName(offer.player),
+        },
+      }));
     }),
 
   create: captainProcedure
@@ -111,6 +121,8 @@ export const transferRouter = createTRPCRouter({
             where: { id: input.playerId },
             select: {
               id: true,
+              firstName: true,
+              lastName: true,
               gameName: true,
               teamId: true,
               contracts: {
@@ -140,6 +152,8 @@ export const transferRouter = createTRPCRouter({
         if (!fromTeam) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Equipe introuvable.' });
         }
+
+        const playerDisplayName = resolveStoredPlayerDisplayName(player);
 
         if (!player.teamId) {
           throw new TRPCError({
@@ -214,10 +228,14 @@ export const transferRouter = createTRPCRouter({
           },
         });
 
-        // Get selling team's captain for notification
+        // Get selling team's captains for notification
         const sellingTeam = await tx.team.findUnique({
           where: { id: player.teamId },
-          select: { id: true, name: true, captainId: true },
+          select: {
+            id: true,
+            name: true,
+            captains: { select: { id: true } },
+          },
         });
 
         if (autoAccepted) {
@@ -250,16 +268,18 @@ export const transferRouter = createTRPCRouter({
             data: { teamId: input.fromTeamId, salary: 0 },
           });
 
-          // Notify selling team captain
-          if (sellingTeam?.captainId) {
-            await createNotification(tx as unknown as PrismaClient, {
-              userId: sellingTeam.captainId,
-              type: 'TRANSFER_CLAUSE_TRIGGERED',
-              title: 'Clause liberatoire declenchee',
-              message: `${fromTeam.name} a declenche la clause liberatoire de ${player.gameName} (${input.offeredFee}).`,
-              link: '/team',
-              metadata: { offerId: offer.id, playerId: input.playerId },
-            });
+          // Notify all selling team captains
+          if (sellingTeam?.captains) {
+            for (const cap of sellingTeam.captains) {
+              await createNotification(tx as unknown as PrismaClient, {
+                userId: cap.id,
+                type: 'TRANSFER_CLAUSE_TRIGGERED',
+                title: 'Clause liberatoire declenchee',
+                message: `${fromTeam.name} a declenche la clause liberatoire de ${playerDisplayName} (${input.offeredFee}).`,
+                link: '/team',
+                metadata: { offerId: offer.id, playerId: input.playerId },
+              });
+            }
           }
 
           // Notify buying team captain
@@ -267,21 +287,23 @@ export const transferRouter = createTRPCRouter({
             userId: ctx.session.user.id,
             type: 'TRANSFER_AUTO_ACCEPTED',
             title: 'Clause declenchee — contrat en attente',
-            message: `Votre offre pour ${player.gameName} a declenche la clause. Le contrat est en attente de validation admin.`,
+            message: `Votre offre pour ${playerDisplayName} a declenche la clause. Le contrat est en attente de validation admin.`,
             link: '/team',
             metadata: { offerId: offer.id, playerId: input.playerId },
           });
         } else {
-          // Pending: notify selling team captain
-          if (sellingTeam?.captainId) {
-            await createNotification(tx as unknown as PrismaClient, {
-              userId: sellingTeam.captainId,
-              type: 'TRANSFER_OFFER_RECEIVED',
-              title: 'Nouvelle offre de transfert',
-              message: `${fromTeam.name} propose ${input.offeredFee} pour ${player.gameName}.`,
-              link: '/team',
-              metadata: { offerId: offer.id, playerId: input.playerId },
-            });
+          // Pending: notify all selling team captains
+          if (sellingTeam?.captains) {
+            for (const cap of sellingTeam.captains) {
+              await createNotification(tx as unknown as PrismaClient, {
+                userId: cap.id,
+                type: 'TRANSFER_OFFER_RECEIVED',
+                title: 'Nouvelle offre de transfert',
+                message: `${fromTeam.name} propose ${input.offeredFee} pour ${playerDisplayName}.`,
+                link: '/team',
+                metadata: { offerId: offer.id, playerId: input.playerId },
+              });
+            }
           }
         }
 
@@ -322,6 +344,8 @@ export const transferRouter = createTRPCRouter({
             player: {
               select: {
                 id: true,
+                firstName: true,
+                lastName: true,
                 gameName: true,
                 contracts: {
                   where: { status: { in: ACTIVE_CONTRACT_STATUSES } },
@@ -330,8 +354,8 @@ export const transferRouter = createTRPCRouter({
                 },
               },
             },
-            fromTeam: { select: { id: true, name: true, captainId: true } },
-            toTeam: { select: { id: true, name: true, captainId: true } },
+            fromTeam: { select: { id: true, name: true, captains: { select: { id: true } } } },
+            toTeam: { select: { id: true, name: true, captains: { select: { id: true } } } },
           },
         });
 
@@ -340,6 +364,7 @@ export const transferRouter = createTRPCRouter({
         }
 
         // PENDING → selling team accepts. COUNTER_PROPOSED → buying team accepts the counter.
+        const playerDisplayName = resolveStoredPlayerDisplayName(offer.player);
         const isCounterAccept = offer.status === TransferOfferStatus.COUNTER_PROPOSED;
         const acceptingTeamId = isCounterAccept ? offer.fromTeamId : offer.toTeamId;
         ensureTeamAccess(ctx.session.user, acceptingTeamId);
@@ -400,16 +425,16 @@ export const transferRouter = createTRPCRouter({
           select: { id: true, status: true },
         });
 
-        // Notify the other party
-        const notifyUserId = isCounterAccept ? offer.toTeam.captainId : offer.fromTeam.captainId;
-        if (notifyUserId) {
+        // Notify all captains of the other party
+        const notifyCaptains = isCounterAccept ? offer.toTeam.captains : offer.fromTeam.captains;
+        for (const cap of notifyCaptains) {
           await createNotification(tx as unknown as PrismaClient, {
-            userId: notifyUserId,
+            userId: cap.id,
             type: 'TRANSFER_ACCEPTED',
             title: isCounterAccept ? 'Contre-proposition acceptee' : 'Offre acceptee',
             message: isCounterAccept
-              ? `${offer.fromTeam.name} a accepte votre contre-proposition de ${effectiveFee} pour ${offer.player.gameName}. Contrat en attente de validation admin.`
-              : `${offer.toTeam.name} a accepte votre offre pour ${offer.player.gameName}. Contrat en attente de validation admin.`,
+              ? `${offer.fromTeam.name} a accepte votre contre-proposition de ${effectiveFee} pour ${playerDisplayName}. Contrat en attente de validation admin.`
+              : `${offer.toTeam.name} a accepte votre offre pour ${playerDisplayName}. Contrat en attente de validation admin.`,
             link: '/team',
             metadata: { offerId: offer.id, playerId: offer.playerId },
           });
@@ -442,9 +467,9 @@ export const transferRouter = createTRPCRouter({
             toTeamId: true,
             offeredFee: true,
             status: true,
-            player: { select: { gameName: true } },
-            fromTeam: { select: { name: true, captainId: true } },
-            toTeam: { select: { name: true, captainId: true } },
+            player: { select: { firstName: true, lastName: true, gameName: true } },
+            fromTeam: { select: { name: true, captains: { select: { id: true } } } },
+            toTeam: { select: { name: true, captains: { select: { id: true } } } },
           },
         });
 
@@ -453,6 +478,7 @@ export const transferRouter = createTRPCRouter({
         }
 
         // PENDING → selling team rejects. COUNTER_PROPOSED → buying team rejects the counter.
+        const playerDisplayName = resolveStoredPlayerDisplayName(offer.player);
         const isCounterReject = offer.status === TransferOfferStatus.COUNTER_PROPOSED;
         const rejectingTeamId = isCounterReject ? offer.fromTeamId : offer.toTeamId;
         ensureTeamAccess(ctx.session.user, rejectingTeamId);
@@ -477,16 +503,16 @@ export const transferRouter = createTRPCRouter({
           select: { id: true, status: true },
         });
 
-        // Notify the other party
-        const notifyRejected = isCounterReject ? offer.toTeam.captainId : offer.fromTeam.captainId;
-        if (notifyRejected) {
+        // Notify all captains of the other party
+        const notifyCaptains = isCounterReject ? offer.toTeam.captains : offer.fromTeam.captains;
+        for (const cap of notifyCaptains) {
           await createNotification(tx as unknown as PrismaClient, {
-            userId: notifyRejected,
+            userId: cap.id,
             type: 'TRANSFER_REJECTED',
             title: isCounterReject ? 'Contre-proposition refusee' : 'Offre refusee',
             message: isCounterReject
-              ? `${offer.fromTeam.name} a refuse votre contre-proposition pour ${offer.player.gameName}.${input.rejectionReason ? ` Motif: ${input.rejectionReason}` : ''}`
-              : `${offer.toTeam.name} a refuse votre offre pour ${offer.player.gameName}.${input.rejectionReason ? ` Motif: ${input.rejectionReason}` : ''}`,
+              ? `${offer.fromTeam.name} a refuse votre contre-proposition pour ${playerDisplayName}.${input.rejectionReason ? ` Motif: ${input.rejectionReason}` : ''}`
+              : `${offer.toTeam.name} a refuse votre offre pour ${playerDisplayName}.${input.rejectionReason ? ` Motif: ${input.rejectionReason}` : ''}`,
             link: '/team',
             metadata: { offerId: offer.id, playerId: offer.playerId },
           });
@@ -550,8 +576,8 @@ export const transferRouter = createTRPCRouter({
             toTeamId: true,
             offeredFee: true,
             status: true,
-            player: { select: { gameName: true } },
-            fromTeam: { select: { name: true, captainId: true } },
+            player: { select: { firstName: true, lastName: true, gameName: true } },
+            fromTeam: { select: { name: true, captains: { select: { id: true } } } },
             toTeam: { select: { name: true } },
           },
         });
@@ -559,6 +585,8 @@ export const transferRouter = createTRPCRouter({
         if (!offer) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Offre introuvable.' });
         }
+
+        const playerDisplayName = resolveStoredPlayerDisplayName(offer.player);
 
         // Only the selling team captain can counter-propose
         ensureTeamAccess(ctx.session.user, offer.toTeamId);
@@ -587,13 +615,13 @@ export const transferRouter = createTRPCRouter({
           select: { id: true, status: true, counterOffer: true },
         });
 
-        // Notify buying team captain
-        if (offer.fromTeam.captainId) {
+        // Notify all buying team captains
+        for (const cap of offer.fromTeam.captains) {
           await createNotification(tx as unknown as PrismaClient, {
-            userId: offer.fromTeam.captainId,
+            userId: cap.id,
             type: 'TRANSFER_COUNTER_PROPOSED',
             title: 'Contre-proposition recue',
-            message: `${offer.toTeam.name} contre-propose ${input.counterOffer} pour ${offer.player.gameName}${input.counterMessage ? ` : "${input.counterMessage}"` : ''}.`,
+            message: `${offer.toTeam.name} contre-propose ${input.counterOffer} pour ${playerDisplayName}${input.counterMessage ? ` : "${input.counterMessage}"` : ''}.`,
             link: '/team',
             metadata: { offerId: offer.id, playerId: offer.playerId },
           });

@@ -10,13 +10,6 @@ import { buttonVariants } from './button';
 import { NotificationBell } from './notification-bell';
 import { cn } from '@/lib/utils/cn';
 
-const navItems = [
-  { href: '/', label: 'Home' },
-  { href: '/transfermarket', label: 'Transfermarket' },
-  { href: '/league', label: 'League' },
-  { href: '/team', label: 'Team' },
-];
-
 interface NavbarUser {
   id: string;
   name?: string | null;
@@ -27,6 +20,18 @@ interface NavbarUser {
 
 interface NavbarClientProps {
   user: NavbarUser | null;
+}
+
+function isNavItemActive(pathname: string | null, href: string) {
+  if (!pathname) {
+    return false;
+  }
+
+  if (href === '/team') {
+    return pathname === '/team' || (pathname.startsWith('/team/') && !pathname.startsWith('/team/contracts'));
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function NavbarClient({ user }: NavbarClientProps) {
@@ -78,18 +83,34 @@ export function NavbarClient({ user }: NavbarClientProps) {
   const userName = currentUser?.name ?? 'Guest';
   const userRole = currentUser?.role ?? 'USER';
   const showAvatar = Boolean(currentUser?.image) && !avatarLoadFailed;
+  const navItems = useMemo(() => {
+    const items = [
+      { href: '/', label: 'Home' },
+      { href: '/transfermarket', label: 'Transfermarket' },
+      { href: '/league', label: 'League' },
+    ];
+
+    if (currentUser?.teamId) {
+      items.push(
+        { href: '/team', label: 'Team' },
+        { href: '/team/contracts', label: 'Contracts' },
+      );
+    }
+
+    return items;
+  }, [currentUser?.teamId]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/8 bg-[#0b0a10]/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6">
         <Link href="/" className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-accent-primary/20 bg-accent-primary/12 font-display text-lg font-bold text-white shadow-[0_0_30px_rgba(124,58,237,0.24)]">
-            NL
+            G
           </div>
           <div>
-            <div className="font-display text-lg font-bold text-white">Nexus League</div>
+            <div className="font-display text-lg font-bold text-white">Garden</div>
             <div className="text-xs uppercase tracking-[0.24em] text-text-secondary">
-              Competitive ecosystem
+              League Manager
             </div>
           </div>
         </Link>
@@ -101,7 +122,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
               href={item.href}
               className={cn(
                 'rounded-full px-4 py-2 text-sm font-medium transition',
-                pathname === item.href || pathname.startsWith(`${item.href}/`)
+                isNavItemActive(pathname, item.href)
                   ? 'bg-white/10 text-white'
                   : 'text-text-secondary hover:text-white',
               )}
@@ -167,13 +188,24 @@ export function NavbarClient({ user }: NavbarClientProps) {
                     >
                       Notifications
                     </Link>
-                    <Link
-                      href="/team"
-                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
-                      onClick={() => setOpen(false)}
-                    >
-                      Team Dashboard
-                    </Link>
+                    {currentUser.teamId ? (
+                      <>
+                        <Link
+                          href="/team"
+                          className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                          onClick={() => setOpen(false)}
+                        >
+                          Team Dashboard
+                        </Link>
+                        <Link
+                          href="/team/contracts"
+                          className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                          onClick={() => setOpen(false)}
+                        >
+                          Team Contracts
+                        </Link>
+                      </>
+                    ) : null}
                     {currentUser.role === 'ADMIN' ? (
                       <Link
                         href="/admin"
@@ -194,16 +226,27 @@ export function NavbarClient({ user }: NavbarClientProps) {
                 ) : null}
               </>
             ) : (
-              <Link
-                href={signInHref}
-                className={cn(
-                  buttonVariants({ variant: 'secondary', size: 'sm' }),
-                  'inline-flex items-center',
-                )}
-              >
-                <Shield className="h-4 w-4" />
-                Sign In
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/register"
+                  className={cn(
+                    buttonVariants({ size: 'sm' }),
+                    'inline-flex items-center',
+                  )}
+                >
+                  S&apos;inscrire
+                </Link>
+                <Link
+                  href={signInHref}
+                  className={cn(
+                    buttonVariants({ variant: 'secondary', size: 'sm' }),
+                    'inline-flex items-center',
+                  )}
+                >
+                  <Shield className="h-4 w-4" />
+                  Connexion
+                </Link>
+              </div>
             )}
           </div>
         </div>
@@ -227,7 +270,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
               transition={{ type: 'spring', damping: 26, stiffness: 300 }}
             >
               <div className="flex items-center justify-between border-b border-white/8 px-5 py-5">
-                <div className="font-display text-lg font-bold text-white">Nexus League</div>
+                <div className="font-display text-lg font-bold text-white">Garden</div>
                 <button
                   type="button"
                   className="rounded-2xl border border-white/10 bg-white/5 p-2 text-text-secondary transition hover:text-white"
@@ -244,7 +287,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                     href={item.href}
                     className={cn(
                       'block rounded-2xl px-4 py-3 text-sm font-medium transition',
-                      pathname === item.href || pathname.startsWith(`${item.href}/`)
+                      isNavItemActive(pathname, item.href)
                         ? 'bg-accent-primary/14 text-white'
                         : 'text-text-secondary hover:bg-white/6 hover:text-white',
                     )}
@@ -307,6 +350,15 @@ export function NavbarClient({ user }: NavbarClientProps) {
                     >
                       Notifications
                     </Link>
+                    {currentUser.teamId ? (
+                      <Link
+                        href="/team/contracts"
+                        className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        Team Contracts
+                      </Link>
+                    ) : null}
                     <button
                       type="button"
                       className="w-full rounded-2xl px-4 py-3 text-left text-sm text-rose-200 transition hover:bg-rose-500/10"
@@ -316,13 +368,22 @@ export function NavbarClient({ user }: NavbarClientProps) {
                     </button>
                   </div>
                 ) : (
-                  <Link
-                    href={signInHref}
-                    className="block rounded-2xl px-4 py-3 text-center text-sm font-medium text-white transition hover:bg-white/6"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    Sign In
-                  </Link>
+                  <div className="space-y-2">
+                    <Link
+                      href="/register"
+                      className="block rounded-2xl bg-accent-primary/14 px-4 py-3 text-center text-sm font-medium text-white transition hover:bg-accent-primary/20"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      S&apos;inscrire
+                    </Link>
+                    <Link
+                      href={signInHref}
+                      className="block rounded-2xl px-4 py-3 text-center text-sm font-medium text-text-secondary transition hover:bg-white/6 hover:text-white"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      Connexion
+                    </Link>
+                  </div>
                 )}
               </div>
             </motion.nav>

@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { getAccountByRiotId, getMatchDetail, getMatchHistory, getMatchTimeline, getRankedInfo } from '@/lib/riot';
-import { fetchFromRiotSchema, playerStatsSchema } from '@/lib/validators/stats';
+import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
+import { fetchFromRiotSchema, leagueStatsSchema, playerStatsSchema } from '@/lib/validators/stats';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/trpc';
 
 export const statsRouter = createTRPCRouter({
@@ -9,6 +10,8 @@ export const statsRouter = createTRPCRouter({
       where: { id: input.playerId },
       select: {
         id: true,
+        firstName: true,
+        lastName: true,
         gameName: true,
         role: true,
       },
@@ -73,7 +76,10 @@ export const statsRouter = createTRPCRouter({
     const divisor = games || 1;
 
     return {
-      player,
+      player: {
+        ...player,
+        displayName: resolveStoredPlayerDisplayName(player),
+      },
       summary: {
         games,
         wins: totals.wins,
@@ -101,6 +107,8 @@ export const statsRouter = createTRPCRouter({
         player: {
           select: {
             id: true,
+            firstName: true,
+            lastName: true,
             gameName: true,
             role: true,
             team: {
@@ -118,6 +126,7 @@ export const statsRouter = createTRPCRouter({
       string,
       {
         playerId: string;
+        displayName: string;
         gameName: string;
         role: string;
         teamName: string;
@@ -134,6 +143,7 @@ export const statsRouter = createTRPCRouter({
     for (const stat of stats) {
       const current = leaderboard.get(stat.playerId) ?? {
         playerId: stat.player.id,
+        displayName: resolveStoredPlayerDisplayName(stat.player),
         gameName: stat.player.gameName,
         role: stat.player.role,
         teamName: stat.player.team?.name ?? 'Free Agent',
@@ -166,6 +176,282 @@ export const statsRouter = createTRPCRouter({
       kdaLeader: rows.sort((left, right) => right.kda - left.kda).slice(0, 5),
       csLeader: rows.sort((left, right) => right.avgCs - left.avgCs).slice(0, 5),
       damageLeader: rows.sort((left, right) => right.avgDamage - left.avgDamage).slice(0, 5),
+    };
+  }),
+
+  getLeagueStats: publicProcedure.input(leagueStatsSchema).query(async ({ ctx, input }) => {
+    const seasonFilter = input?.seasonId
+      ? { matchGame: { match: { seasonId: input.seasonId } } }
+      : {};
+    const roleFilter = input?.role ? { player: { role: input.role } } : {};
+
+    const stats = await ctx.prisma.playerMatchStats.findMany({
+      where: {
+        ...seasonFilter,
+        ...roleFilter,
+      },
+      select: {
+        playerId: true,
+        champion: true,
+        kills: true,
+        deaths: true,
+        assists: true,
+        cs: true,
+        gold: true,
+        damage: true,
+        visionScore: true,
+        result: true,
+        side: true,
+        matchGame: {
+          select: {
+            durationSeconds: true,
+            match: {
+              select: {
+                homeTeamId: true,
+                awayTeamId: true,
+              },
+            },
+          },
+        },
+        player: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            gameName: true,
+            role: true,
+            imageUrl: true,
+            team: {
+              select: {
+                id: true,
+                name: true,
+                shortCode: true,
+                logoUrl: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Player aggregation
+    const playerMap = new Map<
+      string,
+      {
+        playerId: string;
+        displayName: string;
+        gameName: string;
+        role: string;
+        imageUrl: string | null;
+        teamId: string | null;
+        teamName: string;
+        teamShortCode: string;
+        teamLogoUrl: string | null;
+        games: number;
+        wins: number;
+        kills: number;
+        deaths: number;
+        assists: number;
+        cs: number;
+        gold: number;
+        damage: number;
+        visionScore: number;
+        totalDurationSeconds: number;
+        champions: Map<string, number>;
+      }
+    >();
+
+    // Team aggregation
+    const teamMap = new Map<
+      string,
+      {
+        teamId: string;
+        teamName: string;
+        teamShortCode: string;
+        teamLogoUrl: string | null;
+        games: number;
+        wins: number;
+        kills: number;
+        deaths: number;
+        totalDurationSeconds: number;
+        blueSideWins: number;
+        blueSideGames: number;
+        redSideWins: number;
+        redSideGames: number;
+      }
+    >();
+
+    // Champion aggregation
+    const championMap = new Map<
+      string,
+      {
+        champion: string;
+        games: number;
+        wins: number;
+        kills: number;
+        deaths: number;
+        assists: number;
+        bans: number;
+      }
+    >();
+
+    for (const stat of stats) {
+      // Player
+      const current = playerMap.get(stat.playerId) ?? {
+        playerId: stat.player.id,
+        displayName: resolveStoredPlayerDisplayName(stat.player),
+        gameName: stat.player.gameName,
+        role: stat.player.role,
+        imageUrl: stat.player.imageUrl,
+        teamId: stat.player.team?.id ?? null,
+        teamName: stat.player.team?.name ?? 'Free Agent',
+        teamShortCode: stat.player.team?.shortCode ?? 'FA',
+        teamLogoUrl: stat.player.team?.logoUrl ?? null,
+        games: 0,
+        wins: 0,
+        kills: 0,
+        deaths: 0,
+        assists: 0,
+        cs: 0,
+        gold: 0,
+        damage: 0,
+        visionScore: 0,
+        totalDurationSeconds: 0,
+        champions: new Map<string, number>(),
+      };
+
+      current.games += 1;
+      current.wins += stat.result === 'WIN' ? 1 : 0;
+      current.kills += stat.kills;
+      current.deaths += stat.deaths;
+      current.assists += stat.assists;
+      current.cs += stat.cs;
+      current.gold += stat.gold;
+      current.damage += stat.damage;
+      current.visionScore += stat.visionScore;
+      current.totalDurationSeconds += stat.matchGame.durationSeconds ?? 0;
+      current.champions.set(stat.champion, (current.champions.get(stat.champion) ?? 0) + 1);
+      playerMap.set(stat.playerId, current);
+
+      // Team
+      if (stat.player.team) {
+        const teamId = stat.player.team.id;
+        const teamCurrent = teamMap.get(teamId) ?? {
+          teamId,
+          teamName: stat.player.team.name,
+          teamShortCode: stat.player.team.shortCode,
+          teamLogoUrl: stat.player.team.logoUrl,
+          games: 0,
+          wins: 0,
+          kills: 0,
+          deaths: 0,
+          totalDurationSeconds: 0,
+          blueSideWins: 0,
+          blueSideGames: 0,
+          redSideWins: 0,
+          redSideGames: 0,
+        };
+        // Only count once per game per team (use role to avoid double counting — count only TOP lane)
+        if (stat.player.role === 'TOP') {
+          teamCurrent.games += 1;
+          teamCurrent.wins += stat.result === 'WIN' ? 1 : 0;
+          teamCurrent.totalDurationSeconds += stat.matchGame.durationSeconds ?? 0;
+          if (stat.side === 'BLUE') {
+            teamCurrent.blueSideGames += 1;
+            teamCurrent.blueSideWins += stat.result === 'WIN' ? 1 : 0;
+          } else {
+            teamCurrent.redSideGames += 1;
+            teamCurrent.redSideWins += stat.result === 'WIN' ? 1 : 0;
+          }
+        }
+        teamCurrent.kills += stat.kills;
+        teamCurrent.deaths += stat.deaths;
+        teamMap.set(teamId, teamCurrent);
+      }
+
+      // Champion
+      const champCurrent = championMap.get(stat.champion) ?? {
+        champion: stat.champion,
+        games: 0,
+        wins: 0,
+        kills: 0,
+        deaths: 0,
+        assists: 0,
+        bans: 0,
+      };
+      champCurrent.games += 1;
+      champCurrent.wins += stat.result === 'WIN' ? 1 : 0;
+      champCurrent.kills += stat.kills;
+      champCurrent.deaths += stat.deaths;
+      champCurrent.assists += stat.assists;
+      championMap.set(stat.champion, champCurrent);
+    }
+
+    const playerRows = [...playerMap.values()].map((entry) => {
+      const durationMinutes = entry.totalDurationSeconds / 60 || 1;
+      const uniqueChampions = entry.champions.size;
+      const mostPlayed = [...entry.champions.entries()].sort((a, b) => b[1] - a[1])[0];
+      return {
+        playerId: entry.playerId,
+        displayName: entry.displayName,
+        gameName: entry.gameName,
+        role: entry.role,
+        imageUrl: entry.imageUrl,
+        teamId: entry.teamId,
+        teamName: entry.teamName,
+        teamShortCode: entry.teamShortCode,
+        teamLogoUrl: entry.teamLogoUrl,
+        games: entry.games,
+        wins: entry.wins,
+        winRate: entry.games > 0 ? entry.wins / entry.games : 0,
+        kda: (entry.kills + entry.assists) / Math.max(entry.deaths, 1),
+        avgKills: entry.kills / Math.max(entry.games, 1),
+        avgDeaths: entry.deaths / Math.max(entry.games, 1),
+        avgAssists: entry.assists / Math.max(entry.games, 1),
+        avgCs: entry.cs / Math.max(entry.games, 1),
+        csPerMin: entry.cs / durationMinutes,
+        avgGold: entry.gold / Math.max(entry.games, 1),
+        goldPerMin: entry.gold / durationMinutes,
+        avgDamage: entry.damage / Math.max(entry.games, 1),
+        avgVisionScore: entry.visionScore / Math.max(entry.games, 1),
+        uniqueChampions,
+        mostPlayedChampion: mostPlayed ? mostPlayed[0] : null,
+        mostPlayedChampionGames: mostPlayed ? mostPlayed[1] : 0,
+      };
+    });
+
+    const teamRows = [...teamMap.values()].map((entry) => ({
+      teamId: entry.teamId,
+      teamName: entry.teamName,
+      teamShortCode: entry.teamShortCode,
+      teamLogoUrl: entry.teamLogoUrl,
+      games: entry.games,
+      wins: entry.wins,
+      winRate: entry.games > 0 ? entry.wins / entry.games : 0,
+      avgKills: entry.kills / (Math.max(entry.games, 1) * 5),
+      avgDeaths: entry.deaths / (Math.max(entry.games, 1) * 5),
+      teamKda: (entry.kills) / Math.max(entry.deaths, 1),
+      blueSideGames: entry.blueSideGames,
+      blueSideWinRate: entry.blueSideGames > 0 ? entry.blueSideWins / entry.blueSideGames : 0,
+      redSideGames: entry.redSideGames,
+      redSideWinRate: entry.redSideGames > 0 ? entry.redSideWins / entry.redSideGames : 0,
+    }));
+
+    const championRows = [...championMap.values()].map((entry) => ({
+      champion: entry.champion,
+      games: entry.games,
+      wins: entry.wins,
+      winRate: entry.games > 0 ? entry.wins / entry.games : 0,
+      kda: (entry.kills + entry.assists) / Math.max(entry.deaths, 1),
+      avgKills: entry.kills / Math.max(entry.games, 1),
+      avgDeaths: entry.deaths / Math.max(entry.games, 1),
+      avgAssists: entry.assists / Math.max(entry.games, 1),
+    }));
+
+    return {
+      players: playerRows,
+      teams: teamRows.sort((a, b) => b.winRate - a.winRate),
+      champions: championRows.sort((a, b) => b.games - a.games),
     };
   }),
 

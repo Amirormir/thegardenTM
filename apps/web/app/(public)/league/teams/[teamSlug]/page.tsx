@@ -139,11 +139,20 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         <div className="space-y-4">
           <Card className="space-y-3">
             <p className="text-kicker">Staff</p>
-            <h2 className="font-display text-2xl font-bold text-white">Capitaine</h2>
-            <p className="text-sm text-text-secondary">{team.captain?.name ?? 'Non assigne'}</p>
-            <p className="text-sm text-text-secondary">
-              {team.captain?.email ?? 'Aucune adresse disponible'}
-            </p>
+            <h2 className="font-display text-2xl font-bold text-white">
+              {team.captains.length > 1 ? 'Capitaines' : 'Capitaine'}
+            </h2>
+            {team.captains.length > 0 ? (
+              team.captains.map((c) => (
+                <div key={c.email} className="text-sm text-text-secondary">
+                  <span className="font-semibold text-white">{c.name ?? 'Sans nom'}</span>
+                  {' — '}
+                  {c.email}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-text-secondary">Aucun capitaine assigne</p>
+            )}
           </Card>
 
           <Card className="space-y-3">

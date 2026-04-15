@@ -6,6 +6,7 @@ import {
   matchUpdateSchema,
   recordResultSchema,
 } from '@/lib/validators/match';
+import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
 import { buildAuditLogInput } from '@/server/utils/audit';
 import { adminProcedure, createTRPCRouter, publicProcedure } from '@/server/trpc';
 
@@ -26,6 +27,7 @@ export const matchRouter = createTRPCRouter({
             id: true,
             name: true,
             shortCode: true,
+            logoUrl: true,
           },
         },
         awayTeam: {
@@ -33,6 +35,7 @@ export const matchRouter = createTRPCRouter({
             id: true,
             name: true,
             shortCode: true,
+            logoUrl: true,
           },
         },
         season: {
@@ -63,6 +66,7 @@ export const matchRouter = createTRPCRouter({
             id: true,
             name: true,
             shortCode: true,
+            logoUrl: true,
           },
         },
         awayTeam: {
@@ -70,6 +74,7 @@ export const matchRouter = createTRPCRouter({
             id: true,
             name: true,
             shortCode: true,
+            logoUrl: true,
           },
         },
         season: {
@@ -105,6 +110,8 @@ export const matchRouter = createTRPCRouter({
                 player: {
                   select: {
                     id: true,
+                    firstName: true,
+                    lastName: true,
                     gameName: true,
                     role: true,
                   },
@@ -120,7 +127,19 @@ export const matchRouter = createTRPCRouter({
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Match not found.' });
     }
 
-    return match;
+    return {
+      ...match,
+      games: match.games.map((game) => ({
+        ...game,
+        playerStats: game.playerStats.map((stat) => ({
+          ...stat,
+          player: {
+            ...stat.player,
+            displayName: resolveStoredPlayerDisplayName(stat.player),
+          },
+        })),
+      })),
+    };
   }),
 
   getByTeam: publicProcedure.input(matchByTeamSchema).query(({ ctx, input }) =>

@@ -4,6 +4,13 @@ export const playerStatsSchema = z.object({
   playerId: z.string().min(1),
 });
 
+export const leagueStatsSchema = z
+  .object({
+    seasonId: z.string().min(1).optional(),
+    role: z.enum(['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']).optional(),
+  })
+  .optional();
+
 export const fetchFromRiotSchema = z.object({
   playerId: z.string().min(1),
   count: z.number().int().positive().max(20).default(5),

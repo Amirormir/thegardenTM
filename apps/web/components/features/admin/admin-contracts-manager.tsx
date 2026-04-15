@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { PlayerLink } from '@/components/ui/player-link';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatDateTime } from '@/lib/utils/format';
@@ -151,8 +152,10 @@ export function AdminContractsManager() {
 
               return (
                 <TableRow key={contract.id}>
-                  <TableCell className="font-semibold text-white">
-                    {contract.player.gameName}
+                  <TableCell>
+                    <PlayerLink playerId={contract.player.id} className="font-semibold text-white">
+                      {contract.player.displayName}
+                    </PlayerLink>
                   </TableCell>
                   <TableCell>
                     <Badge variant={contract.player.role}>{contract.player.role}</Badge>

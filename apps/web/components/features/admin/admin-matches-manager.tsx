@@ -1,11 +1,12 @@
 'use client';
 
 import type { inferRouterOutputs } from '@trpc/server';
-import { Loader2, Plus, Save } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ArrowRightLeft, Loader2, Pencil, Plus, Save } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ChampionSelect, type ChampionOption } from '@/components/ui/champion-select';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { api } from '@/lib/trpc/react';
@@ -65,7 +66,7 @@ function sortRoster(players: TeamRosterPlayer[]) {
       return leftIndex - rightIndex;
     }
 
-    return left.gameName.localeCompare(right.gameName);
+    return left.displayName.localeCompare(right.displayName);
   });
 }
 
@@ -100,9 +101,24 @@ export function AdminMatchesManager() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [recordingMatchId, setRecordingMatchId] = useState<string | null>(null);
   const [gameCount, setGameCount] = useState(1);
+  const [gameSides, setGameSides] = useState<Record<number, boolean>>({});
+  const [champions, setChampions] = useState<ChampionOption[]>([]);
 
   const createMatch = api.match.create.useMutation();
   const recordResult = api.match.recordResult.useMutation();
+
+  useEffect(() => {
+    fetch('https://ddragon.leagueoflegends.com/cdn/15.6.1/data/en_US/champion.json')
+      .then((res) => res.json() as Promise<{ data: Record<string, { id: string; name: string }> }>)
+      .then((json) => {
+        setChampions(
+          Object.values(json.data)
+            .map((c) => ({ id: c.id, name: c.name }))
+            .sort((a, b) => a.name.localeCompare(b.name)),
+        );
+      })
+      .catch(() => {});
+  }, []);
 
   const matches = matchesQuery.data ?? [];
   const teams = teamsQuery.data ?? [];
@@ -126,6 +142,19 @@ export function AdminMatchesManager() {
   const homeSlots = buildSlotDefaults(homeRoster);
   const awaySlots = buildSlotDefaults(awayRoster);
   const maxGames = recordingMatch ? FORMAT_GAME_LIMIT[recordingMatch.format] : 1;
+
+  function getGameSides(gameIndex: number) {
+    if (!recordingMatch) return { blueTeam: null, redTeam: null, blueRoster: [] as TeamRosterPlayer[], redRoster: [] as TeamRosterPlayer[], blueSlots: [] as (TeamRosterPlayer | null)[], redSlots: [] as (TeamRosterPlayer | null)[] };
+    const swapped = gameSides[gameIndex] ?? false;
+    return {
+      blueTeam: swapped ? recordingMatch.awayTeam : recordingMatch.homeTeam,
+      redTeam: swapped ? recordingMatch.homeTeam : recordingMatch.awayTeam,
+      blueRoster: swapped ? awayRoster : homeRoster,
+      redRoster: swapped ? homeRoster : awayRoster,
+      blueSlots: swapped ? awaySlots : homeSlots,
+      redSlots: swapped ? homeSlots : awaySlots,
+    };
+  }
 
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -179,114 +208,67 @@ export function AdminMatchesManager() {
       }
 
       const games = Array.from({ length: gameCount }, (_, gameIndex) => {
+        const sides = getGameSides(gameIndex);
         const winnerTeamIdForGame = getFormValue(formData, `game-${gameIndex}-winnerTeamId`);
 
         if (!winnerTeamIdForGame) {
           throw new Error(`Le vainqueur de la game ${gameIndex + 1} doit etre renseigne.`);
         }
 
-        const playerStats = [
-          ...Array.from({ length: SLOT_COUNT }, (_, slotIndex) => {
+        function buildSideStats(side: 'BLUE' | 'RED') {
+          return Array.from({ length: SLOT_COUNT }, (_, slotIndex) => {
             const playerId = getFormValue(
               formData,
-              `game-${gameIndex}-blue-slot-${slotIndex}-playerId`,
+              `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-playerId`,
             );
             const champion = getFormValue(
               formData,
-              `game-${gameIndex}-blue-slot-${slotIndex}-champion`,
+              `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-champion`,
             ).trim();
 
             if (!playerId || !champion) {
               throw new Error(
-                `Les stats blue side de la game ${gameIndex + 1} sont incompletes.`,
+                `Les stats ${side.toLowerCase()} side de la game ${gameIndex + 1} sont incompletes.`,
               );
             }
 
             return {
               playerId,
-              side: 'BLUE' as const,
+              side,
               champion,
               kills: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-blue-slot-${slotIndex}-kills`),
-                `Les kills blue side de la game ${gameIndex + 1}`,
+                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-kills`),
+                `Les kills ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
               ),
               deaths: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-blue-slot-${slotIndex}-deaths`),
-                `Les deaths blue side de la game ${gameIndex + 1}`,
+                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-deaths`),
+                `Les deaths ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
               ),
               assists: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-blue-slot-${slotIndex}-assists`),
-                `Les assists blue side de la game ${gameIndex + 1}`,
+                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-assists`),
+                `Les assists ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
               ),
               cs: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-blue-slot-${slotIndex}-cs`),
-                `Le CS blue side de la game ${gameIndex + 1}`,
+                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-cs`),
+                `Le CS ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
               ),
               gold: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-blue-slot-${slotIndex}-gold`),
-                `Le gold blue side de la game ${gameIndex + 1}`,
+                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-gold`),
+                `Le gold ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
               ),
               damage: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-blue-slot-${slotIndex}-damage`),
-                `Les degats blue side de la game ${gameIndex + 1}`,
+                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-damage`),
+                `Les degats ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
               ),
               visionScore: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-blue-slot-${slotIndex}-visionScore`),
-                `La vision blue side de la game ${gameIndex + 1}`,
+                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-visionScore`),
+                `La vision ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
               ),
             };
-          }),
-          ...Array.from({ length: SLOT_COUNT }, (_, slotIndex) => {
-            const playerId = getFormValue(
-              formData,
-              `game-${gameIndex}-red-slot-${slotIndex}-playerId`,
-            );
-            const champion = getFormValue(
-              formData,
-              `game-${gameIndex}-red-slot-${slotIndex}-champion`,
-            ).trim();
+          });
+        }
 
-            if (!playerId || !champion) {
-              throw new Error(
-                `Les stats red side de la game ${gameIndex + 1} sont incompletes.`,
-              );
-            }
-
-            return {
-              playerId,
-              side: 'RED' as const,
-              champion,
-              kills: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-red-slot-${slotIndex}-kills`),
-                `Les kills red side de la game ${gameIndex + 1}`,
-              ),
-              deaths: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-red-slot-${slotIndex}-deaths`),
-                `Les deaths red side de la game ${gameIndex + 1}`,
-              ),
-              assists: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-red-slot-${slotIndex}-assists`),
-                `Les assists red side de la game ${gameIndex + 1}`,
-              ),
-              cs: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-red-slot-${slotIndex}-cs`),
-                `Le CS red side de la game ${gameIndex + 1}`,
-              ),
-              gold: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-red-slot-${slotIndex}-gold`),
-                `Le gold red side de la game ${gameIndex + 1}`,
-              ),
-              damage: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-red-slot-${slotIndex}-damage`),
-                `Les degats red side de la game ${gameIndex + 1}`,
-              ),
-              visionScore: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-red-slot-${slotIndex}-visionScore`),
-                `La vision red side de la game ${gameIndex + 1}`,
-              ),
-            };
-          }),
-        ];
+        const playerStats = [...buildSideStats('BLUE'), ...buildSideStats('RED')];
 
         const uniquePlayerIds = new Set(playerStats.map((entry) => entry.playerId));
         if (uniquePlayerIds.size !== playerStats.length) {
@@ -298,8 +280,8 @@ export function AdminMatchesManager() {
         return {
           gameNumber: gameIndex + 1,
           riotMatchId: getFormValue(formData, `game-${gameIndex}-riotMatchId`) || undefined,
-          blueTeamId: recordingMatch.homeTeam.id,
-          redTeamId: recordingMatch.awayTeam.id,
+          blueTeamId: sides.blueTeam!.id,
+          redTeamId: sides.redTeam!.id,
           winnerTeamId: winnerTeamIdForGame,
           playedAt: new Date(getFormValue(formData, `game-${gameIndex}-playedAt`)),
           durationSeconds: parseInteger(
@@ -321,6 +303,7 @@ export function AdminMatchesManager() {
       form.reset();
       setRecordingMatchId(null);
       setGameCount(1);
+      setGameSides({});
       await Promise.all([
         utils.match.getAll.invalidate(),
         utils.match.getById.invalidate(),
@@ -453,7 +436,22 @@ export function AdminMatchesManager() {
                   <Badge variant={match.isCompleted ? 'actif' : 'expiré'}>
                     {match.isCompleted ? 'Terminé' : 'Programmé'}
                   </Badge>
-                  {!match.isCompleted ? (
+                  {match.isCompleted ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      icon={<Pencil className="h-4 w-4" />}
+                      onClick={() => {
+                        setRecordingMatchId(match.id);
+                        setShowCreateForm(false);
+                        setGameCount(1);
+                        setGameSides({});
+                      }}
+                    >
+                      Modifier résultat
+                    </Button>
+                  ) : (
                     <Button
                       type="button"
                       size="sm"
@@ -462,11 +460,12 @@ export function AdminMatchesManager() {
                         setRecordingMatchId(match.id);
                         setShowCreateForm(false);
                         setGameCount(1);
+                        setGameSides({});
                       }}
                     >
                       Enregistrer résultat
                     </Button>
-                  ) : null}
+                  )}
                 </div>
               </div>
 
@@ -563,13 +562,15 @@ export function AdminMatchesManager() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {Array.from({ length: gameCount }, (_, gameIndex) => (
+                      {Array.from({ length: gameCount }, (_, gameIndex) => {
+                        const sides = getGameSides(gameIndex);
+                        return (
                         <Card key={gameIndex} className="space-y-5 border-white/8 bg-black/20">
                           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                             <div>
                               <p className="text-kicker">Game {gameIndex + 1}</p>
                               <h4 className="mt-2 font-display text-2xl font-bold text-white">
-                                {match.homeTeam.shortCode} vs {match.awayTeam.shortCode}
+                                {sides.blueTeam?.shortCode} vs {sides.redTeam?.shortCode}
                               </h4>
                             </div>
 
@@ -609,17 +610,35 @@ export function AdminMatchesManager() {
                             </div>
                           </div>
 
-                          <div className="space-y-1">
-                            <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-                              Vainqueur game {gameIndex + 1}
-                            </label>
-                            <Select name={`game-${gameIndex}-winnerTeamId`} required defaultValue="">
-                              <option value="" disabled>
-                                Choisir
-                              </option>
-                              <option value={match.homeTeam.id}>{match.homeTeam.name}</option>
-                              <option value={match.awayTeam.id}>{match.awayTeam.name}</option>
-                            </Select>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                                Vainqueur game {gameIndex + 1}
+                              </label>
+                              <Select name={`game-${gameIndex}-winnerTeamId`} required defaultValue="">
+                                <option value="" disabled>
+                                  Choisir
+                                </option>
+                                <option value={match.homeTeam.id}>{match.homeTeam.name}</option>
+                                <option value={match.awayTeam.id}>{match.awayTeam.name}</option>
+                              </Select>
+                            </div>
+                            <div className="flex items-end">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                icon={<ArrowRightLeft className="h-4 w-4" />}
+                                onClick={() =>
+                                  setGameSides((prev) => ({
+                                    ...prev,
+                                    [gameIndex]: !(prev[gameIndex] ?? false),
+                                  }))
+                                }
+                              >
+                                Inverser sides
+                              </Button>
+                            </div>
                           </div>
 
                           <div className="grid gap-4 xl:grid-cols-2">
@@ -628,14 +647,14 @@ export function AdminMatchesManager() {
                                 <div>
                                   <p className="text-kicker">Blue side</p>
                                   <h5 className="mt-2 font-display text-xl font-bold text-white">
-                                    {match.homeTeam.name}
+                                    {sides.blueTeam?.name}
                                   </h5>
                                 </div>
-                                <Badge variant="TOP">{match.homeTeam.shortCode}</Badge>
+                                <Badge variant="TOP">{sides.blueTeam?.shortCode}</Badge>
                               </div>
 
                               <div className="space-y-3">
-                                {homeSlots.map((defaultPlayer, slotIndex) => (
+                                {sides.blueSlots.map((defaultPlayer, slotIndex) => (
                                   <div
                                     key={`blue-${gameIndex}-${slotIndex}`}
                                     className="grid gap-3 rounded-2xl border border-white/8 bg-black/20 p-3 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)]"
@@ -649,13 +668,14 @@ export function AdminMatchesManager() {
                                         <option value="" disabled>
                                           Joueur
                                         </option>
-                                        {homeRoster.map((player) => (
+                                        {sides.blueRoster.map((player) => (
                                           <option key={player.id} value={player.id}>
-                                            {player.gameName} ({player.role})
+                                            {player.displayName} ({player.role})
                                           </option>
                                         ))}
                                       </Select>
-                                      <Input
+                                      <ChampionSelect
+                                        champions={champions}
                                         name={`game-${gameIndex}-blue-slot-${slotIndex}-champion`}
                                         required
                                         placeholder={`Champion ${slotIndex + 1}`}
@@ -732,14 +752,14 @@ export function AdminMatchesManager() {
                                 <div>
                                   <p className="text-kicker">Red side</p>
                                   <h5 className="mt-2 font-display text-xl font-bold text-white">
-                                    {match.awayTeam.name}
+                                    {sides.redTeam?.name}
                                   </h5>
                                 </div>
-                                <Badge variant="ADC">{match.awayTeam.shortCode}</Badge>
+                                <Badge variant="ADC">{sides.redTeam?.shortCode}</Badge>
                               </div>
 
                               <div className="space-y-3">
-                                {awaySlots.map((defaultPlayer, slotIndex) => (
+                                {sides.redSlots.map((defaultPlayer, slotIndex) => (
                                   <div
                                     key={`red-${gameIndex}-${slotIndex}`}
                                     className="grid gap-3 rounded-2xl border border-white/8 bg-black/20 p-3 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)]"
@@ -753,13 +773,14 @@ export function AdminMatchesManager() {
                                         <option value="" disabled>
                                           Joueur
                                         </option>
-                                        {awayRoster.map((player) => (
+                                        {sides.redRoster.map((player) => (
                                           <option key={player.id} value={player.id}>
-                                            {player.gameName} ({player.role})
+                                            {player.displayName} ({player.role})
                                           </option>
                                         ))}
                                       </Select>
-                                      <Input
+                                      <ChampionSelect
+                                        champions={champions}
                                         name={`game-${gameIndex}-red-slot-${slotIndex}-champion`}
                                         required
                                         placeholder={`Champion ${slotIndex + 1}`}
@@ -832,7 +853,8 @@ export function AdminMatchesManager() {
                             </div>
                           </div>
                         </Card>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </form>

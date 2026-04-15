@@ -1,12 +1,11 @@
 'use client';
 
 import { Loader2, Plus, Save, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format';
@@ -22,7 +21,6 @@ interface TeamDraft {
   shortCode: string;
   logoUrl: string;
   budget: string;
-  captainId: string;
 }
 
 function createEmptyDraft(): TeamDraft {
@@ -32,7 +30,6 @@ function createEmptyDraft(): TeamDraft {
     shortCode: '',
     logoUrl: '',
     budget: '1200000',
-    captainId: '',
   };
 }
 
@@ -66,9 +63,6 @@ export function AdminTeamsManager() {
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [draft, setDraft] = useState<TeamDraft>(createEmptyDraft);
   const teamsQuery = api.team.getAll.useQuery();
-  const captainCandidatesQuery = api.team.getCaptainCandidates.useQuery(
-    selectedTeamId ? { teamId: selectedTeamId } : undefined,
-  );
 
   const selectedTeamDetailsQuery = api.team.getById.useQuery(
     { id: selectedTeamId ?? '__new__' },
@@ -83,7 +77,6 @@ export function AdminTeamsManager() {
   const deleteTeam = api.team.delete.useMutation();
 
   const teams = teamsQuery.data ?? [];
-  const captainCandidates = captainCandidatesQuery.data ?? [];
   const selectedTeam = teams.find((team) => team.id === selectedTeamId) ?? null;
   const payroll = selectedTeamDetailsQuery.data?.players.reduce(
     (sum, player) => sum + player.salary,
@@ -94,11 +87,6 @@ export function AdminTeamsManager() {
     ? parsedBudget
     : (selectedTeamDetailsQuery.data?.budget ?? 0);
   const remainingBudget = budgetPreview - payroll;
-
-  const selectedCaptain = useMemo(
-    () => captainCandidates.find((candidate) => candidate.id === draft.captainId) ?? null,
-    [captainCandidates, draft.captainId],
-  );
 
   function selectTeam(teamId: string) {
     const team = teams.find((entry) => entry.id === teamId);
@@ -114,7 +102,6 @@ export function AdminTeamsManager() {
       shortCode: team.shortCode,
       logoUrl: team.logoUrl ?? '',
       budget: team.budget.toString(),
-      captainId: team.captain?.id ?? '',
     });
     setFeedback(null);
   }
@@ -140,7 +127,6 @@ export function AdminTeamsManager() {
           shortCode: draft.shortCode,
           logoUrl: draft.logoUrl || undefined,
           budget: Number.isFinite(budget) ? budget : undefined,
-          captainId: draft.captainId || null,
         });
         setFeedback({ type: 'success', message: 'Team updated successfully.' });
       } else {
@@ -150,7 +136,6 @@ export function AdminTeamsManager() {
           shortCode: draft.shortCode,
           logoUrl: draft.logoUrl || undefined,
           budget: Number.isFinite(budget) ? budget : undefined,
-          captainId: draft.captainId || null,
         });
         setSelectedTeamId(created.id);
         setFeedback({ type: 'success', message: 'Team created successfully.' });
@@ -159,7 +144,6 @@ export function AdminTeamsManager() {
       await Promise.all([
         utils.team.getAll.invalidate(),
         utils.team.getById.invalidate(),
-        utils.team.getCaptainCandidates.invalidate(),
       ]);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'The operation failed.';
@@ -180,7 +164,6 @@ export function AdminTeamsManager() {
       await Promise.all([
         utils.team.getAll.invalidate(),
         utils.team.getById.invalidate(),
-        utils.team.getCaptainCandidates.invalidate(),
       ]);
       setFeedback({ type: 'success', message: 'Team deleted successfully.' });
     } catch (error) {
@@ -333,29 +316,6 @@ export function AdminTeamsManager() {
 
               <div className="space-y-2 md:col-span-2">
                 <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-                  Team captain
-                </label>
-                <Select
-                  value={draft.captainId}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, captainId: event.target.value }))
-                  }
-                >
-                  <option value="">No captain</option>
-                  {captainCandidates.map((candidate) => (
-                    <option key={candidate.id} value={candidate.id}>
-                      {(candidate.name || candidate.email) ?? 'Unknown user'} - {candidate.role}
-                    </option>
-                  ))}
-                </Select>
-                <p className="text-xs text-text-secondary">
-                  A selected user is promoted to captain automatically. Admin accounts keep their
-                  admin role and gain access to the linked team dashboard as well.
-                </p>
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
                   Logo URL
                 </label>
                 <Input
@@ -368,7 +328,7 @@ export function AdminTeamsManager() {
               </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
                   Current payroll
@@ -389,18 +349,6 @@ export function AdminTeamsManager() {
                   )}
                 >
                   {formatCurrency(remainingBudget)}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-                  Captain preview
-                </p>
-                <p className="mt-2 text-base font-semibold text-white">
-                  {selectedCaptain?.name ?? selectedCaptain?.email ?? 'No captain assigned'}
-                </p>
-                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-text-secondary">
-                  {selectedCaptain?.role ?? 'Open slot'}
                 </p>
               </div>
             </div>
@@ -436,8 +384,18 @@ export function AdminTeamsManager() {
 
           {selectedTeam ? (
             <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-text-secondary">
-              Current captain: {selectedTeam.captain?.name ?? 'No captain'} -{' '}
+              <span className="font-semibold text-white">
+                {selectedTeam.captains.length > 0
+                  ? `Capitaines: ${selectedTeam.captains.map((c) => c.name ?? c.email).join(', ')}`
+                  : 'Aucun capitaine'}
+              </span>
+              {' — '}
               {selectedTeam._count.players} players on the roster.
+              {selectedTeam.captains.length === 0 ? (
+                <span className="ml-2 text-amber-300">
+                  Assignez des capitaines depuis la page Users.
+                </span>
+              ) : null}
             </div>
           ) : null}
         </Card>

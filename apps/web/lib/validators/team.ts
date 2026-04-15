@@ -20,7 +20,6 @@ export const teamCreateSchema = z.object({
   shortCode: z.string().min(2).max(8),
   logoUrl: z.string().url().optional(),
   budget: z.number().int().positive().optional(),
-  captainId: z.string().min(1).nullable().optional(),
 });
 
 export const teamUpdateSchema = teamCreateSchema.partial().extend({

@@ -18,6 +18,7 @@ import {
   createTRPCRouter,
   publicProcedure,
 } from '@/server/trpc';
+import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
 
 const ACTIVE_CONTRACT_STATUSES: ContractStatus[] = [
   ContractStatus.ACTIVE,
@@ -59,7 +60,7 @@ export const contractRouter = createTRPCRouter({
   getByTeam: captainProcedure.input(contractTeamSchema).query(async ({ ctx, input }) => {
     ensureTeamAccess(ctx.session.user, input.teamId);
 
-    return ctx.prisma.contract.findMany({
+    const contracts = await ctx.prisma.contract.findMany({
       where: { teamId: input.teamId },
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
       select: {
@@ -74,16 +75,26 @@ export const contractRouter = createTRPCRouter({
         player: {
           select: {
             id: true,
+            firstName: true,
+            lastName: true,
             gameName: true,
             role: true,
           },
         },
       },
     });
+
+    return contracts.map((contract) => ({
+      ...contract,
+      player: {
+        ...contract.player,
+        displayName: resolveStoredPlayerDisplayName(contract.player),
+      },
+    }));
   }),
 
-  getPendingApprovals: adminProcedure.query(({ ctx }) =>
-    ctx.prisma.contract.findMany({
+  getPendingApprovals: adminProcedure.query(async ({ ctx }) => {
+    const contracts = await ctx.prisma.contract.findMany({
       where: { status: ContractStatus.PENDING_APPROVAL },
       orderBy: { createdAt: 'asc' },
       select: {
@@ -97,6 +108,8 @@ export const contractRouter = createTRPCRouter({
         player: {
           select: {
             id: true,
+            firstName: true,
+            lastName: true,
             gameName: true,
             role: true,
           },
@@ -110,8 +123,16 @@ export const contractRouter = createTRPCRouter({
           },
         },
       },
-    }),
-  ),
+    });
+
+    return contracts.map((contract) => ({
+      ...contract,
+      player: {
+        ...contract.player,
+        displayName: resolveStoredPlayerDisplayName(contract.player),
+      },
+    }));
+  }),
 
   create: captainProcedure.input(contractCreateSchema).mutation(async ({ ctx, input }) => {
     ensureTeamAccess(ctx.session.user, input.teamId);
@@ -503,7 +524,7 @@ export const contractRouter = createTRPCRouter({
 
     ensureTeamAccess(ctx.session.user, existing.teamId);
 
-    if (!ACTIVE_CONTRACT_STATUSES.includes(existing.status as ContractStatus)) {
+    if (!ACTIVE_CONTRACT_STATUSES.includes(existing.status)) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message: 'Only active or loan contracts can be renewed.',

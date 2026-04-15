@@ -1,6 +1,7 @@
 import { Clock3 } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
+import { TeamAvatar } from '@/components/ui/team-avatar';
 import { formatDateTime } from '@/lib/utils/format';
 
 export interface MatchCardProps {
@@ -14,10 +15,12 @@ export interface MatchCardProps {
     homeTeam: {
       name: string;
       shortCode: string;
+      logoUrl?: string | null;
     };
     awayTeam: {
       name: string;
       shortCode: string;
+      logoUrl?: string | null;
     };
   };
 }
@@ -33,11 +36,19 @@ export function MatchCard({ match }: MatchCardProps) {
         </div>
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-        <div className="text-left">
-          <p className="text-lg font-semibold text-white">{match.homeTeam.name}</p>
-          <p className="text-xs uppercase tracking-[0.16em] text-text-secondary">
-            {match.homeTeam.shortCode}
-          </p>
+        <div className="flex items-center gap-3">
+          <TeamAvatar
+            name={match.homeTeam.name}
+            shortCode={match.homeTeam.shortCode}
+            logoUrl={match.homeTeam.logoUrl ?? null}
+            size="md"
+          />
+          <div>
+            <p className="text-lg font-semibold text-white">{match.homeTeam.name}</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-text-secondary">
+              {match.homeTeam.shortCode}
+            </p>
+          </div>
         </div>
         <div className="rounded-[22px] border border-white/10 bg-white/5 px-5 py-4 text-center">
           <div className="font-display text-3xl font-bold text-white">
@@ -47,18 +58,26 @@ export function MatchCard({ match }: MatchCardProps) {
             {match.isCompleted ? 'Final' : 'Scheduled'}
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-lg font-semibold text-white">{match.awayTeam.name}</p>
-          <p className="text-xs uppercase tracking-[0.16em] text-text-secondary">
-            {match.awayTeam.shortCode}
-          </p>
+        <div className="flex items-center justify-end gap-3">
+          <div className="text-right">
+            <p className="text-lg font-semibold text-white">{match.awayTeam.name}</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-text-secondary">
+              {match.awayTeam.shortCode}
+            </p>
+          </div>
+          <TeamAvatar
+            name={match.awayTeam.name}
+            shortCode={match.awayTeam.shortCode}
+            logoUrl={match.awayTeam.logoUrl ?? null}
+            size="md"
+          />
         </div>
       </div>
       <Link
         href={`/league/matches/${match.id}`}
         className="text-sm font-semibold text-accent-glow transition hover:text-white"
       >
-        Ouvrir le détail
+        Ouvrir le detail
       </Link>
     </Card>
   );

@@ -10,6 +10,7 @@ import {
   Menu,
   Shield,
   Swords,
+  UserCog,
   Users,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -17,6 +18,7 @@ import { cn } from '@/lib/utils/cn';
 
 const items = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/users', label: 'Users', icon: UserCog },
   { href: '/admin/players', label: 'Players', icon: Users },
   { href: '/admin/teams', label: 'Teams', icon: Shield },
   { href: '/admin/matches', label: 'Matches', icon: Swords },
@@ -42,7 +44,7 @@ export function Sidebar() {
           </div>
           {!collapsed ? (
             <div>
-              <p className="font-display text-lg font-bold text-white">Nexus Admin</p>
+              <p className="font-display text-lg font-bold text-white">Garden Admin</p>
               <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
                 Operations hub
               </p>

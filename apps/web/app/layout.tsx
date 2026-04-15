@@ -27,12 +27,12 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Nexus League',
+  title: 'Garden',
   description:
     'Plateforme premium de gestion de ligue League of Legends: transfermarket, effectifs, calendrier et statistiques.',
   metadataBase: new URL('http://localhost:3004'),
   openGraph: {
-    title: 'Nexus League',
+    title: 'Garden',
     description:
       'Transfermarket esports, gestion d’equipe, standings et statistiques Riot API.',
     images: ['/og.svg'],

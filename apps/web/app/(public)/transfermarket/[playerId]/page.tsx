@@ -318,7 +318,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                 <p className="text-kicker">{trophy.season.name}</p>
                 <h3 className="mt-2 font-display text-2xl font-bold text-white">{trophy.name}</h3>
                 <p className="mt-3 text-sm leading-7 text-text-secondary">
-                  {trophy.description ?? 'Distinction officielle enregistree dans Nexus League.'}
+                  {trophy.description ?? 'Distinction officielle enregistree dans Garden.'}
                 </p>
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-[0.18em] text-text-secondary">
                   <span>

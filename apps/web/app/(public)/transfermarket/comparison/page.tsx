@@ -3,8 +3,10 @@ import { ArrowLeftRight } from 'lucide-react';
 import { PerformanceTrendsChart } from '@/components/features/charts/performance-trends-chart';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { PlayerLink } from '@/components/ui/player-link';
 import { PlayerValue } from '@/components/ui/player-value';
 import { Select } from '@/components/ui/select';
+import { TeamAvatar } from '@/components/ui/team-avatar';
 import {
   Table,
   TableBody,
@@ -13,7 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatCompactDate, formatCurrency } from '@/lib/utils/format';
+import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
+import { formatCurrency } from '@/lib/utils/format';
 import { getServerCaller } from '@/server/caller';
 
 interface PlayerComparisonPageProps {
@@ -165,14 +168,14 @@ export default async function PlayerComparisonPage({
           <Select name="playerA" defaultValue={selectedIds[0] ?? ''}>
             {allPlayers.map((player) => (
               <option key={player.id} value={player.id}>
-                {player.gameName} ({player.teamName})
+                {player.displayName} - {buildPlayerRiotId(player)} ({player.teamName})
               </option>
             ))}
           </Select>
           <Select name="playerB" defaultValue={selectedIds[1] ?? ''}>
             {allPlayers.map((player) => (
               <option key={player.id} value={player.id}>
-                {player.gameName} ({player.teamName})
+                {player.displayName} - {buildPlayerRiotId(player)} ({player.teamName})
               </option>
             ))}
           </Select>
@@ -180,7 +183,7 @@ export default async function PlayerComparisonPage({
             <option value="">Pas de troisieme joueur</option>
             {allPlayers.map((player) => (
               <option key={player.id} value={player.id}>
-                {player.gameName} ({player.teamName})
+                {player.displayName} - {buildPlayerRiotId(player)} ({player.teamName})
               </option>
             ))}
           </Select>
@@ -204,12 +207,12 @@ export default async function PlayerComparisonPage({
               {entry.player.imageUrl ? (
                 <img
                   src={entry.player.imageUrl}
-                  alt={entry.player.gameName}
+                  alt={entry.player.displayName}
                   className="h-20 w-20 rounded-[24px] object-cover ring-1 ring-white/10"
                 />
               ) : (
                 <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-white/8 text-xl font-bold text-white ring-1 ring-white/10">
-                  {entry.player.gameName.slice(0, 2).toUpperCase()}
+                  {getPlayerInitials(entry.player.displayName)}
                 </div>
               )}
               <div className="min-w-0 flex-1">
@@ -222,11 +225,22 @@ export default async function PlayerComparisonPage({
                   ))}
                 </div>
                 <h2 className="mt-3 font-display text-3xl font-bold text-white">
-                  {entry.player.gameName}
+                  <PlayerLink playerId={entry.player.id} className="font-display text-3xl font-bold text-white">
+                    {entry.player.displayName}
+                  </PlayerLink>
                 </h2>
-                <p className="mt-1 text-sm text-text-secondary">
-                  {entry.player.team?.name ?? 'Free Agent'} / #{entry.player.tagLine}
-                </p>
+                <div className="mt-1 flex items-center gap-2 text-sm text-text-secondary">
+                  <TeamAvatar
+                    name={entry.player.team?.name ?? 'Free Agent'}
+                    shortCode={entry.player.team?.shortCode ?? 'FA'}
+                    logoUrl={entry.player.team?.logoUrl ?? null}
+                    size="sm"
+                    className="h-5 w-5 rounded-md text-[0.55rem]"
+                  />
+                  <span>{entry.player.team?.name ?? 'Free Agent'}</span>
+                  <span>/</span>
+                  <span>{buildPlayerRiotId(entry.player)}</span>
+                </div>
               </div>
             </div>
 
@@ -268,7 +282,11 @@ export default async function PlayerComparisonPage({
             <TableRow>
               <TableHead>Metric</TableHead>
               {comparedPlayers.map((entry) => (
-                <TableHead key={entry.player.id}>{entry.player.gameName}</TableHead>
+                <TableHead key={entry.player.id}>
+                  <PlayerLink playerId={entry.player.id} className="font-semibold text-white">
+                    {entry.player.displayName}
+                  </PlayerLink>
+                </TableHead>
               ))}
             </TableRow>
           </TableHeader>

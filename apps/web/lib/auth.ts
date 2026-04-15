@@ -21,11 +21,7 @@ async function getAccessData(userId: string) {
       name: true,
       image: true,
       role: true,
-      captainedTeam: {
-        select: {
-          id: true,
-        },
-      },
+      captainOfTeamId: true,
     },
   });
 
@@ -34,7 +30,7 @@ async function getAccessData(userId: string) {
     name: user?.name ?? null,
     image: user?.image ?? null,
     role: user?.role ?? UserRole.USER,
-    teamId: user?.captainedTeam?.id ?? null,
+    teamId: user?.captainOfTeamId ?? null,
   };
 }
 
@@ -88,11 +84,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             image: true,
             passwordHash: true,
             role: true,
-            captainedTeam: {
-              select: {
-                id: true,
-              },
-            },
+            captainOfTeamId: true,
           },
         });
 
@@ -112,7 +104,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           image: user.image,
           role: user.role,
-          teamId: user.captainedTeam?.id ?? null,
+          teamId: user.captainOfTeamId ?? null,
         };
       },
     }),

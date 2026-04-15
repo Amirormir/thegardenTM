@@ -58,9 +58,10 @@ model User {
   image               String?
   passwordHash        String?
   role                UserRole             @default(USER)
+  captainOfTeamId     String?
+  captainOfTeam       Team?                @relation("TeamCaptains", fields: [captainOfTeamId], references: [id], onDelete: SetNull)
   accounts            Account[]
   sessions            Session[]
-  captainedTeam       Team?                @relation("TeamCaptain")
   auditLogs           AuditLog[]
   marketValueChanges  MarketValueHistory[] @relation("MarketValueChangedBy")
   notifications       Notification[]
@@ -68,6 +69,7 @@ model User {
   updatedAt           DateTime             @updatedAt
 
   @@index([role])
+  @@index([captainOfTeamId])
 }
 
 model Team {
@@ -77,8 +79,7 @@ model Team {
   shortCode        String             @unique
   logoUrl          String?
   budget           Int                @default(1200000)
-  captainId        String?            @unique
-  captain          User?              @relation("TeamCaptain", fields: [captainId], references: [id], onDelete: SetNull)
+  captains         User[]             @relation("TeamCaptains")
   players          Player[]
   homeMatches      Match[]            @relation("HomeTeam")
   awayMatches      Match[]            @relation("AwayTeam")
@@ -93,8 +94,6 @@ model Team {
   incomingTransfers    TransferOffer[]    @relation("SellingTeam")
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
-
-  @@index([captainId])
 }
 
 model Player {

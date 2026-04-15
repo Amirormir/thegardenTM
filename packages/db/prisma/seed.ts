@@ -21,7 +21,6 @@ interface SeedTeam {
   slug: string;
   shortCode: string;
   budget: number;
-  captainId: string;
 }
 
 interface SeedPlayer {
@@ -70,21 +69,29 @@ interface SeedMatch {
 }
 
 const users: SeedUser[] = [
-  { id: 'user-admin', name: 'Nexus Commissioner', email: 'admin@nexusleague.dev', role: UserRole.ADMIN },
-  { id: 'user-standard', name: 'Nexus Member', email: 'user@nexusleague.dev', role: UserRole.USER },
-  { id: 'user-captain-1', name: 'Luca Rossi', email: 'captain.aw@nexusleague.dev', role: UserRole.TEAM_CAPTAIN },
-  { id: 'user-captain-2', name: 'Ethan Mercier', email: 'captain.cn@nexusleague.dev', role: UserRole.TEAM_CAPTAIN },
-  { id: 'user-captain-3', name: 'Leo Renaud', email: 'captain.ge@nexusleague.dev', role: UserRole.TEAM_CAPTAIN },
-  { id: 'user-captain-4', name: 'Mathis Leroy', email: 'captain.vs@nexusleague.dev', role: UserRole.TEAM_CAPTAIN },
+  { id: 'user-admin', name: 'Garden Commissioner', email: 'admin@garden.dev', role: UserRole.ADMIN },
+  { id: 'user-standard', name: 'Garden Member', email: 'user@garden.dev', role: UserRole.USER },
+  { id: 'user-captain-1', name: 'Luca Rossi', email: 'captain.aw@garden.dev', role: UserRole.TEAM_CAPTAIN },
+  { id: 'user-captain-2', name: 'Ethan Mercier', email: 'captain.cn@garden.dev', role: UserRole.TEAM_CAPTAIN },
+  { id: 'user-captain-3', name: 'Leo Renaud', email: 'captain.ge@garden.dev', role: UserRole.TEAM_CAPTAIN },
+  { id: 'user-captain-4', name: 'Mathis Leroy', email: 'captain.vs@garden.dev', role: UserRole.TEAM_CAPTAIN },
 ];
 
 const teams: SeedTeam[] = [
-  { id: 'team-1', name: 'Astral Wolves', slug: 'astral-wolves', shortCode: 'AW', budget: 1200000, captainId: 'user-captain-1' },
-  { id: 'team-2', name: 'Crimson Nova', slug: 'crimson-nova', shortCode: 'CN', budget: 1150000, captainId: 'user-captain-2' },
-  { id: 'team-3', name: 'Golden Echo', slug: 'golden-echo', shortCode: 'GE', budget: 1100000, captainId: 'user-captain-3' },
-  { id: 'team-4', name: 'Void Sentinels', slug: 'void-sentinels', shortCode: 'VS', budget: 1250000, captainId: 'user-captain-4' },
-  { id: 'team-test', name: 'Admin Test Squad', slug: 'admin-test-squad', shortCode: 'ADM', budget: 1350000, captainId: 'user-admin' },
+  { id: 'team-1', name: 'Astral Wolves', slug: 'astral-wolves', shortCode: 'AW', budget: 1200000 },
+  { id: 'team-2', name: 'Crimson Nova', slug: 'crimson-nova', shortCode: 'CN', budget: 1150000 },
+  { id: 'team-3', name: 'Golden Echo', slug: 'golden-echo', shortCode: 'GE', budget: 1100000 },
+  { id: 'team-4', name: 'Void Sentinels', slug: 'void-sentinels', shortCode: 'VS', budget: 1250000 },
+  { id: 'team-test', name: 'Admin Test Squad', slug: 'admin-test-squad', shortCode: 'ADM', budget: 1350000 },
 ];
+
+const captainAssignments = [
+  { userId: 'user-captain-1', teamId: 'team-1' },
+  { userId: 'user-captain-2', teamId: 'team-2' },
+  { userId: 'user-captain-3', teamId: 'team-3' },
+  { userId: 'user-captain-4', teamId: 'team-4' },
+  { userId: 'user-admin', teamId: 'team-test' },
+] as const;
 
 const players: SeedPlayer[] = [
   { id: 'player-1', teamId: 'team-1', firstName: 'Luca', lastName: 'Rossi', slug: 'wolfedge', gameName: 'WolfEdge', tagLine: 'EUW', puuid: 'puuid-player-1', summonerId: 'summoner-player-1', role: PlayerRole.TOP, age: 23, nationality: 'Italy', marketValue: 920000, salary: 210000 },
@@ -340,7 +347,7 @@ function buildPlayerMatchStats() {
 }
 
 async function main() {
-  const passwordHash = await bcrypt.hash('NexusLeague!2026', 12);
+  const passwordHash = await bcrypt.hash('Garden!2026', 12);
 
   await prisma.$transaction([
     prisma.playerMatchStats.deleteMany(),
@@ -370,6 +377,15 @@ async function main() {
   await prisma.team.createMany({
     data: teams,
   });
+
+  await Promise.all(
+    captainAssignments.map(({ userId, teamId }) =>
+      prisma.user.update({
+        where: { id: userId },
+        data: { captainOfTeamId: teamId },
+      }),
+    ),
+  );
 
   await prisma.season.create({
     data: {
@@ -484,7 +500,7 @@ async function main() {
     ],
   });
 
-  console.log('Seed completed for Nexus League.');
+  console.log('Seed completed for Garden.');
   console.log(`Users: ${users.length}`);
   console.log(`Teams: ${teams.length}`);
   console.log(`Players: ${players.length}`);

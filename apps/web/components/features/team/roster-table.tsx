@@ -11,15 +11,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { PlayerLink } from '@/components/ui/player-link';
 import { api } from '@/lib/trpc/react';
-import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format';
 
 const ROLES = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'] as const;
 
 interface RosterPlayer {
   id: string;
-  gameName: string;
+  displayName: string;
   role: string;
   teamRole: string | null;
   salary: number;
@@ -71,7 +71,11 @@ export function RosterTable({ players, teamId }: RosterTableProps) {
 
           return (
             <TableRow key={player.id}>
-              <TableCell className="font-semibold text-white">{player.gameName}</TableCell>
+              <TableCell>
+                <PlayerLink playerId={player.id} className="font-semibold text-white">
+                  {player.displayName}
+                </PlayerLink>
+              </TableCell>
               <TableCell>
                 <Badge variant={player.role as BadgeVariant}>{player.role}</Badge>
               </TableCell>

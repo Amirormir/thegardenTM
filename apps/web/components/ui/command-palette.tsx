@@ -126,10 +126,18 @@ export function CommandPalette() {
         {
           id: 'team-dashboard',
           label: 'Team dashboard',
-          description: 'Gerer le roster et les contrats',
+          description: 'Gerer le roster et suivre les mouvements',
           href: '/team',
           section: 'Workspace',
-          keywords: ['captain', 'contracts', 'roster'],
+          keywords: ['captain', 'roster', 'team'],
+        },
+        {
+          id: 'team-contracts',
+          label: 'Team contracts',
+          description: 'Prolonger, rompre ou proposer des contrats',
+          href: '/team/contracts',
+          section: 'Workspace',
+          keywords: ['contracts', 'renew', 'prolonger', 'salary'],
         },
         {
           id: 'team-budget',
@@ -160,11 +168,11 @@ export function CommandPalette() {
     () =>
       (playersQuery.data ?? []).slice(0, 24).map((player) => ({
         id: `player-${player.id}`,
-        label: player.gameName,
+        label: player.displayName,
         description: `${player.role} / ${player.teamName}`,
         href: `/transfermarket/${player.id}`,
         section: 'Players',
-        keywords: [player.firstName, player.lastName, player.teamName, player.role, player.tagLine],
+        keywords: [player.teamName, player.role, player.gameName, player.tagLine],
       })),
     [playersQuery.data],
   );

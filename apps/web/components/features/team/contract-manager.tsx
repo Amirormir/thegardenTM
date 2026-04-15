@@ -15,8 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { PlayerLink } from '@/components/ui/player-link';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
+import { buildPlayerRiotId } from '@/lib/utils/player-display';
 import { formatCurrency } from '@/lib/utils/format';
 
 interface FeedbackState {
@@ -71,6 +73,7 @@ export function ContractManager({ teamId }: ContractManagerProps) {
   const [terminatingId, setTerminatingId] = useState<string | null>(null);
   const [renewingContract, setRenewingContract] = useState<{
     id: string;
+    playerId: string;
     salary: number;
     durationBo3: number;
     releaseClause: number;
@@ -222,9 +225,9 @@ export function ContractManager({ teamId }: ContractManagerProps) {
               <Select name="playerId" required defaultValue="">
                 <option value="" disabled>Choisir un joueur</option>
                 {availablePlayers.map((player) => (
-                  <option key={player.id} value={player.id}>
-                    {player.gameName} ({player.role}){player.teamId ? ' - roster actuel' : ' - free agent'}
-                  </option>
+                    <option key={player.id} value={player.id}>
+                    {player.displayName} - {buildPlayerRiotId(player)} ({player.role}){player.teamId ? ' - roster actuel' : ' - free agent'}
+                    </option>
                 ))}
               </Select>
             </div>
@@ -288,7 +291,11 @@ export function ContractManager({ teamId }: ContractManagerProps) {
           <TableBody>
             {contracts.map((contract) => (
               <TableRow key={contract.id}>
-                <TableCell className="font-semibold text-white">{contract.player.gameName}</TableCell>
+                <TableCell>
+                  <PlayerLink playerId={contract.player.id} className="font-semibold text-white">
+                    {contract.player.displayName}
+                  </PlayerLink>
+                </TableCell>
                 <TableCell>
                   <Badge variant={contract.player.role}>{contract.player.role}</Badge>
                 </TableCell>
@@ -318,10 +325,11 @@ export function ContractManager({ teamId }: ContractManagerProps) {
                         onClick={() => {
                           setRenewingContract({
                             id: contract.id,
+                            playerId: contract.player.id,
                             salary: contract.salary,
                             durationBo3: contract.durationBo3,
                             releaseClause: contract.releaseClause,
-                            playerName: contract.player.gameName,
+                            playerName: contract.player.displayName,
                           });
                           setTerminatingId(null);
                           setShowCreateForm(false);
@@ -362,7 +370,10 @@ export function ContractManager({ teamId }: ContractManagerProps) {
               Renouveler le contrat
             </h3>
             <p className="mt-1 text-sm text-text-secondary">
-              Joueur : <span className="text-white font-semibold">{renewingContract.playerName}</span>
+              Joueur :{' '}
+              <PlayerLink playerId={renewingContract.playerId} className="font-semibold text-white">
+                {renewingContract.playerName}
+              </PlayerLink>
               {' '}— l'ancien contrat sera expire et le nouveau soumis a validation admin.
             </p>
           </div>

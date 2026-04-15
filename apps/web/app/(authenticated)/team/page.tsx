@@ -1,11 +1,13 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { StatCard } from '@/components/ui/stat-card';
 import { BudgetCalculator } from '@/components/features/team/budget-calculator';
-import { ContractManager } from '@/components/features/team/contract-manager';
 import { RosterTable } from '@/components/features/team/roster-table';
 import { TransferOffers } from '@/components/features/team/transfer-offers';
+import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils/format';
+import { cn } from '@/lib/utils/cn';
 import { auth } from '@/lib/auth';
 import { getServerCaller } from '@/server/caller';
 
@@ -68,7 +70,7 @@ export default async function TeamDashboardPage() {
         <RosterTable
           players={team.players.map((p) => ({
             id: p.id,
-            gameName: p.gameName,
+            displayName: p.displayName,
             role: p.role,
             teamRole: p.teamRole,
             salary: p.salary,
@@ -78,7 +80,21 @@ export default async function TeamDashboardPage() {
         />
       </Card>
 
-      <ContractManager teamId={teamId} />
+      <Card className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-kicker">Contracts workspace</p>
+          <h2 className="mt-2 font-display text-3xl font-bold text-white">Contrats</h2>
+          <p className="mt-1 max-w-2xl text-sm text-text-secondary">
+            Les prolongations, ruptures et nouvelles propositions ont maintenant leur page dediee.
+          </p>
+        </div>
+        <Link
+          href="/team/contracts"
+          className={cn(buttonVariants({ variant: 'secondary' }), 'self-start md:self-center')}
+        >
+          Ouvrir les contrats
+        </Link>
+      </Card>
 
       <TransferOffers teamId={teamId} />
 

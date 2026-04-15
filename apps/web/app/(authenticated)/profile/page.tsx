@@ -166,10 +166,10 @@ export default function ProfilePage() {
               >
                 Enregistrer
               </Button>
-              {user?.captainedTeam ? (
+              {user?.captainOfTeam ? (
                 <p className="text-xs text-text-muted">
                   Capitaine de{' '}
-                  <span className="text-text-secondary">{user.captainedTeam.name}</span>
+                  <span className="text-text-secondary">{user.captainOfTeam.name}</span>
                 </p>
               ) : null}
             </div>
