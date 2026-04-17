@@ -24,7 +24,7 @@ const ROLE_DISPLAY: Record<string, { label: string; color: string; icon: typeof 
 const ROLE_BADGE_CLASSNAMES: Record<string, string> = {
   ADMIN: 'bg-amber-400/14 text-amber-100 ring-1 ring-amber-300/26',
   TEAM_CAPTAIN: 'bg-emerald-500/14 text-emerald-100 ring-1 ring-emerald-400/22',
-  USER: 'bg-white/8 text-slate-200 ring-1 ring-white/10',
+  USER: 'bg-white/8 text-slate-200 ring-1 ring-white/[0.06]',
 };
 
 function FeedbackBanner({ feedback }: { feedback: FeedbackState | null }) {
@@ -130,7 +130,7 @@ export function AdminUsersManager() {
               'rounded-full px-4 py-2 text-sm font-semibold transition',
               roleFilter === role
                 ? 'bg-white text-[#12111a]'
-                : 'border border-white/10 bg-white/5 text-white/60 hover:text-white',
+                : 'border border-white/[0.05] bg-white/[0.035] text-white/60 hover:text-white',
             )}
           >
             {role === 'all'
@@ -142,8 +142,8 @@ export function AdminUsersManager() {
 
       <div className="grid gap-6 xl:grid-cols-[1fr_400px]">
         <Card className="space-y-4 p-0">
-          <div className="border-b border-white/8 px-6 py-5">
-            <h2 className="font-display text-2xl font-bold text-white">Utilisateurs</h2>
+          <div className="border-b border-white/[0.05] px-6 py-5">
+            <h2 className="font-display text-2xl font-bold tracking-tight text-white">Utilisateurs</h2>
           </div>
 
           {usersQuery.isLoading ? (
@@ -171,7 +171,7 @@ export function AdminUsersManager() {
                     <div className="flex items-center gap-3">
                       <div
                         className={cn(
-                          'flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5',
+                          'flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.05] bg-white/[0.035]',
                           roleInfo.color,
                         )}
                       >
@@ -207,11 +207,11 @@ export function AdminUsersManager() {
         {selectedUser ? (
           <Card className="space-y-6 xl:sticky xl:top-8 xl:h-fit">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/5">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/[0.05] bg-white/[0.035]">
                 <UserCog className="h-6 w-6 text-accent-glow" />
               </div>
               <div>
-                <h3 className="font-display text-xl font-bold text-white">
+                <h3 className="font-display text-xl font-bold tracking-tight text-white">
                   {selectedUser.name ?? 'Sans nom'}
                 </h3>
                 <p className="text-sm text-text-secondary">{selectedUser.email}</p>
@@ -222,7 +222,7 @@ export function AdminUsersManager() {
             </div>
 
             <div className="space-y-3">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Role
               </label>
               <Select
@@ -237,12 +237,12 @@ export function AdminUsersManager() {
             </div>
 
             <div className="space-y-3">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Equipe assignee
               </label>
 
               {selectedUser.captainOfTeam ? (
-                <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3">
                   <div>
                     <p className="font-semibold text-white">{selectedUser.captainOfTeam.name}</p>
                     <p className="text-xs text-text-secondary">

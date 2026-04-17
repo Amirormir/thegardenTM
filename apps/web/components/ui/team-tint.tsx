@@ -205,24 +205,24 @@ export function TeamTintCard({
 
   const cardStyle: CSSProperties = {
     background: elevated
-      ? `linear-gradient(180deg, ${toRgba(dominantColor, 0.24)} 0%, transparent 52%), linear-gradient(145deg, ${toRgba(dominantColor, 0.16)} 0%, rgba(16, 15, 23, 0.88) 60%, rgba(255, 255, 255, 0.05) 100%)`
-      : `linear-gradient(145deg, ${toRgba(dominantColor, 0.18)} 0%, rgba(18, 18, 26, 0.84) 62%, rgba(255, 255, 255, 0.05) 100%)`,
-    borderColor: toRgba(dominantColor, elevated ? 0.26 : 0.18),
+      ? `linear-gradient(180deg, ${toRgba(dominantColor, 0.14)} 0%, transparent 52%), linear-gradient(145deg, ${toRgba(dominantColor, 0.1)} 0%, rgba(16, 15, 23, 0.88) 60%, rgba(255, 255, 255, 0.035) 100%)`
+      : `linear-gradient(145deg, ${toRgba(dominantColor, 0.1)} 0%, rgba(18, 18, 26, 0.84) 62%, rgba(255, 255, 255, 0.035) 100%)`,
+    borderColor: toRgba(dominantColor, elevated ? 0.14 : 0.08),
     boxShadow: elevated
-      ? `0 30px 80px rgba(0, 0, 0, 0.45), 0 0 42px ${toRgba(dominantColor, 0.14)}`
-      : `var(--glass-shadow), 0 0 32px ${toRgba(dominantColor, 0.12)}`,
+      ? `0 30px 80px rgba(0, 0, 0, 0.45), 0 0 32px ${toRgba(dominantColor, 0.08)}`
+      : `var(--glass-shadow), 0 0 24px ${toRgba(dominantColor, 0.06)}`,
     backdropFilter: `blur(${elevated ? 20 : 16}px) saturate(180%)`,
     ...style,
   };
 
   const glowStyle: CSSProperties = {
-    background: `radial-gradient(circle at top right, ${toRgba(dominantColor, elevated ? 0.4 : 0.28)} 0%, transparent 42%)`,
+    background: `radial-gradient(circle at top right, ${toRgba(dominantColor, elevated ? 0.22 : 0.14)} 0%, transparent 42%)`,
   };
 
   return (
     <div
       className={cn(
-        'relative overflow-hidden border p-5 transition duration-300 hover:-translate-y-1',
+        'relative overflow-hidden border p-5 transition duration-300 hover:-translate-y-0.5',
         elevated ? 'rounded-[1.5rem]' : 'rounded-[1.25rem]',
         className,
       )}
@@ -250,16 +250,16 @@ export function TeamTintMediaFrame({
   const { dominantColor } = useTeamTint(logoUrl);
 
   const mediaStyle: CSSProperties = {
-    background: `linear-gradient(145deg, ${toRgba(dominantColor, 0.22)} 0%, rgba(255, 255, 255, 0.06) 100%)`,
-    borderColor: toRgba(dominantColor, 0.2),
-    boxShadow: `0 0 40px ${toRgba(dominantColor, 0.18)}`,
+    background: `linear-gradient(145deg, ${toRgba(dominantColor, 0.14)} 0%, rgba(255, 255, 255, 0.04) 100%)`,
+    borderColor: toRgba(dominantColor, 0.1),
+    boxShadow: `0 0 28px ${toRgba(dominantColor, 0.1)}`,
     ...style,
   };
 
   return (
     <div
       className={cn(
-        'overflow-hidden border ring-1 ring-white/10',
+        'overflow-hidden border ring-1 ring-white/[0.06]',
         className,
       )}
       style={mediaStyle}

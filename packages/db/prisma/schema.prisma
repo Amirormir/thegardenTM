@@ -136,7 +136,7 @@ model Contract {
   teamId        String
   status        ContractStatus @default(PENDING_APPROVAL)
   salary        Int
-  durationBo3   Int
+  durationBo3   Int            @default(10)
   releaseClause Int
   transferFee   Int?
   approvedAt    DateTime?

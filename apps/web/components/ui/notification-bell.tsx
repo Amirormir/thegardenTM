@@ -90,7 +90,7 @@ export function NotificationBell() {
       <button
         ref={buttonRef}
         type="button"
-        className="relative rounded-2xl border border-white/10 bg-white/5 p-2.5 text-text-secondary transition hover:bg-white/10 hover:text-white"
+        className="relative rounded-2xl border border-white/[0.05] bg-white/[0.035] p-2.5 text-text-secondary transition hover:bg-white/10 hover:text-white"
         onClick={handleToggle}
         aria-label="Notifications"
       >
@@ -105,9 +105,9 @@ export function NotificationBell() {
       {open ? (
         <div
           ref={panelRef}
-          className="absolute right-0 top-full z-50 mt-2 w-80 rounded-3xl border border-white/10 bg-[#12121A]/95 shadow-2xl backdrop-blur-xl"
+          className="absolute right-0 top-full z-50 mt-2 w-80 rounded-3xl border border-white/[0.05] bg-[#12121A]/95 shadow-2xl backdrop-blur-xl"
         >
-          <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
+          <div className="flex items-center justify-between border-b border-white/[0.05] px-4 py-3">
             <p className="text-sm font-semibold text-white">Notifications</p>
             <Link
               href="/notifications"
@@ -125,7 +125,7 @@ export function NotificationBell() {
                 <div
                   key={notif.id}
                   className={cn(
-                    'flex items-start gap-3 border-b border-white/5 px-4 py-3 transition hover:bg-white/5',
+                    'flex items-start gap-3 border-b border-white/5 px-4 py-3 transition hover:bg-white/[0.035]',
                     !notif.isRead && 'bg-accent-primary/5',
                   )}
                 >
@@ -160,7 +160,7 @@ export function NotificationBell() {
             )}
           </div>
 
-          <div className="border-t border-white/8 px-4 py-2.5 text-center">
+          <div className="border-t border-white/[0.05] px-4 py-2.5 text-center">
             <Link
               href="/notifications"
               className="text-xs text-text-secondary transition hover:text-white"

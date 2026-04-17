@@ -17,19 +17,19 @@ export type BadgeVariant =
   | 'expiré';
 
 const variantMap: Record<BadgeVariant, string> = {
-  TOP: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
-  JG: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
-  JUNGLE: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
-  MID: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
-  ADC: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
-  SUP: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
-  SUPPORT: 'bg-sky-500/14 text-sky-100 ring-1 ring-sky-400/22',
-  S: 'glow-gold bg-amber-400/12 text-amber-100 ring-1 ring-amber-300/30',
-  A: 'bg-gradient-to-r from-violet-500/22 to-amber-400/18 text-violet-50 ring-1 ring-violet-300/30',
-  B: 'bg-violet-500/16 text-violet-100 ring-1 ring-violet-400/24',
-  C: 'bg-white/8 text-slate-200 ring-1 ring-white/10',
-  actif: 'bg-emerald-500/14 text-emerald-100 ring-1 ring-emerald-400/22',
-  expiré: 'bg-rose-500/12 text-rose-100 ring-1 ring-rose-400/20',
+  TOP: 'bg-white/[0.06] text-slate-300 ring-1 ring-white/[0.08]',
+  JG: 'bg-white/[0.06] text-slate-300 ring-1 ring-white/[0.08]',
+  JUNGLE: 'bg-white/[0.06] text-slate-300 ring-1 ring-white/[0.08]',
+  MID: 'bg-white/[0.06] text-slate-300 ring-1 ring-white/[0.08]',
+  ADC: 'bg-white/[0.06] text-slate-300 ring-1 ring-white/[0.08]',
+  SUP: 'bg-white/[0.06] text-slate-300 ring-1 ring-white/[0.08]',
+  SUPPORT: 'bg-white/[0.06] text-slate-300 ring-1 ring-white/[0.08]',
+  S: 'bg-amber-400/[0.08] text-amber-200/90 ring-1 ring-amber-300/[0.14]',
+  A: 'bg-violet-400/[0.08] text-violet-200/90 ring-1 ring-violet-300/[0.14]',
+  B: 'bg-violet-500/[0.06] text-violet-200/80 ring-1 ring-violet-400/[0.1]',
+  C: 'bg-white/[0.05] text-slate-300 ring-1 ring-white/[0.06]',
+  actif: 'bg-emerald-500/[0.08] text-emerald-200/90 ring-1 ring-emerald-400/[0.12]',
+  expiré: 'bg-rose-500/[0.07] text-rose-200/90 ring-1 ring-rose-400/[0.1]',
 };
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
@@ -40,7 +40,7 @@ export function Badge({ variant, className, children, ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em]',
+        'inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-medium uppercase tracking-[0.06em]',
         variantMap[variant],
         className,
       )}

@@ -29,12 +29,12 @@ export function StandingsTable({ standings }: StandingsTableProps) {
       </TableHeader>
       <TableBody>
         {standings.map((team, index) => (
-          <TableRow key={team.id} className="transition hover:bg-white/5">
-            <TableCell className="font-mono text-text-secondary">{index + 1}</TableCell>
+          <TableRow key={team.id} className="transition hover:bg-white/[0.04]">
+            <TableCell className="font-display text-text-secondary tabular-nums">{index + 1}</TableCell>
             <TableCell className="font-semibold text-white">
               <Link
                 href={`/league/teams/${team.slug}`}
-                className="flex items-center gap-3 rounded-2xl py-1 transition hover:text-accent-glow"
+                className="flex items-center gap-3 rounded-xl py-1 transition hover:text-accent-glow"
               >
                 <TeamAvatar
                   name={team.name}
@@ -44,18 +44,18 @@ export function StandingsTable({ standings }: StandingsTableProps) {
                 />
                 <div>
                   <p className="font-semibold text-white">{team.name}</p>
-                  <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                  <p className="text-[0.65rem] uppercase tracking-[0.06em] text-text-secondary">
                     {team.shortCode}
                   </p>
                 </div>
               </Link>
             </TableCell>
-            <TableCell>{team.wins}</TableCell>
-            <TableCell>{team.losses}</TableCell>
-            <TableCell className="text-text-secondary">
+            <TableCell className="tabular-nums">{team.wins}</TableCell>
+            <TableCell className="tabular-nums">{team.losses}</TableCell>
+            <TableCell className="text-text-secondary tabular-nums">
               {team.mapWins}-{team.mapLosses}
             </TableCell>
-            <TableCell className="font-semibold text-accent-glow">{team.points}</TableCell>
+            <TableCell className="font-semibold text-accent-glow tabular-nums">{team.points}</TableCell>
           </TableRow>
         ))}
       </TableBody>

@@ -70,7 +70,7 @@ export default function ProfilePage() {
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
       <div>
         <p className="text-kicker">Compte</p>
-        <h1 className="mt-2 font-display text-4xl font-bold text-white">Mon profil</h1>
+        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Mon profil</h1>
       </div>
 
       {meQuery.isLoading ? (
@@ -82,7 +82,7 @@ export default function ProfilePage() {
         <Card className="space-y-6">
           {/* Avatar preview */}
           <div className="flex items-center gap-5">
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-white/[0.05] bg-white/[0.035]">
               {showAvatarImage ? (
                 <img
                   src={avatarSrc ?? undefined}
@@ -124,7 +124,7 @@ export default function ProfilePage() {
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label htmlFor="name" className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label htmlFor="name" className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Pseudo affiché
               </label>
               <Input
@@ -137,7 +137,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="image" className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label htmlFor="image" className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 URL de l'avatar
               </label>
               <Input

@@ -87,7 +87,7 @@ export function AdminContractsManager() {
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-kicker">Validation</p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-white">
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
             Contrats en attente
           </h2>
           <p className="mt-1 text-sm text-text-secondary">
@@ -125,7 +125,7 @@ export function AdminContractsManager() {
       ) : null}
 
       {pendingQuery.isLoading ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
           <Loader2 className="h-4 w-4 animate-spin" />
           Chargement...
         </div>
@@ -161,19 +161,19 @@ export function AdminContractsManager() {
                     <Badge variant={contract.player.role}>{contract.player.role}</Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="font-mono text-xs text-text-secondary">
+                    <span className="font-display tabular-nums text-xs text-text-secondary">
                       {contract.team.shortCode}
                     </span>{' '}
                     {contract.team.name}
                   </TableCell>
-                  <TableCell className="font-mono">
+                  <TableCell className="font-display tabular-nums">
                     {formatCurrency(contract.salary)}
                   </TableCell>
                   <TableCell>{contract.durationBo3} BO3</TableCell>
-                  <TableCell className="font-mono">
+                  <TableCell className="font-display tabular-nums">
                     {formatCurrency(contract.releaseClause)}
                   </TableCell>
-                  <TableCell className="font-mono">
+                  <TableCell className="font-display tabular-nums">
                     {contract.transferFee != null
                       ? formatCurrency(contract.transferFee)
                       : '--'}
@@ -181,7 +181,7 @@ export function AdminContractsManager() {
                   <TableCell>
                     <span
                       className={cn(
-                        'font-mono',
+                        'font-display tabular-nums',
                         budgetDanger ? 'text-rose-400' : 'text-emerald-400',
                       )}
                     >
@@ -226,7 +226,7 @@ export function AdminContractsManager() {
           </TableBody>
         </Table>
       ) : (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
           <Clock className="h-4 w-4" />
           Aucun contrat en attente de validation.
         </div>
@@ -234,10 +234,10 @@ export function AdminContractsManager() {
 
       {rejectingId ? (
         <div className="rounded-3xl border border-rose-400/20 bg-rose-500/8 p-5 space-y-4">
-          <h3 className="font-display text-xl font-bold text-rose-100">Rejeter le contrat</h3>
+          <h3 className="font-display text-xl font-bold tracking-tight text-rose-100">Rejeter le contrat</h3>
           <form className="grid gap-4 md:grid-cols-[1fr_auto]" onSubmit={handleReject}>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Motif (optionnel)
               </label>
               <Input name="reason" placeholder="Ex: Budget insuffisant, doublon..." />

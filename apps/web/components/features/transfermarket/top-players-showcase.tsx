@@ -17,25 +17,25 @@ const PODIUM_CONFIG = [
     rank: 1,
     icon: Crown,
     label: '#1',
-    photoSize: 'h-32 w-32',
-    textSize: 'text-4xl',
-    initSize: 'text-3xl',
+    photoSize: 'h-28 w-28',
+    textSize: 'text-2xl',
+    initSize: 'text-xl',
   },
   {
     rank: 2,
     icon: Medal,
     label: '#2',
-    photoSize: 'h-28 w-28',
-    textSize: 'text-3xl',
-    initSize: 'text-2xl',
+    photoSize: 'h-24 w-24',
+    textSize: 'text-xl',
+    initSize: 'text-lg',
   },
   {
     rank: 3,
     icon: Trophy,
     label: '#3',
-    photoSize: 'h-28 w-28',
-    textSize: 'text-3xl',
-    initSize: 'text-2xl',
+    photoSize: 'h-24 w-24',
+    textSize: 'text-xl',
+    initSize: 'text-lg',
   },
 ] as const;
 
@@ -45,7 +45,7 @@ export function TopPlayersShowcase({ players }: TopPlayersShowcaseProps) {
   const top3 = players.slice(0, 3);
 
   return (
-    <section className="grid gap-5 md:grid-cols-3">
+    <section className="grid gap-4 md:grid-cols-3">
       {top3.map((player, index) => {
         const config = PODIUM_CONFIG[index]!;
         const Icon = config.icon;
@@ -54,14 +54,14 @@ export function TopPlayersShowcase({ players }: TopPlayersShowcaseProps) {
           <Link key={player.id} href={`/transfermarket/${player.id}`} className="group">
             <TeamTintCard
               elevated
-              className="relative h-full transition-all duration-300 group-hover:scale-[1.02]"
+              className="relative h-full transition-all duration-300 group-hover:scale-[1.01]"
               contentClassName="space-y-5"
               logoUrl={player.teamLogoUrl}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-white/88">
-                  <Icon className="h-5 w-5" />
-                  <span className="font-display text-sm font-bold uppercase tracking-[0.18em]">
+                <div className="flex items-center gap-2 text-white/70">
+                  <Icon className="h-4 w-4" />
+                  <span className="text-[0.68rem] font-medium uppercase tracking-[0.06em]">
                     {config.label} Market Value
                   </span>
                 </div>
@@ -71,7 +71,7 @@ export function TopPlayersShowcase({ players }: TopPlayersShowcaseProps) {
               <div className="flex flex-col items-center gap-4 text-center">
                 <TeamTintMediaFrame
                   logoUrl={player.teamLogoUrl}
-                  className={`${config.photoSize} rounded-[28px]`}
+                  className={`${config.photoSize} rounded-full`}
                 >
                   {player.imageUrl ? (
                     <img
@@ -81,7 +81,7 @@ export function TopPlayersShowcase({ players }: TopPlayersShowcaseProps) {
                     />
                   ) : (
                     <div
-                      className={`flex h-full w-full items-center justify-center bg-white/8 font-display ${config.initSize} font-bold text-white`}
+                      className={`flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-500/20 to-violet-600/10 font-display ${config.initSize} font-bold text-white/80`}
                     >
                       {getPlayerInitials(player.displayName)}
                     </div>
@@ -89,7 +89,7 @@ export function TopPlayersShowcase({ players }: TopPlayersShowcaseProps) {
                 </TeamTintMediaFrame>
 
                 <div>
-                  <h3 className={`font-display ${config.textSize} font-bold text-white`}>
+                  <h3 className={`font-display ${config.textSize} font-bold tracking-tight text-white`}>
                     {player.displayName}
                   </h3>
                   <div className="mt-2 flex items-center justify-center gap-2 text-xs text-text-muted">
@@ -98,7 +98,7 @@ export function TopPlayersShowcase({ players }: TopPlayersShowcaseProps) {
                       shortCode={player.teamShortCode ?? 'FA'}
                       logoUrl={player.teamLogoUrl ?? null}
                       size="sm"
-                      className="h-5 w-5 rounded-md text-[0.55rem]"
+                      className="h-5 w-5 rounded-full text-[0.5rem]"
                     />
                     <span>
                       {player.teamName} {player.teamShortCode ? `(${player.teamShortCode})` : ''}
@@ -118,7 +118,7 @@ export function TopPlayersShowcase({ players }: TopPlayersShowcaseProps) {
 
               <div className="flex items-center justify-center gap-3 text-xs text-text-secondary">
                 <span>
-                  Salaire <span className="font-mono text-white">{formatCurrency(player.salary)}</span>
+                  Salaire <span className="font-display font-bold tracking-tight text-white tabular-nums">{formatCurrency(player.salary)}</span>
                 </span>
               </div>
             </TeamTintCard>

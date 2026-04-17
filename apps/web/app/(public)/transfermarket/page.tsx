@@ -119,7 +119,7 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
       <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-kicker">Transfermarket</p>
-          <h1 className="mt-2 font-display text-4xl font-bold text-white">
+          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
             {view === 'players' ? 'Liste des joueurs' : 'Classement des equipes'}
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
@@ -129,14 +129,14 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
           </p>
         </div>
         <div className="flex flex-col gap-3 md:items-end">
-          <div className="inline-flex rounded-full border border-white/10 bg-white/5 p-1">
+          <div className="inline-flex rounded-full border border-white/[0.05] bg-white/[0.035] p-1">
             <Link
               href={playersViewHref}
               className={cn(
                 'rounded-full px-4 py-2 text-sm font-semibold transition',
                 view === 'players'
                   ? 'bg-white text-[#12111a]'
-                  : 'text-white/78 hover:bg-white/8 hover:text-white',
+                  : 'text-white/78 hover:bg-white/[0.05] hover:text-white',
               )}
             >
               Joueurs
@@ -147,7 +147,7 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
                 'rounded-full px-4 py-2 text-sm font-semibold transition',
                 view === 'teams'
                   ? 'bg-white text-[#12111a]'
-                  : 'text-white/78 hover:bg-white/8 hover:text-white',
+                  : 'text-white/78 hover:bg-white/[0.05] hover:text-white',
               )}
             >
               Equipe
@@ -157,7 +157,7 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
             <>
               <Link
                 href="/transfermarket/comparison"
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-accent-primary/40 hover:bg-accent-primary/14"
+                className="inline-flex items-center gap-2 rounded-full border border-white/[0.05] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white transition hover:border-accent-primary/40 hover:bg-accent-primary/14"
               >
                 Comparer des joueurs
               </Link>
@@ -172,7 +172,7 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
           <>
             <Card className="space-y-2">
               <p className="text-kicker">Actifs sur le marche</p>
-              <p className="font-display text-3xl font-bold text-white">{players.length}</p>
+              <p className="font-display text-2xl font-bold tracking-tight text-white">{players.length}</p>
               <p className="text-sm text-text-secondary">
                 Resultat filtre{players.length > 1 ? 's' : ''} pour la recherche actuelle.
               </p>
@@ -182,12 +182,12 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
               {highestValuePlayer ? (
                 <PlayerLink
                   playerId={highestValuePlayer.id}
-                  className="font-display text-3xl font-bold text-white"
+                  className="font-display text-2xl font-bold tracking-tight text-white"
                 >
                   {highestValuePlayer.displayName}
                 </PlayerLink>
               ) : (
-                <p className="font-display text-3xl font-bold text-white">N/A</p>
+                <p className="font-display text-2xl font-bold tracking-tight text-white">N/A</p>
               )}
               <p className="text-sm text-text-secondary">
                 {highestValuePlayer
@@ -197,7 +197,7 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
             </Card>
             <Card className="space-y-2">
               <p className="text-kicker">Valeur moyenne</p>
-              <p className="font-display text-3xl font-bold text-white">
+              <p className="font-display text-2xl font-bold tracking-tight text-white">
                 {formatCurrency(averagePlayerMarketValue)}
               </p>
               <p className="text-sm text-text-secondary">
@@ -209,14 +209,14 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
           <>
             <Card className="space-y-2">
               <p className="text-kicker">Equipes classees</p>
-              <p className="font-display text-3xl font-bold text-white">{teams.length}</p>
+              <p className="font-display text-2xl font-bold tracking-tight text-white">{teams.length}</p>
               <p className="text-sm text-text-secondary">
                 Clubs tries par valeur marchande totale du roster.
               </p>
             </Card>
             <Card className="space-y-2">
               <p className="text-kicker">Top collectif</p>
-              <p className="font-display text-3xl font-bold text-white">{topTeam?.name ?? 'N/A'}</p>
+              <p className="font-display text-2xl font-bold tracking-tight text-white">{topTeam?.name ?? 'N/A'}</p>
               <p className="text-sm text-text-secondary">
                 {topTeam
                   ? `${topTeam.shortCode} / ${formatCurrency(topTeam.totalMarketValue)}`
@@ -225,7 +225,7 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
             </Card>
             <Card className="space-y-2">
               <p className="text-kicker">Valeur moyenne club</p>
-              <p className="font-display text-3xl font-bold text-white">
+              <p className="font-display text-2xl font-bold tracking-tight text-white">
                 {formatCurrency(averageTeamMarketValue)}
               </p>
               <p className="text-sm text-text-secondary">
@@ -255,7 +255,7 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
       {(view === 'players' && players.length === 0) || (view === 'teams' && teams.length === 0) ? (
         <Card className="space-y-3">
           <p className="text-kicker">Aucun resultat</p>
-          <h2 className="font-display text-2xl font-bold text-white">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-white">
             {view === 'players'
               ? 'Aucun joueur ne correspond aux filtres actuels'
               : 'Aucune equipe disponible pour le moment'}

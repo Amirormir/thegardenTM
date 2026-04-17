@@ -33,7 +33,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'sticky top-0 hidden h-screen border-r border-white/8 bg-[#0d0b13]/82 px-3 py-5 backdrop-blur-xl lg:block',
+        'sticky top-0 hidden h-screen border-r border-white/[0.05] bg-[#0d0b13]/82 px-3 py-5 backdrop-blur-xl lg:block',
         collapsed ? 'w-[92px]' : 'w-[280px]',
       )}
     >
@@ -44,8 +44,8 @@ export function Sidebar() {
           </div>
           {!collapsed ? (
             <div>
-              <p className="font-display text-lg font-bold text-white">Garden Admin</p>
-              <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <p className="font-display text-lg font-bold tracking-tight text-white">Garden Admin</p>
+              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Operations hub
               </p>
             </div>
@@ -53,7 +53,7 @@ export function Sidebar() {
         </div>
         <button
           type="button"
-          className="rounded-2xl border border-white/10 bg-white/5 p-2 text-text-secondary transition hover:text-white"
+          className="rounded-2xl border border-white/[0.05] bg-white/[0.035] p-2 text-text-secondary transition hover:text-white"
           onClick={() => setCollapsed((value) => !value)}
         >
           <Menu className="h-4 w-4" />
@@ -72,7 +72,7 @@ export function Sidebar() {
                 'flex items-center gap-3 rounded-2xl px-3 py-3 transition',
                 active
                   ? 'bg-accent-primary/16 text-white shadow-[0_0_30px_rgba(124,58,237,0.16)]'
-                  : 'text-text-secondary hover:bg-white/5 hover:text-white',
+                  : 'text-text-secondary hover:bg-white/[0.035] hover:text-white',
                 collapsed && 'justify-center',
               )}
             >

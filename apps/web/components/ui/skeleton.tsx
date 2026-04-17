@@ -5,5 +5,5 @@ export interface SkeletonProps {
 }
 
 export function Skeleton({ className }: SkeletonProps) {
-  return <div className={cn('shimmer rounded-2xl bg-white/6', className)} />;
+  return <div className={cn('shimmer rounded-2xl bg-white/[0.04]', className)} />;
 }

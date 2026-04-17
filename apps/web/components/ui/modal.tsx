@@ -52,13 +52,13 @@ export function Modal({ open, onClose, title, description, children }: ModalProp
           >
             <button
               type="button"
-              className="absolute right-4 top-4 rounded-full border border-white/10 bg-white/5 p-2 text-text-secondary transition hover:border-white/20 hover:text-white"
+              className="absolute right-4 top-4 rounded-full border border-white/[0.05] bg-white/[0.035] p-2 text-text-secondary transition hover:border-white/20 hover:text-white"
               onClick={onClose}
             >
               <X className="h-4 w-4" />
             </button>
             <div className="space-y-2 pr-10">
-              <h3 className="font-display text-2xl font-bold text-white">{title}</h3>
+              <h3 className="font-display text-2xl font-bold tracking-tight text-white">{title}</h3>
               {description ? <p className="text-sm text-text-secondary">{description}</p> : null}
             </div>
             <div className="mt-6">{children}</div>

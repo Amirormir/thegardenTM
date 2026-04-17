@@ -73,7 +73,7 @@ export function ChampionSelect({
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm outline-none transition focus:border-accent-primary/50 focus:ring-2 focus:ring-accent-primary/24',
+          'flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 text-sm outline-none transition focus:border-accent-primary/50 focus:ring-2 focus:ring-accent-primary/24',
           selected ? 'text-white' : 'text-text-muted',
         )}
       >
@@ -105,8 +105,8 @@ export function ChampionSelect({
       ) : null}
 
       {open ? (
-        <div className="absolute z-50 mt-1 max-h-72 w-full overflow-hidden rounded-2xl border border-white/10 bg-bg-elevated shadow-xl">
-          <div className="flex items-center gap-2 border-b border-white/8 px-3 py-2">
+        <div className="absolute z-50 mt-1 max-h-72 w-full overflow-hidden rounded-2xl border border-white/[0.05] bg-bg-elevated shadow-xl">
+          <div className="flex items-center gap-2 border-b border-white/[0.05] px-3 py-2">
             <Search className="h-4 w-4 text-text-muted" />
             <input
               ref={searchInputRef}

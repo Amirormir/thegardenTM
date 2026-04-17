@@ -37,10 +37,10 @@ export function PlayerCard({ player }: PlayerCardProps) {
             <img
               src={player.imageUrl}
               alt={player.displayName}
-              className="h-24 w-24 shrink-0 rounded-2xl object-cover ring-1 ring-white/10"
+              className="h-20 w-20 shrink-0 rounded-full object-cover ring-1 ring-white/[0.06]"
             />
           ) : (
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white/8 text-lg font-semibold text-white ring-1 ring-white/10">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500/20 to-violet-600/10 text-base font-semibold text-white/80 ring-1 ring-white/[0.06]">
               {getPlayerInitials(player.displayName)}
             </div>
           )}
@@ -54,14 +54,14 @@ export function PlayerCard({ player }: PlayerCardProps) {
               ))}
               <Badge variant={tier}>{tier}</Badge>
             </div>
-            <div className="mt-4 min-w-0">
+            <div className="mt-3 min-w-0">
               <PlayerLink
                 playerId={player.id}
-                className="block truncate font-display text-2xl font-bold text-white"
+                className="block truncate font-display text-xl font-bold tracking-tight text-white"
               >
                 {player.displayName}
               </PlayerLink>
-              <p className="mt-1 truncate text-sm font-medium text-text-secondary" title={riotId}>
+              <p className="mt-1 truncate text-sm text-text-secondary" title={riotId}>
                 {riotId}
               </p>
             </div>
@@ -71,7 +71,7 @@ export function PlayerCard({ player }: PlayerCardProps) {
                 shortCode={player.teamShortCode ?? 'FA'}
                 logoUrl={player.teamLogoUrl ?? null}
                 size="sm"
-                className="h-5 w-5 rounded-md text-[0.55rem]"
+                className="h-5 w-5 rounded-full text-[0.5rem]"
               />
               <span className="truncate" title={player.teamName}>
                 {player.teamName}
@@ -79,12 +79,12 @@ export function PlayerCard({ player }: PlayerCardProps) {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-[0.18em] text-text-secondary">
+        <div className="rounded-xl border border-white/[0.05] bg-white/[0.03] px-3 py-2 text-[0.65rem] uppercase tracking-[0.06em] text-text-secondary">
           Salary {player.salary.toLocaleString('fr-FR')}
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-5">
         <PlayerValue
           value={player.marketValue}
           delta={player.marketValueDelta ?? 0}
@@ -95,7 +95,7 @@ export function PlayerCard({ player }: PlayerCardProps) {
 
       <Link
         href={`/transfermarket/${player.id}`}
-        className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-accent-glow transition hover:text-white"
+        className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-accent-glow transition hover:text-white"
       >
         Voir la fiche
         <ArrowRight className="h-4 w-4" />

@@ -9,9 +9,9 @@ interface QuickStandingsProps {
 export function QuickStandings({ standings }: QuickStandingsProps) {
   return (
     <Card className="p-0">
-      <div className="border-b border-white/8 px-6 py-5">
+      <div className="border-b border-white/[0.05] px-6 py-5">
         <p className="text-kicker">League snapshot</p>
-        <h2 className="mt-2 font-display text-3xl font-bold text-white">Top standings</h2>
+        <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Top standings</h2>
       </div>
       <div className="p-4">
         {standings.length > 0 ? (

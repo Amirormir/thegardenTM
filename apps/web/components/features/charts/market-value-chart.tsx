@@ -36,7 +36,7 @@ function formatValue(value: number) {
 export function MarketValueChart({ history }: MarketValueChartProps) {
   if (history.length < 2) {
     return (
-      <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+      <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
         Pas assez de donnees pour afficher le graphique.
       </div>
     );

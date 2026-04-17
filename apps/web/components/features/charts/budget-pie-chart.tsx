@@ -28,7 +28,7 @@ export function BudgetPieChart({ roleBudget }: BudgetPieChartProps) {
 
   if (filtered.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+      <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
         Aucune donnee de budget par role.
       </div>
     );

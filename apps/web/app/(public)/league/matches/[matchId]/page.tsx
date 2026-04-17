@@ -49,19 +49,19 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
               size="lg"
             />
             <div>
-              <p className="font-display text-xl font-bold text-white sm:text-2xl">
+              <p className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
                 {match.homeTeam.name}
               </p>
-              <p className="text-xs uppercase tracking-[0.16em] text-text-secondary">
+              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 {match.homeTeam.shortCode}
               </p>
             </div>
           </div>
-          <div className="rounded-[24px] border border-white/10 bg-black/20 px-6 py-4 text-center">
-            <p className="font-display text-4xl font-bold text-white">
+          <div className="rounded-[24px] border border-white/[0.05] bg-black/20 px-6 py-4 text-center">
+            <p className="font-display text-2xl font-bold tracking-tight text-white">
               {match.homeScore} - {match.awayScore}
             </p>
-            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-text-secondary">
+            <p className="mt-1 text-xs uppercase tracking-[0.06em] text-text-secondary">
               {match.isCompleted ? 'Final' : 'Scheduled'}
             </p>
           </div>
@@ -73,10 +73,10 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
               size="lg"
             />
             <div>
-              <p className="font-display text-xl font-bold text-white sm:text-2xl">
+              <p className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
                 {match.awayTeam.name}
               </p>
-              <p className="text-xs uppercase tracking-[0.16em] text-text-secondary">
+              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 {match.awayTeam.shortCode}
               </p>
             </div>
@@ -93,11 +93,11 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-kicker">Game {game.gameNumber}</p>
-                <h2 className="mt-2 font-display text-3xl font-bold text-white">Scoreboard</h2>
+                <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Scoreboard</h2>
               </div>
               <div className="flex items-center gap-3">
                 {game.durationSeconds ? (
-                  <span className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                  <span className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                     {Math.floor(game.durationSeconds / 60)}m {game.durationSeconds % 60}s
                   </span>
                 ) : null}
@@ -127,7 +127,7 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
                         <span
                           className={`inline-block h-2 w-2 rounded-full ${side === 'BLUE' ? 'bg-sky-400' : 'bg-rose-400'}`}
                         />
-                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-text-secondary">
+                        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-text-secondary">
                           {side} side — {sideTeamName}
                         </span>
                       </div>

@@ -67,7 +67,7 @@ export default function RegisterPage() {
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-accent-primary/20 bg-accent-primary/12">
           <UserPlus className="h-7 w-7 text-accent-glow" />
         </div>
-        <h1 className="font-display text-3xl font-bold text-white">Creer un compte</h1>
+        <h1 className="font-display text-2xl tracking-tight font-bold text-white">Creer un compte</h1>
         <p className="mt-2 text-sm text-text-secondary">
           Rejoignez la ligue et commencez a suivre le transfermarket.
         </p>
@@ -89,7 +89,7 @@ export default function RegisterPage() {
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Nom</label>
+            <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Nom</label>
             <Input
               required
               placeholder="Votre nom"
@@ -99,7 +99,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Email</label>
+            <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Email</label>
             <Input
               required
               type="email"
@@ -110,7 +110,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+            <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
               Mot de passe
             </label>
             <Input
@@ -124,7 +124,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+            <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
               Confirmer le mot de passe
             </label>
             <Input

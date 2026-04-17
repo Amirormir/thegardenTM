@@ -11,7 +11,7 @@ export default async function MatchesPage() {
     <div className="space-y-8">
       <div>
         <p className="text-kicker">League matches</p>
-        <h1 className="mt-2 font-display text-4xl font-bold text-white">Résultats</h1>
+        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Résultats</h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
           Calendrier complet des matchs avec scores issus de la base de données.
         </p>

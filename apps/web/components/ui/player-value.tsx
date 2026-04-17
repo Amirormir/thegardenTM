@@ -33,28 +33,29 @@ export function PlayerValue({
   return (
     <div
       className={cn(
-        'rounded-[24px] border border-white/10 bg-black/20 p-4',
-        tone === 'default' && tier === 'S' && 'glow-gold',
-        tone === 'default' && tier === 'A' && 'glow-violet',
-        tone === 'neutral' && 'bg-white/5 ring-1 ring-white/10',
+        'rounded-2xl border p-4',
+        tone === 'default' && tier === 'S' && 'border-amber-300/[0.1] bg-amber-400/[0.04]',
+        tone === 'default' && tier === 'A' && 'border-violet-300/[0.1] bg-violet-400/[0.04]',
+        tone === 'default' && (tier === 'B' || tier === 'C') && 'border-white/[0.05] bg-white/[0.03]',
+        tone === 'neutral' && 'border-white/[0.05] bg-white/[0.03]',
       )}
     >
       <div className="text-kicker">Market Value</div>
       <div
         className={cn(
-          'mt-2 font-mono font-semibold text-white',
-          size === 'lg' ? 'text-3xl md:text-4xl' : 'text-xl',
+          'mt-2 font-display font-bold tracking-tight text-white tabular-nums',
+          size === 'lg' ? 'text-2xl md:text-3xl' : 'text-xl',
         )}
       >
         {formatCurrency(value)}
       </div>
-      <div className="mt-2 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-text-secondary">
-        <span className="rounded-full border border-white/10 px-2 py-1 text-[0.65rem] text-white">
+      <div className="mt-2 flex items-center gap-2 text-xs text-text-secondary">
+        <span className="rounded-full border border-white/[0.06] px-2 py-0.5 text-[0.62rem] font-medium uppercase tracking-[0.04em] text-white/80">
           Tier {tier}
         </span>
         <span
           className={cn(
-            'inline-flex items-center gap-1',
+            'inline-flex items-center gap-1 font-medium tabular-nums',
             delta >= 0 ? 'text-emerald-300' : 'text-rose-300',
           )}
         >

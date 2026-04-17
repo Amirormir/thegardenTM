@@ -100,7 +100,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
               </div>
 
               <p className="mt-4 text-kicker">League team profile</p>
-              <h1 className="mt-2 font-display text-5xl font-bold text-white">{team.name}</h1>
+              <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-white">{team.name}</h1>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-text-secondary">
                 Vue publique de l equipe avec roster complet, valorisation, budget et acces direct
                 vers chaque fiche transfermarket.
@@ -109,25 +109,25 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
           </div>
 
           <div className="grid gap-4 md:grid-cols-4">
-            <Card className="border-white/8 bg-white/4">
+            <Card className="border-white/[0.05] bg-white/4">
               <p className="text-kicker">Record</p>
               <p className="mt-2 text-2xl font-semibold text-white">
                 {standing ? `${standing.wins}-${standing.losses}` : '0-0'}
               </p>
             </Card>
-            <Card className="border-white/8 bg-white/4">
+            <Card className="border-white/[0.05] bg-white/4">
               <p className="text-kicker">Map diff</p>
               <p className="mt-2 text-2xl font-semibold text-white">
                 {standing ? `${standing.mapWins}-${standing.mapLosses}` : '0-0'}
               </p>
             </Card>
-            <Card className="border-white/8 bg-white/4">
+            <Card className="border-white/[0.05] bg-white/4">
               <p className="text-kicker">Market value</p>
               <p className="mt-2 text-2xl font-semibold text-white">
                 {formatCurrency(totalMarketValue)}
               </p>
             </Card>
-            <Card className="border-white/8 bg-white/4">
+            <Card className="border-white/[0.05] bg-white/4">
               <p className="text-kicker">Budget restant</p>
               <p className="mt-2 text-2xl font-semibold text-white">
                 {formatCurrency(budgetRemaining)}
@@ -139,7 +139,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         <div className="space-y-4">
           <Card className="space-y-3">
             <p className="text-kicker">Staff</p>
-            <h2 className="font-display text-2xl font-bold text-white">
+            <h2 className="font-display text-2xl font-bold tracking-tight text-white">
               {team.captains.length > 1 ? 'Capitaines' : 'Capitaine'}
             </h2>
             {team.captains.length > 0 ? (
@@ -157,7 +157,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
 
           <Card className="space-y-3">
             <p className="text-kicker">Finance</p>
-            <h2 className="font-display text-2xl font-bold text-white">Budget club</h2>
+            <h2 className="font-display text-2xl font-bold tracking-tight text-white">Budget club</h2>
             <p className="text-sm text-text-secondary">
               Budget total: <span className="font-semibold text-white">{formatCurrency(team.budget)}</span>
             </p>
@@ -171,7 +171,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
       <section className="space-y-5">
         <div>
           <p className="text-kicker">Roster</p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-white">Joueurs de l equipe</h2>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Joueurs de l equipe</h2>
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -209,10 +209,10 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                       </Badge>
                     ))}
                   </div>
-                  <h3 className="mt-3 font-display text-2xl font-bold text-white">
+                  <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-white">
                     <PlayerLink
                       playerId={player.id}
-                      className="font-display text-2xl font-bold text-white"
+                      className="font-display text-2xl font-bold tracking-tight text-white"
                     >
                       {player.displayName}
                     </PlayerLink>
@@ -222,14 +222,14 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                     Market value
                   </p>
                   <p className="mt-2 font-semibold text-white">{formatCurrency(player.marketValue)}</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                     Salary
                   </p>
                   <p className="mt-2 font-semibold text-white">{formatCurrency(player.salary)}</p>
@@ -258,20 +258,20 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         <Card className="space-y-4">
           <div>
             <p className="text-kicker">Upcoming</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-white">Prochains matchs</h2>
+            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Prochains matchs</h2>
           </div>
           {upcomingMatches.length > 0 ? (
             <div className="space-y-3">
               {upcomingMatches.map((match) => (
                 <div
                   key={match.id}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4"
+                  className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4"
                 >
                   <div className="flex items-center justify-between gap-4">
                     <p className="font-semibold text-white">
                       {match.homeTeam.shortCode} vs {match.awayTeam.shortCode}
                     </p>
-                    <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                       {match.format}
                     </p>
                   </div>
@@ -289,20 +289,20 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         <Card className="space-y-4">
           <div>
             <p className="text-kicker">Recent</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-white">Derniers resultats</h2>
+            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Derniers resultats</h2>
           </div>
           {completedMatches.length > 0 ? (
             <div className="space-y-3">
               {completedMatches.map((match) => (
                 <div
                   key={match.id}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4"
+                  className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4"
                 >
                   <div className="flex items-center justify-between gap-4">
                     <p className="font-semibold text-white">
                       {match.homeTeam.shortCode} vs {match.awayTeam.shortCode}
                     </p>
-                    <p className="font-display text-xl font-bold text-white">
+                    <p className="font-display text-xl font-bold tracking-tight text-white">
                       {match.homeScore} - {match.awayScore}
                     </p>
                   </div>

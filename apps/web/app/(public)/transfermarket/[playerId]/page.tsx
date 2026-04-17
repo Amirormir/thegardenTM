@@ -137,7 +137,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-white/8 font-display text-4xl font-bold text-white">
+                <div className="flex h-full w-full items-center justify-center bg-white/8 font-display text-2xl font-bold tracking-tight text-white">
                   {getPlayerInitials(player.displayName)}
                 </div>
               )}
@@ -167,7 +167,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                     {teamName} / {teamShortCode}
                   </span>
                 </div>
-                <h1 className="mt-2 font-display text-5xl font-bold text-white">
+                <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-white">
                   {player.displayName}
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-text-secondary">
@@ -209,26 +209,26 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
           </div>
 
           <div className="grid gap-4 md:grid-cols-4">
-            <Card className="border-white/8 bg-white/4">
-              <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Riot ID</p>
+            <Card className="border-white/[0.05] bg-white/4">
+              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">Riot ID</p>
               <p className="mt-2 text-lg font-semibold text-white">
                 {buildPlayerRiotId(player)}
               </p>
             </Card>
-            <Card className="border-white/8 bg-white/4">
-              <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Salary</p>
-              <p className="mt-2 font-mono text-lg font-semibold text-white">
+            <Card className="border-white/[0.05] bg-white/4">
+              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">Salary</p>
+              <p className="mt-2 font-display tabular-nums text-lg font-semibold text-white">
                 {formatCurrency(player.salary)}
               </p>
             </Card>
-            <Card className="border-white/8 bg-white/4">
-              <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Contract</p>
+            <Card className="border-white/[0.05] bg-white/4">
+              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">Contract</p>
               <p className="mt-2 text-lg font-semibold text-white">
                 {activeContract ? `${activeContract.durationBo3} BO3` : 'N/A'}
               </p>
             </Card>
-            <Card className="border-white/8 bg-white/4">
-              <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Profile</p>
+            <Card className="border-white/[0.05] bg-white/4">
+              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">Profile</p>
               <p className="mt-2 text-lg font-semibold text-white">
                 {[player.nationality, player.age ? `${player.age} ans` : null]
                   .filter(Boolean)
@@ -251,7 +251,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
               </p>
               <p>
                 Release clause{' '}
-                <span className="font-mono font-semibold text-white">
+                <span className="font-display tabular-nums font-semibold text-white">
                   {activeContract?.releaseClause
                     ? formatCurrency(activeContract.releaseClause)
                     : 'N/A'}
@@ -259,7 +259,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
               </p>
               <p>
                 Transfer fee{' '}
-                <span className="font-mono font-semibold text-white">
+                <span className="font-display tabular-nums font-semibold text-white">
                   {activeContract?.transferFee ? formatCurrency(activeContract.transferFee) : 'N/A'}
                 </span>
               </p>
@@ -280,24 +280,24 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
       </section>
 
       <section className="grid gap-4 md:grid-cols-4">
-        <Card className="space-y-2 border-white/8 bg-white/4">
+        <Card className="space-y-2 border-white/[0.05] bg-white/4">
           <p className="text-kicker">Recent KDA</p>
-          <p className="font-display text-3xl font-bold text-white">{recentKda}</p>
+          <p className="font-display text-2xl font-bold tracking-tight text-white">{recentKda}</p>
           <p className="text-sm text-text-secondary">{recentGamesCount} games prises en compte.</p>
         </Card>
-        <Card className="space-y-2 border-white/8 bg-white/4">
+        <Card className="space-y-2 border-white/[0.05] bg-white/4">
           <p className="text-kicker">Win rate</p>
-          <p className="font-display text-3xl font-bold text-white">{recentWinRate}%</p>
+          <p className="font-display text-2xl font-bold tracking-tight text-white">{recentWinRate}%</p>
           <p className="text-sm text-text-secondary">{recentTotals.wins} wins recentes.</p>
         </Card>
-        <Card className="space-y-2 border-white/8 bg-white/4">
+        <Card className="space-y-2 border-white/[0.05] bg-white/4">
           <p className="text-kicker">Average CS</p>
-          <p className="font-display text-3xl font-bold text-white">{averageCs}</p>
+          <p className="font-display text-2xl font-bold tracking-tight text-white">{averageCs}</p>
           <p className="text-sm text-text-secondary">Moyenne sur les games stockees.</p>
         </Card>
-        <Card className="space-y-2 border-white/8 bg-white/4">
+        <Card className="space-y-2 border-white/[0.05] bg-white/4">
           <p className="text-kicker">Average damage</p>
-          <p className="font-display text-3xl font-bold text-white">
+          <p className="font-display text-2xl font-bold tracking-tight text-white">
             {formatCurrency(averageDamage)}
           </p>
           <p className="text-sm text-text-secondary">Degats moyens par game recente.</p>
@@ -308,19 +308,19 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         <Card className="space-y-5">
           <div>
             <p className="text-kicker">Palmares</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-white">
+            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
               Distinctions du joueur
             </h2>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {player.playerTrophies.map((trophy) => (
-              <Card key={trophy.id} className="border-white/8 bg-white/4">
+              <Card key={trophy.id} className="border-white/[0.05] bg-white/4">
                 <p className="text-kicker">{trophy.season.name}</p>
-                <h3 className="mt-2 font-display text-2xl font-bold text-white">{trophy.name}</h3>
+                <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">{trophy.name}</h3>
                 <p className="mt-3 text-sm leading-7 text-text-secondary">
                   {trophy.description ?? 'Distinction officielle enregistree dans Garden.'}
                 </p>
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-[0.18em] text-text-secondary">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-[0.06em] text-text-secondary">
                   <span>
                     {trophy.team ? `${trophy.team.name} (${trophy.team.shortCode})` : 'Individuel'}
                   </span>
@@ -336,7 +336,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         <Card className="space-y-5">
           <div>
             <p className="text-kicker">Market trajectory</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-white">
+            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
               Evolution de la valeur
             </h2>
           </div>
@@ -346,7 +346,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         <Card className="space-y-5">
           <div>
             <p className="text-kicker">Recent performance</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-white">
+            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
               Tendances de performance
             </h2>
           </div>
@@ -357,7 +357,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
       <Card className="space-y-5">
         <div>
           <p className="text-kicker">Contract history</p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-white">
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
             Historique contractuel
           </h2>
         </div>
@@ -390,10 +390,10 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                       {getContractStatusLabel(contract.status)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono">{formatCurrency(contract.salary)}</TableCell>
+                  <TableCell className="font-display tabular-nums">{formatCurrency(contract.salary)}</TableCell>
                   <TableCell>{contract.durationBo3} BO3</TableCell>
-                  <TableCell className="font-mono">{formatCurrency(contract.releaseClause)}</TableCell>
-                  <TableCell className="font-mono">
+                  <TableCell className="font-display tabular-nums">{formatCurrency(contract.releaseClause)}</TableCell>
+                  <TableCell className="font-display tabular-nums">
                     {contract.transferFee ? formatCurrency(contract.transferFee) : 'N/A'}
                   </TableCell>
                 </TableRow>
@@ -410,7 +410,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
       <Card className="space-y-5">
         <div>
           <p className="text-kicker">Recent stored matches</p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-white">Dernieres stats</h2>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Dernieres stats</h2>
         </div>
         {player.playerMatchStats.length > 0 ? (
           <Table>
@@ -458,7 +458,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
       <Card className="space-y-5">
         <div>
           <p className="text-kicker">Audit trail</p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-white">
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
             Historique de valorisation
           </h2>
         </div>
@@ -480,7 +480,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                 return (
                   <TableRow key={entry.id}>
                     <TableCell>{formatDateTime(entry.changedAt)}</TableCell>
-                    <TableCell className="font-mono text-white">
+                    <TableCell className="font-display tabular-nums text-white">
                       {formatCurrency(entry.newValue)}
                     </TableCell>
                     <TableCell className={delta >= 0 ? 'text-emerald-300' : 'text-rose-300'}>

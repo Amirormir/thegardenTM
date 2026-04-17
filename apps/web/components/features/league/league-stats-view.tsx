@@ -67,7 +67,7 @@ export function LeagueStatsView() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="inline-flex rounded-full border border-white/10 bg-white/5 p-1">
+        <div className="inline-flex rounded-full border border-white/[0.05] bg-white/[0.035] p-1">
           {(['players', 'teams', 'champions'] as const).map((t) => (
             <button
               key={t}
@@ -94,7 +94,7 @@ export function LeagueStatsView() {
                 'rounded-full px-3 py-1.5 text-xs font-semibold transition',
                 role === undefined
                   ? 'bg-accent-primary text-white'
-                  : 'border border-white/10 bg-white/5 text-white/60 hover:text-white',
+                  : 'border border-white/[0.05] bg-white/[0.035] text-white/60 hover:text-white',
               )}
             >
               Tous
@@ -108,7 +108,7 @@ export function LeagueStatsView() {
                   'rounded-full px-3 py-1.5 text-xs font-semibold transition',
                   role === r
                     ? 'bg-accent-primary text-white'
-                    : 'border border-white/10 bg-white/5 text-white/60 hover:text-white',
+                    : 'border border-white/[0.05] bg-white/[0.035] text-white/60 hover:text-white',
                 )}
               >
                 {r}
@@ -137,7 +137,7 @@ export function LeagueStatsView() {
                   'rounded-full px-3 py-1.5 text-xs font-semibold transition',
                   playerSort === opt.value
                     ? 'bg-white text-[#12111a]'
-                    : 'border border-white/10 bg-white/5 text-white/60 hover:text-white',
+                    : 'border border-white/[0.05] bg-white/[0.035] text-white/60 hover:text-white',
                 )}
               >
                 {opt.label}
@@ -171,7 +171,7 @@ export function LeagueStatsView() {
                 <TableBody>
                   {sortedPlayers.map((player, index) => (
                     <TableRow key={player.playerId}>
-                      <TableCell className="font-mono text-text-secondary">{index + 1}</TableCell>
+                      <TableCell className="font-display tabular-nums text-text-secondary">{index + 1}</TableCell>
                       <TableCell>
                         <PlayerLink playerId={player.playerId} className="font-semibold text-white">
                           {player.displayName}
@@ -182,18 +182,18 @@ export function LeagueStatsView() {
                         <Badge variant={player.role as PlayerRole}>{player.role}</Badge>
                       </TableCell>
                       <TableCell>{player.games}</TableCell>
-                      <TableCell className="font-mono">{(player.winRate * 100).toFixed(0)}%</TableCell>
-                      <TableCell className="font-mono font-semibold text-accent-glow">
+                      <TableCell className="font-display tabular-nums">{(player.winRate * 100).toFixed(0)}%</TableCell>
+                      <TableCell className="font-display tabular-nums font-semibold text-accent-glow">
                         {player.kda.toFixed(2)}
                       </TableCell>
-                      <TableCell className="font-mono">{player.avgKills.toFixed(1)}</TableCell>
-                      <TableCell className="font-mono">{player.avgDeaths.toFixed(1)}</TableCell>
-                      <TableCell className="font-mono">{player.avgAssists.toFixed(1)}</TableCell>
-                      <TableCell className="font-mono">{player.csPerMin.toFixed(1)}</TableCell>
-                      <TableCell className="font-mono">{player.avgDamage.toFixed(0)}</TableCell>
-                      <TableCell className="font-mono">{player.avgVisionScore.toFixed(1)}</TableCell>
-                      <TableCell className="font-mono">{player.avgGold.toFixed(0)}</TableCell>
-                      <TableCell className="font-mono">{player.uniqueChampions}</TableCell>
+                      <TableCell className="font-display tabular-nums">{player.avgKills.toFixed(1)}</TableCell>
+                      <TableCell className="font-display tabular-nums">{player.avgDeaths.toFixed(1)}</TableCell>
+                      <TableCell className="font-display tabular-nums">{player.avgAssists.toFixed(1)}</TableCell>
+                      <TableCell className="font-display tabular-nums">{player.csPerMin.toFixed(1)}</TableCell>
+                      <TableCell className="font-display tabular-nums">{player.avgDamage.toFixed(0)}</TableCell>
+                      <TableCell className="font-display tabular-nums">{player.avgVisionScore.toFixed(1)}</TableCell>
+                      <TableCell className="font-display tabular-nums">{player.avgGold.toFixed(0)}</TableCell>
+                      <TableCell className="font-display tabular-nums">{player.uniqueChampions}</TableCell>
                       <TableCell>
                         {player.mostPlayedChampion ? (
                           <span className="flex items-center gap-1.5">
@@ -242,7 +242,7 @@ export function LeagueStatsView() {
                 <TableBody>
                   {teams.map((team, index) => (
                     <TableRow key={team.teamId}>
-                      <TableCell className="font-mono text-text-secondary">{index + 1}</TableCell>
+                      <TableCell className="font-display tabular-nums text-text-secondary">{index + 1}</TableCell>
                       <TableCell className="font-semibold text-white">
                         {team.teamName}
                         <span className="ml-2 text-xs text-text-secondary">
@@ -250,16 +250,16 @@ export function LeagueStatsView() {
                         </span>
                       </TableCell>
                       <TableCell>{team.games}</TableCell>
-                      <TableCell className="font-mono font-semibold text-accent-glow">
+                      <TableCell className="font-display tabular-nums font-semibold text-accent-glow">
                         {(team.winRate * 100).toFixed(0)}%
                       </TableCell>
-                      <TableCell className="font-mono">{team.teamKda.toFixed(2)}</TableCell>
-                      <TableCell className="font-mono">
+                      <TableCell className="font-display tabular-nums">{team.teamKda.toFixed(2)}</TableCell>
+                      <TableCell className="font-display tabular-nums">
                         {team.blueSideGames > 0
                           ? `${(team.blueSideWinRate * 100).toFixed(0)}%`
                           : '-'}
                       </TableCell>
-                      <TableCell className="font-mono">
+                      <TableCell className="font-display tabular-nums">
                         {team.redSideGames > 0
                           ? `${(team.redSideWinRate * 100).toFixed(0)}%`
                           : '-'}
@@ -299,7 +299,7 @@ export function LeagueStatsView() {
                 <TableBody>
                   {champions.map((champ, index) => (
                     <TableRow key={champ.champion}>
-                      <TableCell className="font-mono text-text-secondary">{index + 1}</TableCell>
+                      <TableCell className="font-display tabular-nums text-text-secondary">{index + 1}</TableCell>
                       <TableCell>
                         <span className="flex items-center gap-2 font-semibold text-white">
                           <ChampionIcon championId={champ.champion} size="sm" />
@@ -307,13 +307,13 @@ export function LeagueStatsView() {
                         </span>
                       </TableCell>
                       <TableCell>{champ.games}</TableCell>
-                      <TableCell className="font-mono font-semibold text-accent-glow">
+                      <TableCell className="font-display tabular-nums font-semibold text-accent-glow">
                         {(champ.winRate * 100).toFixed(0)}%
                       </TableCell>
-                      <TableCell className="font-mono">{champ.kda.toFixed(2)}</TableCell>
-                      <TableCell className="font-mono">{champ.avgKills.toFixed(1)}</TableCell>
-                      <TableCell className="font-mono">{champ.avgDeaths.toFixed(1)}</TableCell>
-                      <TableCell className="font-mono">{champ.avgAssists.toFixed(1)}</TableCell>
+                      <TableCell className="font-display tabular-nums">{champ.kda.toFixed(2)}</TableCell>
+                      <TableCell className="font-display tabular-nums">{champ.avgKills.toFixed(1)}</TableCell>
+                      <TableCell className="font-display tabular-nums">{champ.avgDeaths.toFixed(1)}</TableCell>
+                      <TableCell className="font-display tabular-nums">{champ.avgAssists.toFixed(1)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -52,7 +52,7 @@ export default async function HomePage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-kicker">League overview</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-white md:text-4xl">
+            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
               Classement et derniers resultats
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
@@ -79,9 +79,9 @@ export default async function HomePage() {
 
         <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
           <Card className="p-0">
-            <div className="border-b border-white/8 px-6 py-5">
+            <div className="border-b border-white/[0.05] px-6 py-5">
               <p className="text-kicker">Standings</p>
-              <h3 className="mt-2 font-display text-3xl font-bold text-white">
+              <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                 Le haut du classement
               </h3>
             </div>
@@ -97,9 +97,9 @@ export default async function HomePage() {
           </Card>
 
           <div className="space-y-4">
-            <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-5 py-5 backdrop-blur-xl">
+            <div className="rounded-[1.5rem] border border-white/[0.05] bg-white/[0.035] px-5 py-5 backdrop-blur-xl">
               <p className="text-kicker">Derniers resultats</p>
-              <h3 className="mt-2 font-display text-3xl font-bold text-white">
+              <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                 Les series qui viennent de tomber
               </h3>
               <p className="mt-3 text-sm leading-6 text-text-secondary">
@@ -113,7 +113,7 @@ export default async function HomePage() {
             ) : (
               <Card className="space-y-3">
                 <p className="text-kicker">Aucun resultat</p>
-                <h3 className="font-display text-2xl font-bold text-white">
+                <h3 className="font-display text-2xl font-bold tracking-tight text-white">
                   Pas encore de match termine
                 </h3>
                 <p className="text-sm leading-6 text-text-secondary">

@@ -9,9 +9,9 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
   --color-border-subtle: var(--border-subtle);
-  --font-display: var(--font-orbitron);
-  --font-body: var(--font-plus-jakarta);
-  --font-mono: var(--font-jetbrains-mono);
+  --font-display: var(--font-satoshi);
+  --font-body: var(--font-inter);
+  --font-mono: var(--font-satoshi);
   --shadow-glow: 0 0 40px rgba(168, 85, 247, 0.35);
   --shadow-glow-gold: 0 0 40px rgba(245, 158, 11, 0.28);
 }

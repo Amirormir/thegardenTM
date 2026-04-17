@@ -20,7 +20,7 @@ export function LeagueSubNav() {
   }
 
   return (
-    <nav className="flex gap-1 overflow-x-auto border-b border-white/8 pb-3">
+    <nav className="flex gap-1 overflow-x-auto border-b border-white/[0.05] pb-3">
       {LEAGUE_LINKS.map((link) => (
         <Link
           key={link.href}
@@ -29,7 +29,7 @@ export function LeagueSubNav() {
             'whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition',
             isActive(link.href)
               ? 'bg-white/10 text-white'
-              : 'text-text-secondary hover:bg-white/5 hover:text-white',
+              : 'text-text-secondary hover:bg-white/[0.035] hover:text-white',
           )}
         >
           {link.label}

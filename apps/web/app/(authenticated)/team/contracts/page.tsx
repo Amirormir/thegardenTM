@@ -18,7 +18,7 @@ export default async function TeamContractsPage() {
     <div className="space-y-8">
       <div>
         <p className="text-kicker">Protected area</p>
-        <h1 className="mt-2 font-display text-4xl font-bold text-white">
+        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
           Contrats - {team.name}
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">

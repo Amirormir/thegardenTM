@@ -91,7 +91,7 @@ export function FreeAgentSignButton({
 
   return (
     <div className="rounded-3xl border border-emerald-400/20 bg-emerald-500/5 p-5 space-y-4">
-      <h3 className="font-display text-lg font-bold text-white">
+      <h3 className="font-display text-lg font-bold tracking-tight text-white">
         Signer le free agent — {playerName}
       </h3>
       <p className="text-sm text-text-secondary">
@@ -100,25 +100,25 @@ export function FreeAgentSignButton({
 
       <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+          <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
             Salaire *
           </label>
           <Input name="salary" type="number" min={0} required placeholder="Ex: 150000" />
         </div>
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+          <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
             Duree (nombre de BO3) *
           </label>
           <Input name="durationBo3" type="number" min={1} required placeholder="Ex: 10" />
         </div>
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+          <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
             Clause liberatoire *
           </label>
           <Input name="releaseClause" type="number" min={1} required placeholder="Obligatoire" />
         </div>
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+          <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
             Notes
           </label>
           <Input name="notes" placeholder="Optionnel" />

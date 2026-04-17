@@ -45,14 +45,14 @@ export function TeamLeagueSnapshotCard({
   };
 
   return (
-    <Card className="relative overflow-hidden border-white/10" style={cardStyle}>
+    <Card className="relative overflow-hidden border-white/[0.05]" style={cardStyle}>
       <div className="pointer-events-none absolute inset-0 opacity-90" style={glowStyle} />
       <div className="relative space-y-4">
         <p className="text-kicker text-white/72">League snapshot</p>
 
         <Link
           href={`/league/teams/${team.slug}`}
-          className="block rounded-[24px] border border-white/10 bg-white/6 p-4 transition hover:bg-white/10"
+          className="block rounded-[24px] border border-white/[0.05] bg-white/[0.04] p-4 transition hover:bg-white/10"
         >
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
@@ -61,34 +61,34 @@ export function TeamLeagueSnapshotCard({
                 shortCode={team.shortCode}
                 logoUrl={team.logoUrl}
                 size="md"
-                className="h-12 w-12 rounded-2xl border border-white/10 bg-white/8"
+                className="h-12 w-12 rounded-2xl border border-white/[0.05] bg-white/8"
               />
               <div className="min-w-0">
                 <p className="truncate font-semibold text-white">{team.name}</p>
-                <p className="text-xs uppercase tracking-[0.18em] text-white/64">
+                <p className="text-xs uppercase tracking-[0.06em] text-white/64">
                   {team.shortCode}
                 </p>
               </div>
             </div>
 
             <div className="rounded-2xl border border-white/12 bg-white/10 px-3 py-2 text-right">
-              <p className="text-[0.62rem] uppercase tracking-[0.22em] text-white/58">Place</p>
-              <p className="font-display text-2xl font-bold text-white">#{place}</p>
+              <p className="text-[0.62rem] uppercase tracking-[0.08em] text-white/58">Place</p>
+              <p className="font-display text-2xl font-bold tracking-tight text-white">#{place}</p>
             </div>
           </div>
 
           <div className="mt-4 flex items-end justify-between gap-4">
             <div>
-              <p className="text-[0.62rem] uppercase tracking-[0.22em] text-white/58">
+              <p className="text-[0.62rem] uppercase tracking-[0.08em] text-white/58">
                 Score ligue
               </p>
-              <p className="font-display text-3xl font-bold text-white">
+              <p className="font-display text-2xl font-bold tracking-tight text-white">
                 {points}
                 <span className="ml-2 text-base font-semibold text-white/72">pts</span>
               </p>
             </div>
 
-            <p className="text-right text-xs uppercase tracking-[0.18em] text-white/62">
+            <p className="text-right text-xs uppercase tracking-[0.06em] text-white/62">
               {wins}W - {losses}L
               <br />
               {mapWins}-{mapLosses} maps

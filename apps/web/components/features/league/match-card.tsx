@@ -30,8 +30,8 @@ export function MatchCard({ match }: MatchCardProps) {
     <Card className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
         <div className="text-kicker">{match.format}</div>
-        <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-text-secondary">
-          <Clock3 className="h-4 w-4" />
+        <div className="inline-flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.06em] text-text-secondary">
+          <Clock3 className="h-3.5 w-3.5" />
           {formatDateTime(match.scheduledAt)}
         </div>
       </div>
@@ -44,24 +44,24 @@ export function MatchCard({ match }: MatchCardProps) {
             size="md"
           />
           <div>
-            <p className="text-lg font-semibold text-white">{match.homeTeam.name}</p>
-            <p className="text-xs uppercase tracking-[0.16em] text-text-secondary">
+            <p className="text-base font-semibold text-white">{match.homeTeam.name}</p>
+            <p className="text-[0.65rem] uppercase tracking-[0.06em] text-text-secondary">
               {match.homeTeam.shortCode}
             </p>
           </div>
         </div>
-        <div className="rounded-[22px] border border-white/10 bg-white/5 px-5 py-4 text-center">
-          <div className="font-display text-3xl font-bold text-white">
+        <div className="rounded-2xl border border-white/[0.05] bg-white/[0.03] px-5 py-3.5 text-center">
+          <div className="font-display text-2xl font-bold tracking-tight text-white tabular-nums">
             {match.homeScore} - {match.awayScore}
           </div>
-          <p className="mt-1 text-xs uppercase tracking-[0.18em] text-text-secondary">
+          <p className="mt-1 text-[0.62rem] uppercase tracking-[0.06em] text-text-secondary">
             {match.isCompleted ? 'Final' : 'Scheduled'}
           </p>
         </div>
         <div className="flex items-center justify-end gap-3">
           <div className="text-right">
-            <p className="text-lg font-semibold text-white">{match.awayTeam.name}</p>
-            <p className="text-xs uppercase tracking-[0.16em] text-text-secondary">
+            <p className="text-base font-semibold text-white">{match.awayTeam.name}</p>
+            <p className="text-[0.65rem] uppercase tracking-[0.06em] text-text-secondary">
               {match.awayTeam.shortCode}
             </p>
           </div>

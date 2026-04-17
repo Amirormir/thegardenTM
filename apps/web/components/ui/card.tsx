@@ -11,7 +11,7 @@ export function Card({ className, elevated = false, children, ...props }: CardPr
     <div
       className={cn(
         elevated ? 'glass-card-elevated panel-outline' : 'glass-card',
-        'border border-white/6 p-5 transition duration-300 hover:-translate-y-1 hover:border-accent-primary/24',
+        'border border-white/[0.05] p-5 transition duration-300 hover:-translate-y-0.5 hover:border-white/[0.1]',
         className,
       )}
       {...props}

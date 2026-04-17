@@ -62,7 +62,7 @@ export default function NotificationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-kicker">Centre de notifications</p>
-          <h1 className="mt-2 font-display text-4xl font-bold text-white">Notifications</h1>
+          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Notifications</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -112,7 +112,7 @@ export default function NotificationsPage() {
             <div
               key={notif.id}
               className={cn(
-                'flex items-start gap-4 px-5 py-4 transition hover:bg-white/5',
+                'flex items-start gap-4 px-5 py-4 transition hover:bg-white/[0.035]',
                 !notif.isRead && 'bg-accent-primary/5',
               )}
             >

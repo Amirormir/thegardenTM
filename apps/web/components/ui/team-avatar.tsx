@@ -9,9 +9,9 @@ interface TeamAvatarProps {
 }
 
 const sizeStyles = {
-  sm: 'h-9 w-9 rounded-xl text-[0.65rem]',
-  md: 'h-12 w-12 rounded-2xl text-sm',
-  lg: 'h-16 w-16 rounded-[22px] text-base',
+  sm: 'h-9 w-9 rounded-full text-[0.6rem]',
+  md: 'h-12 w-12 rounded-full text-xs',
+  lg: 'h-16 w-16 rounded-full text-sm',
 } as const;
 
 export function TeamAvatar({
@@ -27,7 +27,7 @@ export function TeamAvatar({
         src={logoUrl}
         alt={name}
         className={cn(
-          'object-cover ring-1 ring-white/10',
+          'object-cover ring-1 ring-white/[0.06]',
           sizeStyles[size],
           className,
         )}
@@ -38,7 +38,7 @@ export function TeamAvatar({
   return (
     <div
       className={cn(
-        'flex items-center justify-center bg-white/8 font-display font-bold text-white ring-1 ring-white/10',
+        'flex items-center justify-center bg-gradient-to-br from-violet-500/20 to-violet-600/10 font-display font-bold text-white/80 ring-1 ring-white/[0.06]',
         sizeStyles[size],
         className,
       )}

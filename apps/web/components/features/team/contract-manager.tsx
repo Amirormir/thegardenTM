@@ -198,7 +198,7 @@ export function ContractManager({ teamId }: ContractManagerProps) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-kicker">Contract management</p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-white">Contrats</h2>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Contrats</h2>
           <p className="mt-1 text-sm text-text-secondary">
             Tout contrat cree sera soumis a validation admin avant activation.
           </p>
@@ -217,11 +217,11 @@ export function ContractManager({ teamId }: ContractManagerProps) {
       <FeedbackBanner feedback={feedback} />
 
       {showCreateForm ? (
-        <div className="rounded-3xl border border-white/8 bg-white/5 p-5 space-y-4">
-          <h3 className="font-display text-xl font-bold text-white">Proposer un contrat</h3>
+        <div className="rounded-3xl border border-white/[0.05] bg-white/[0.035] p-5 space-y-4">
+          <h3 className="font-display text-xl font-bold tracking-tight text-white">Proposer un contrat</h3>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={handleCreate}>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Joueur</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Joueur</label>
               <Select name="playerId" required defaultValue="">
                 <option value="" disabled>Choisir un joueur</option>
                 {availablePlayers.map((player) => (
@@ -232,26 +232,26 @@ export function ContractManager({ teamId }: ContractManagerProps) {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Salaire</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Salaire</label>
               <Input name="salary" type="number" min={0} required placeholder="Ex: 150000" />
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Duree (nombre de BO3)</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Duree (nombre de BO3)</label>
               <Input name="durationBo3" type="number" min={1} required placeholder="Ex: 10" />
               <p className="text-xs text-text-secondary">
                 Le contrat expire apres ce nombre de BO3 joues.
               </p>
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Clause liberatoire *</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Clause liberatoire *</label>
               <Input name="releaseClause" type="number" min={1} required placeholder="Obligatoire" />
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Frais de transfert</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Frais de transfert</label>
               <Input name="transferFee" type="number" min={0} placeholder="Optionnel" />
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Notes</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Notes</label>
               <Input name="notes" placeholder="Optionnel" />
             </div>
             <div className="flex gap-3 md:col-span-2">
@@ -271,7 +271,7 @@ export function ContractManager({ teamId }: ContractManagerProps) {
       ) : null}
 
       {contractsQuery.isLoading ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
           <Loader2 className="h-4 w-4 animate-spin" />
           Chargement des contrats...
         </div>
@@ -301,7 +301,7 @@ export function ContractManager({ teamId }: ContractManagerProps) {
                 </TableCell>
                 <TableCell>
                   {contract.status === 'PENDING_APPROVAL' ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/14 px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-amber-100 ring-1 ring-amber-400/24">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/14 px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.06em] text-amber-100 ring-1 ring-amber-400/24">
                       <Clock className="h-3 w-3" />
                       En attente
                     </span>
@@ -311,9 +311,9 @@ export function ContractManager({ teamId }: ContractManagerProps) {
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell className="font-mono">{formatCurrency(contract.salary)}</TableCell>
+                <TableCell className="font-display tabular-nums">{formatCurrency(contract.salary)}</TableCell>
                 <TableCell>{contract.durationBo3} BO3</TableCell>
-                <TableCell className="font-mono">{formatCurrency(contract.releaseClause)}</TableCell>
+                <TableCell className="font-display tabular-nums">{formatCurrency(contract.releaseClause)}</TableCell>
                 <TableCell>
                   {contract.status === 'ACTIVE' || contract.status === 'LOAN' ? (
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -358,7 +358,7 @@ export function ContractManager({ teamId }: ContractManagerProps) {
           </TableBody>
         </Table>
       ) : (
-        <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+        <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
           Aucun contrat enregistre pour cette equipe.
         </div>
       )}
@@ -366,7 +366,7 @@ export function ContractManager({ teamId }: ContractManagerProps) {
       {renewingContract ? (
         <div className="rounded-3xl border border-violet-400/20 bg-violet-500/8 p-5 space-y-4">
           <div>
-            <h3 className="font-display text-xl font-bold text-violet-100">
+            <h3 className="font-display text-xl font-bold tracking-tight text-violet-100">
               Renouveler le contrat
             </h3>
             <p className="mt-1 text-sm text-text-secondary">
@@ -379,7 +379,7 @@ export function ContractManager({ teamId }: ContractManagerProps) {
           </div>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={handleRenew}>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Nouveau salaire *
               </label>
               <Input
@@ -392,7 +392,7 @@ export function ContractManager({ teamId }: ContractManagerProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Duree (nombre de BO3) *
               </label>
               <Input
@@ -405,7 +405,7 @@ export function ContractManager({ teamId }: ContractManagerProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Clause liberatoire *
               </label>
               <Input
@@ -418,13 +418,13 @@ export function ContractManager({ teamId }: ContractManagerProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Frais de transfert
               </label>
               <Input name="transferFee" type="number" min={0} placeholder="Optionnel" />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Notes
               </label>
               <Input name="notes" placeholder="Ex: Prolongation suite a bonne saison..." />
@@ -457,10 +457,10 @@ export function ContractManager({ teamId }: ContractManagerProps) {
 
       {terminatingId ? (
         <div className="rounded-3xl border border-rose-400/20 bg-rose-500/8 p-5 space-y-4">
-          <h3 className="font-display text-xl font-bold text-rose-100">Rompre le contrat</h3>
+          <h3 className="font-display text-xl font-bold tracking-tight text-rose-100">Rompre le contrat</h3>
           <form className="grid gap-4 md:grid-cols-[1fr_auto]" onSubmit={handleTerminate}>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Motif (optionnel)</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Motif (optionnel)</label>
               <Input name="reason" placeholder="Ex: Fin de saison, transfert..." />
             </div>
             <div className="flex items-end gap-2">

@@ -155,7 +155,7 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
     <Card className="space-y-5">
       <div>
         <p className="text-kicker">Transfer market</p>
-        <h2 className="mt-2 font-display text-3xl font-bold text-white">Offres de transfert</h2>
+        <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Offres de transfert</h2>
       </div>
 
       {feedback ? (
@@ -172,12 +172,12 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
       ) : null}
 
       {isLoading ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
           <Loader2 className="h-4 w-4 animate-spin" />
           Chargement...
         </div>
       ) : !hasData ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
           <ArrowRightLeft className="h-4 w-4" />
           Aucune offre de transfert.
         </div>
@@ -185,7 +185,7 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
 
       {incoming.length > 0 ? (
         <div className="space-y-3">
-          <h3 className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+          <h3 className="text-xs uppercase tracking-[0.06em] text-text-secondary">
             Offres recues ({incoming.length})
           </h3>
           <Table>
@@ -212,12 +212,12 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
                     <Badge variant={offer.player.role}>{offer.player.role}</Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="font-mono text-xs text-text-secondary">
+                    <span className="font-display tabular-nums text-xs text-text-secondary">
                       {offer.fromTeam.shortCode}
                     </span>{' '}
                     {offer.fromTeam.name}
                   </TableCell>
-                  <TableCell className="font-mono">
+                  <TableCell className="font-display tabular-nums">
                     <div>{formatCurrency(offer.offeredFee)}</div>
                     {'counterOffer' in offer && offer.counterOffer != null ? (
                       <div className="text-xs text-violet-400">
@@ -279,7 +279,7 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
 
       {outgoing.length > 0 ? (
         <div className="space-y-3">
-          <h3 className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+          <h3 className="text-xs uppercase tracking-[0.06em] text-text-secondary">
             Offres envoyees ({outgoing.length})
           </h3>
           <Table>
@@ -306,12 +306,12 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
                     <Badge variant={offer.player.role}>{offer.player.role}</Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="font-mono text-xs text-text-secondary">
+                    <span className="font-display tabular-nums text-xs text-text-secondary">
                       {offer.toTeam.shortCode}
                     </span>{' '}
                     {offer.toTeam.name}
                   </TableCell>
-                  <TableCell className="font-mono">
+                  <TableCell className="font-display tabular-nums">
                     <div>{formatCurrency(offer.offeredFee)}</div>
                     {'counterOffer' in offer && offer.counterOffer != null ? (
                       <div className="text-xs text-violet-400">
@@ -374,10 +374,10 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
 
       {counterProposingId ? (
         <div className="rounded-3xl border border-violet-400/20 bg-violet-500/8 p-5 space-y-4">
-          <h3 className="font-display text-xl font-bold text-violet-100">Contre-proposer</h3>
+          <h3 className="font-display text-xl font-bold tracking-tight text-violet-100">Contre-proposer</h3>
           <form className="grid gap-4 md:grid-cols-[1fr_1fr_auto]" onSubmit={handleCounterPropose}>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Montant souhaite *
               </label>
               <Input
@@ -389,7 +389,7 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Message (optionnel)
               </label>
               <Input name="counterMessage" placeholder="Ex: Joueur cle, prix minimal..." />
@@ -418,10 +418,10 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
 
       {rejectingId ? (
         <div className="rounded-3xl border border-rose-400/20 bg-rose-500/8 p-5 space-y-4">
-          <h3 className="font-display text-xl font-bold text-rose-100">Refuser l'offre</h3>
+          <h3 className="font-display text-xl font-bold tracking-tight text-rose-100">Refuser l'offre</h3>
           <form className="grid gap-4 md:grid-cols-[1fr_auto]" onSubmit={handleReject}>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                 Motif (optionnel)
               </label>
               <Input name="reason" placeholder="Ex: Offre trop basse, joueur cle..." />

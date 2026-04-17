@@ -329,7 +329,7 @@ export function AdminMatchesManager() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-kicker">Match management</p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-white">Matchs</h2>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Matchs</h2>
         </div>
         <Button
           type="button"
@@ -348,10 +348,10 @@ export function AdminMatchesManager() {
 
       {showCreateForm ? (
         <Card className="space-y-5">
-          <h3 className="font-display text-2xl font-bold text-white">Nouveau match</h3>
+          <h3 className="font-display text-2xl font-bold tracking-tight text-white">Nouveau match</h3>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={handleCreate}>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Saison</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Saison</label>
               <Select name="seasonId" required defaultValue={seasons.find((s) => s.isCurrent)?.id ?? ''}>
                 <option value="" disabled>Choisir</option>
                 {seasons.map((season) => (
@@ -362,7 +362,7 @@ export function AdminMatchesManager() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Format</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Format</label>
               <Select name="format" required defaultValue="BO3">
                 <option value="BO1">BO1</option>
                 <option value="BO3">BO3</option>
@@ -370,7 +370,7 @@ export function AdminMatchesManager() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Home team</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Home team</label>
               <Select name="homeTeamId" required defaultValue="">
                 <option value="" disabled>Choisir</option>
                 {teams.map((team) => (
@@ -379,7 +379,7 @@ export function AdminMatchesManager() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Away team</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Away team</label>
               <Select name="awayTeamId" required defaultValue="">
                 <option value="" disabled>Choisir</option>
                 {teams.map((team) => (
@@ -388,11 +388,11 @@ export function AdminMatchesManager() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Date</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Date</label>
               <Input name="scheduledAt" type="datetime-local" required defaultValue={toDateTimeLocalValue(new Date())} />
             </div>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Notes</label>
+              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Notes</label>
               <Input name="notes" placeholder="Optionnel" />
             </div>
             <div className="flex gap-3 md:col-span-2">
@@ -409,7 +409,7 @@ export function AdminMatchesManager() {
 
       <div className="space-y-4">
         {matchesQuery.isLoading ? (
-          <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
             <Loader2 className="h-4 w-4 animate-spin" />
             Chargement...
           </div>
@@ -428,8 +428,8 @@ export function AdminMatchesManager() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-2 text-center">
-                    <span className="font-display text-xl font-bold text-white">
+                  <div className="rounded-[18px] border border-white/[0.05] bg-white/[0.035] px-4 py-2 text-center">
+                    <span className="font-display text-xl font-bold tracking-tight text-white">
                       {match.homeScore} - {match.awayScore}
                     </span>
                   </div>
@@ -471,26 +471,26 @@ export function AdminMatchesManager() {
 
               {recordingMatchId === match.id ? (
                 <form
-                  className="space-y-5 rounded-3xl border border-white/8 bg-white/5 p-5"
+                  className="space-y-5 rounded-3xl border border-white/[0.05] bg-white/[0.035] p-5"
                   onSubmit={handleRecordResult}
                 >
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                     <div className="space-y-1">
-                      <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                      <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                         Score {match.homeTeam.shortCode}
                       </label>
                       <Input name="homeScore" type="number" min={0} required defaultValue="0" />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                      <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                         Score {match.awayTeam.shortCode}
                       </label>
                       <Input name="awayScore" type="number" min={0} required defaultValue="0" />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                      <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                         Vainqueur serie
                       </label>
                       <Select name="winnerTeamId" required defaultValue="">
@@ -503,7 +503,7 @@ export function AdminMatchesManager() {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                      <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                         Games jouees
                       </label>
                       <Input
@@ -552,7 +552,7 @@ export function AdminMatchesManager() {
                   </div>
 
                   {homeRosterQuery.isLoading || awayRosterQuery.isLoading ? (
-                    <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-black/20 px-4 py-4 text-sm text-text-secondary">
+                    <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-black/20 px-4 py-4 text-sm text-text-secondary">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Chargement des rosters pour la saisie des stats...
                     </div>
@@ -565,17 +565,17 @@ export function AdminMatchesManager() {
                       {Array.from({ length: gameCount }, (_, gameIndex) => {
                         const sides = getGameSides(gameIndex);
                         return (
-                        <Card key={gameIndex} className="space-y-5 border-white/8 bg-black/20">
+                        <Card key={gameIndex} className="space-y-5 border-white/[0.05] bg-black/20">
                           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                             <div>
                               <p className="text-kicker">Game {gameIndex + 1}</p>
-                              <h4 className="mt-2 font-display text-2xl font-bold text-white">
+                              <h4 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                                 {sides.blueTeam?.shortCode} vs {sides.redTeam?.shortCode}
                               </h4>
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                                 Riot match ID
                               </label>
                               <Input
@@ -585,7 +585,7 @@ export function AdminMatchesManager() {
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                                 Played at
                               </label>
                               <Input
@@ -597,7 +597,7 @@ export function AdminMatchesManager() {
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                                 Duree (sec)
                               </label>
                               <Input
@@ -612,7 +612,7 @@ export function AdminMatchesManager() {
 
                           <div className="grid gap-3 md:grid-cols-2">
                             <div className="space-y-1">
-                              <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                                 Vainqueur game {gameIndex + 1}
                               </label>
                               <Select name={`game-${gameIndex}-winnerTeamId`} required defaultValue="">
@@ -646,7 +646,7 @@ export function AdminMatchesManager() {
                               <div className="flex items-center justify-between gap-3">
                                 <div>
                                   <p className="text-kicker">Blue side</p>
-                                  <h5 className="mt-2 font-display text-xl font-bold text-white">
+                                  <h5 className="mt-2 font-display text-xl font-bold tracking-tight text-white">
                                     {sides.blueTeam?.name}
                                   </h5>
                                 </div>
@@ -657,7 +657,7 @@ export function AdminMatchesManager() {
                                 {sides.blueSlots.map((defaultPlayer, slotIndex) => (
                                   <div
                                     key={`blue-${gameIndex}-${slotIndex}`}
-                                    className="grid gap-3 rounded-2xl border border-white/8 bg-black/20 p-3 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)]"
+                                    className="grid gap-3 rounded-2xl border border-white/[0.05] bg-black/20 p-3 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)]"
                                   >
                                     <div className="space-y-3">
                                       <Select
@@ -751,7 +751,7 @@ export function AdminMatchesManager() {
                               <div className="flex items-center justify-between gap-3">
                                 <div>
                                   <p className="text-kicker">Red side</p>
-                                  <h5 className="mt-2 font-display text-xl font-bold text-white">
+                                  <h5 className="mt-2 font-display text-xl font-bold tracking-tight text-white">
                                     {sides.redTeam?.name}
                                   </h5>
                                 </div>
@@ -762,7 +762,7 @@ export function AdminMatchesManager() {
                                 {sides.redSlots.map((defaultPlayer, slotIndex) => (
                                   <div
                                     key={`red-${gameIndex}-${slotIndex}`}
-                                    className="grid gap-3 rounded-2xl border border-white/8 bg-black/20 p-3 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)]"
+                                    className="grid gap-3 rounded-2xl border border-white/[0.05] bg-black/20 p-3 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)]"
                                   >
                                     <div className="space-y-3">
                                       <Select
@@ -862,7 +862,7 @@ export function AdminMatchesManager() {
             </Card>
           ))
         ) : (
-          <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+          <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
             Aucun match enregistré.
           </div>
         )}

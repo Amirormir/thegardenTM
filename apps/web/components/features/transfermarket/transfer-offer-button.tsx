@@ -97,17 +97,17 @@ export function TransferOfferButton({
 
   return (
     <div className="rounded-3xl border border-accent-primary/20 bg-accent-primary/5 p-5 space-y-4">
-      <h3 className="font-display text-lg font-bold text-white">
+      <h3 className="font-display text-lg font-bold tracking-tight text-white">
         Offre de transfert — {playerName}
       </h3>
       <p className="text-sm text-text-secondary">
-        Clause liberatoire : <span className="font-mono text-white">{formatCurrency(releaseClause)}</span>.
+        Clause liberatoire : <span className="font-display tabular-nums text-white">{formatCurrency(releaseClause)}</span>.
         Si votre offre atteint ce montant, le transfert est automatique.
       </p>
 
       <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+          <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
             Montant de l'offre *
           </label>
           <Input
@@ -119,7 +119,7 @@ export function TransferOfferButton({
           />
         </div>
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+          <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
             Message (optionnel)
           </label>
           <Input name="message" placeholder="Ex: Offre ferme, negociable..." />

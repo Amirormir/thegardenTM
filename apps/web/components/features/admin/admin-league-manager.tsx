@@ -168,7 +168,7 @@ export function AdminLeagueManager() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-kicker">Registry</p>
-              <h2 className="mt-2 font-display text-2xl font-bold text-white">Saisons</h2>
+              <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Saisons</h2>
             </div>
             <Button type="button" variant="secondary" size="sm" icon={<Plus className="h-4 w-4" />} onClick={handleNew}>
               Nouvelle
@@ -177,7 +177,7 @@ export function AdminLeagueManager() {
 
           <div className="space-y-3">
             {seasonsQuery.isLoading ? (
-              <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+              <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Chargement...
               </div>
@@ -192,7 +192,7 @@ export function AdminLeagueManager() {
                       'w-full rounded-3xl border p-4 text-left transition',
                       active
                         ? 'border-accent-primary/40 bg-accent-primary/12 shadow-[0_0_30px_rgba(124,58,237,0.12)]'
-                        : 'border-white/8 bg-white/5 hover:border-accent-primary/18 hover:bg-white/7',
+                        : 'border-white/[0.05] bg-white/[0.035] hover:border-accent-primary/18 hover:bg-white/7',
                     )}
                     onClick={() => selectSeason(season.id)}
                   >
@@ -214,7 +214,7 @@ export function AdminLeagueManager() {
                 );
               })
             ) : (
-              <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+              <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
                 Aucune saison enregistrée.
               </div>
             )}
@@ -224,7 +224,7 @@ export function AdminLeagueManager() {
         <Card className="space-y-6">
           <div>
             <p className="text-kicker">Season editor</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-white">
+            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
               {selectedSeasonId ? 'Éditer une saison' : 'Créer une saison'}
             </h2>
           </div>
@@ -232,7 +232,7 @@ export function AdminLeagueManager() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Nom</label>
+                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Nom</label>
                 <Input
                   required
                   placeholder="Ex: Spring 2026"
@@ -241,7 +241,7 @@ export function AdminLeagueManager() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Slug</label>
+                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Slug</label>
                 <Input
                   required
                   value={draft.slug}
@@ -249,7 +249,7 @@ export function AdminLeagueManager() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Année</label>
+                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Année</label>
                 <Input
                   type="number"
                   required
@@ -258,7 +258,7 @@ export function AdminLeagueManager() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-text-secondary">
+                <label className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-text-secondary">
                   <input
                     type="checkbox"
                     checked={draft.isCurrent}
@@ -268,7 +268,7 @@ export function AdminLeagueManager() {
                 </label>
               </div>
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Date de début</label>
+                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Date de début</label>
                 <Input
                   type="date"
                   required
@@ -277,7 +277,7 @@ export function AdminLeagueManager() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">Date de fin</label>
+                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Date de fin</label>
                 <Input
                   type="date"
                   required

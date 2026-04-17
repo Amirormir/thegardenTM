@@ -184,7 +184,7 @@ export function AdminTeamsManager() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-kicker">Registry</p>
-              <h2 className="mt-2 font-display text-2xl font-bold text-white">Teams</h2>
+              <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Teams</h2>
             </div>
             <Button
               type="button"
@@ -199,7 +199,7 @@ export function AdminTeamsManager() {
 
           <div className="space-y-3">
             {teamsQuery.isLoading ? (
-              <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+              <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading teams...
               </div>
@@ -215,7 +215,7 @@ export function AdminTeamsManager() {
                       'w-full rounded-3xl border p-4 text-left transition',
                       active
                         ? 'border-accent-primary/40 bg-accent-primary/12 shadow-[0_0_30px_rgba(124,58,237,0.12)]'
-                        : 'border-white/8 bg-white/5 hover:border-accent-primary/18 hover:bg-white/7',
+                        : 'border-white/[0.05] bg-white/[0.035] hover:border-accent-primary/18 hover:bg-white/7',
                     )}
                     onClick={() => selectTeam(team.id)}
                   >
@@ -232,7 +232,7 @@ export function AdminTeamsManager() {
                 );
               })
             ) : (
-              <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+              <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
                 No teams registered yet.
               </div>
             )}
@@ -242,7 +242,7 @@ export function AdminTeamsManager() {
         <Card className="space-y-6">
           <div>
             <p className="text-kicker">Team editor</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-white">
+            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
               {selectedTeamId ? 'Edit team' : 'Create team'}
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-7 text-text-secondary">
@@ -254,7 +254,7 @@ export function AdminTeamsManager() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                   Name
                 </label>
                 <Input
@@ -271,7 +271,7 @@ export function AdminTeamsManager() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                   Slug
                 </label>
                 <Input
@@ -284,7 +284,7 @@ export function AdminTeamsManager() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                   Short code
                 </label>
                 <Input
@@ -301,7 +301,7 @@ export function AdminTeamsManager() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                   Budget cap
                 </label>
                 <Input
@@ -315,7 +315,7 @@ export function AdminTeamsManager() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                   Logo URL
                 </label>
                 <Input
@@ -329,22 +329,22 @@ export function AdminTeamsManager() {
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                   Current payroll
                 </p>
-                <p className="mt-2 font-mono text-2xl font-semibold text-white">
+                <p className="mt-2 font-display tabular-nums text-2xl font-semibold text-white">
                   {formatCurrency(payroll)}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                   Budget remaining
                 </p>
                 <p
                   className={cn(
-                    'mt-2 font-mono text-2xl font-semibold',
+                    'mt-2 font-display tabular-nums text-2xl font-semibold',
                     remainingBudget >= 0 ? 'text-white' : 'text-rose-300',
                   )}
                 >
@@ -383,7 +383,7 @@ export function AdminTeamsManager() {
           </form>
 
           {selectedTeam ? (
-            <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-text-secondary">
+            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-text-secondary">
               <span className="font-semibold text-white">
                 {selectedTeam.captains.length > 0
                   ? `Capitaines: ${selectedTeam.captains.map((c) => c.name ?? c.email).join(', ')}`

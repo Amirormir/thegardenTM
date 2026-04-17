@@ -5,7 +5,7 @@ export default function AdminMatchesPage() {
     <div className="space-y-8">
       <div>
         <p className="text-kicker">Admin zone</p>
-        <h1 className="mt-2 font-display text-4xl font-bold text-white">Gestion matchs</h1>
+        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Gestion matchs</h1>
       </div>
       <AdminMatchesManager />
     </div>

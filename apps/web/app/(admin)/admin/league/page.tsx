@@ -11,12 +11,12 @@ export default async function AdminLeaguePage() {
     <div className="space-y-8">
       <div>
         <p className="text-kicker">Admin zone</p>
-        <h1 className="mt-2 font-display text-4xl font-bold text-white">Gestion ligue</h1>
+        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Gestion ligue</h1>
       </div>
 
       <Card className="p-0">
-        <div className="border-b border-white/8 px-6 py-5">
-          <h2 className="font-display text-2xl font-bold text-white">Standings</h2>
+        <div className="border-b border-white/[0.05] px-6 py-5">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-white">Standings</h2>
         </div>
         <div className="p-4">
           {standings.length > 0 ? (

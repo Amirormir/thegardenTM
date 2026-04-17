@@ -49,7 +49,7 @@ export default async function PlayerComparisonPage({
     return (
       <Card className="space-y-3">
         <p className="text-kicker">Comparison</p>
-        <h1 className="font-display text-3xl font-bold text-white">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-white">
           Aucun joueur disponible pour la comparaison
         </h1>
         <p className="text-sm leading-7 text-text-secondary">
@@ -142,7 +142,7 @@ export default async function PlayerComparisonPage({
       <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-kicker">Scouting tools</p>
-          <h1 className="mt-2 font-display text-4xl font-bold text-white">
+          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
             Comparaison de joueurs
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-text-secondary">
@@ -152,7 +152,7 @@ export default async function PlayerComparisonPage({
         </div>
         <Link
           href="/transfermarket"
-          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-accent-primary/40 hover:bg-accent-primary/14"
+          className="inline-flex items-center gap-2 rounded-full border border-white/[0.05] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white transition hover:border-accent-primary/40 hover:bg-accent-primary/14"
         >
           <ArrowLeftRight className="h-4 w-4" />
           Retour au transfermarket
@@ -162,7 +162,7 @@ export default async function PlayerComparisonPage({
       <Card className="space-y-4">
         <div>
           <p className="text-kicker">Selection</p>
-          <h2 className="mt-2 font-display text-2xl font-bold text-white">Choisir les profils</h2>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Choisir les profils</h2>
         </div>
         <form className="grid gap-3 xl:grid-cols-[1fr_1fr_1fr_auto]" method="get">
           <Select name="playerA" defaultValue={selectedIds[0] ?? ''}>
@@ -208,10 +208,10 @@ export default async function PlayerComparisonPage({
                 <img
                   src={entry.player.imageUrl}
                   alt={entry.player.displayName}
-                  className="h-20 w-20 rounded-[24px] object-cover ring-1 ring-white/10"
+                  className="h-20 w-20 rounded-[24px] object-cover ring-1 ring-white/[0.06]"
                 />
               ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-white/8 text-xl font-bold text-white ring-1 ring-white/10">
+                <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-white/8 text-xl font-bold text-white ring-1 ring-white/[0.06]">
                   {getPlayerInitials(entry.player.displayName)}
                 </div>
               )}
@@ -224,8 +224,8 @@ export default async function PlayerComparisonPage({
                     </Badge>
                   ))}
                 </div>
-                <h2 className="mt-3 font-display text-3xl font-bold text-white">
-                  <PlayerLink playerId={entry.player.id} className="font-display text-3xl font-bold text-white">
+                <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-white">
+                  <PlayerLink playerId={entry.player.id} className="font-display text-2xl font-bold tracking-tight text-white">
                     {entry.player.displayName}
                   </PlayerLink>
                 </h2>
@@ -247,13 +247,13 @@ export default async function PlayerComparisonPage({
             <PlayerValue value={entry.player.marketValue} delta={entry.marketDelta} size="sm" />
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <Card className="border-white/8 bg-white/4">
+              <Card className="border-white/[0.05] bg-white/4">
                 <p className="text-kicker">Salary</p>
                 <p className="mt-2 text-xl font-semibold text-white">
                   {formatCurrency(entry.player.salary)}
                 </p>
               </Card>
-              <Card className="border-white/8 bg-white/4">
+              <Card className="border-white/[0.05] bg-white/4">
                 <p className="text-kicker">Win rate</p>
                 <p className="mt-2 text-xl font-semibold text-white">{entry.winRate}%</p>
               </Card>
@@ -261,7 +261,7 @@ export default async function PlayerComparisonPage({
 
             <div>
               <p className="text-kicker">Recent trend</p>
-              <h3 className="mt-2 font-display text-2xl font-bold text-white">
+              <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                 Performance recente
               </h3>
             </div>
@@ -273,7 +273,7 @@ export default async function PlayerComparisonPage({
       <Card className="space-y-5">
         <div>
           <p className="text-kicker">Head to head</p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-white">
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
             Grille de comparaison
           </h2>
         </div>

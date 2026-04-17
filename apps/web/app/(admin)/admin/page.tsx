@@ -22,7 +22,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-8">
       <div>
         <p className="text-kicker">Admin zone</p>
-        <h1 className="mt-2 font-display text-4xl font-bold text-white">Dashboard admin</h1>
+        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Dashboard admin</h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
           {stats.currentSeason
             ? `Saison active : ${stats.currentSeason.name}`
@@ -33,7 +33,7 @@ export default async function AdminDashboardPage() {
       <Card className="space-y-5">
         <div>
           <p className="text-kicker">Audit trail</p>
-          <h2 className="mt-2 font-display text-2xl font-bold text-white">Dernières actions</h2>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Dernières actions</h2>
         </div>
         {auditLog.length > 0 ? (
           <Table>

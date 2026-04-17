@@ -101,21 +101,21 @@ export function NavbarClient({ user }: NavbarClientProps) {
   }, [currentUser?.teamId]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/8 bg-[#0b0a10]/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#0b0a10]/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6">
         <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-accent-primary/20 bg-accent-primary/12 font-display text-lg font-bold text-white shadow-[0_0_30px_rgba(124,58,237,0.24)]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-accent-primary/[0.12] bg-accent-primary/[0.08] font-display text-base font-bold text-white shadow-[0_0_24px_rgba(124,58,237,0.16)]">
             G
           </div>
           <div>
-            <div className="font-display text-lg font-bold text-white">Garden</div>
-            <div className="text-xs uppercase tracking-[0.24em] text-text-secondary">
+            <div className="font-display text-lg font-bold tracking-tight text-white">Garden</div>
+            <div className="text-xs uppercase tracking-[0.06em] text-text-secondary">
               League Manager
             </div>
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-1 rounded-full border border-white/8 bg-white/4 p-1 md:flex">
+        <nav className="hidden items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.03] p-1 md:flex">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -135,7 +135,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="rounded-2xl border border-white/10 bg-white/5 p-2.5 text-text-secondary transition hover:text-white md:hidden"
+            className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-2.5 text-text-secondary transition hover:text-white md:hidden"
             onClick={() => setMobileOpen(true)}
           >
             <Menu className="h-5 w-5" />
@@ -148,10 +148,10 @@ export function NavbarClient({ user }: NavbarClientProps) {
               <>
                 <button
                   type="button"
-                  className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:border-accent-primary/30"
+                  className="flex items-center gap-3 rounded-full border border-white/[0.06] bg-white/[0.04] px-4 py-2 text-sm text-white transition hover:border-accent-primary/30"
                   onClick={() => setOpen((value) => !value)}
                 >
-                  <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-accent-primary/20 text-accent-glow">
+                  <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/[0.06] bg-accent-primary/20 text-accent-glow">
                     {showAvatar ? (
                       <img
                         src={currentUser?.image ?? undefined}
@@ -166,24 +166,24 @@ export function NavbarClient({ user }: NavbarClientProps) {
                   </span>
                   <span className="hidden text-left md:block">
                     <span className="block font-semibold">{userName}</span>
-                    <span className="block text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    <span className="block text-xs uppercase tracking-[0.06em] text-text-secondary">
                       {userRole}
                     </span>
                   </span>
                   <ChevronDown className="h-4 w-4 text-text-secondary" />
                 </button>
                 {open ? (
-                  <div className="absolute right-0 mt-3 w-56 rounded-[24px] border border-white/10 bg-[#151421]/95 p-2 shadow-2xl backdrop-blur-xl">
+                  <div className="absolute right-0 mt-3 w-56 rounded-[24px] border border-white/[0.06] bg-[#151421]/95 p-2 shadow-2xl backdrop-blur-xl">
                     <Link
                       href="/profile"
-                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
                       onClick={() => setOpen(false)}
                     >
                       Mon profil
                     </Link>
                     <Link
                       href="/notifications"
-                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
                       onClick={() => setOpen(false)}
                     >
                       Notifications
@@ -192,14 +192,14 @@ export function NavbarClient({ user }: NavbarClientProps) {
                       <>
                         <Link
                           href="/team"
-                          className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                          className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
                           onClick={() => setOpen(false)}
                         >
                           Team Dashboard
                         </Link>
                         <Link
                           href="/team/contracts"
-                          className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                          className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
                           onClick={() => setOpen(false)}
                         >
                           Team Contracts
@@ -209,7 +209,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                     {currentUser.role === 'ADMIN' ? (
                       <Link
                         href="/admin"
-                        className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                        className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
                         onClick={() => setOpen(false)}
                       >
                         Admin Area
@@ -263,17 +263,17 @@ export function NavbarClient({ user }: NavbarClientProps) {
               onClick={() => setMobileOpen(false)}
             />
             <motion.nav
-              className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/10 bg-[#0e0d15]/95 backdrop-blur-xl md:hidden"
+              className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/[0.06] bg-[#0e0d15]/95 backdrop-blur-xl md:hidden"
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 26, stiffness: 300 }}
             >
-              <div className="flex items-center justify-between border-b border-white/8 px-5 py-5">
-                <div className="font-display text-lg font-bold text-white">Garden</div>
+              <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-5">
+                <div className="font-display text-lg font-bold tracking-tight text-white">Garden</div>
                 <button
                   type="button"
-                  className="rounded-2xl border border-white/10 bg-white/5 p-2 text-text-secondary transition hover:text-white"
+                  className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-2 text-text-secondary transition hover:text-white"
                   onClick={() => setMobileOpen(false)}
                 >
                   <X className="h-4 w-4" />
@@ -289,7 +289,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                       'block rounded-2xl px-4 py-3 text-sm font-medium transition',
                       isNavItemActive(pathname, item.href)
                         ? 'bg-accent-primary/14 text-white'
-                        : 'text-text-secondary hover:bg-white/6 hover:text-white',
+                        : 'text-text-secondary hover:bg-white/[0.04] hover:text-white',
                     )}
                     onClick={() => setMobileOpen(false)}
                   >
@@ -303,7 +303,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                       'block rounded-2xl px-4 py-3 text-sm font-medium transition',
                       pathname.startsWith('/admin')
                         ? 'bg-accent-primary/14 text-white'
-                        : 'text-text-secondary hover:bg-white/6 hover:text-white',
+                        : 'text-text-secondary hover:bg-white/[0.04] hover:text-white',
                     )}
                     onClick={() => setMobileOpen(false)}
                   >
@@ -312,11 +312,11 @@ export function NavbarClient({ user }: NavbarClientProps) {
                 ) : null}
               </div>
 
-              <div className="border-t border-white/8 px-3 py-4">
+              <div className="border-t border-white/[0.06] px-3 py-4">
                 {currentUser ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 px-4 py-2">
-                      <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-accent-primary/20 text-accent-glow">
+                      <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/[0.06] bg-accent-primary/20 text-accent-glow">
                         {showAvatar ? (
                           <img
                             src={currentUser?.image ?? undefined}
@@ -331,21 +331,21 @@ export function NavbarClient({ user }: NavbarClientProps) {
                       </span>
                       <div>
                         <p className="text-sm font-semibold text-white">{userName}</p>
-                        <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                        <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                           {userRole}
                         </p>
                       </div>
                     </div>
                     <Link
                       href="/profile"
-                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
                       onClick={() => setMobileOpen(false)}
                     >
                       Mon profil
                     </Link>
                     <Link
                       href="/notifications"
-                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
                       onClick={() => setMobileOpen(false)}
                     >
                       Notifications
@@ -353,7 +353,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                     {currentUser.teamId ? (
                       <Link
                         href="/team/contracts"
-                        className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/6 hover:text-white"
+                        className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
                         onClick={() => setMobileOpen(false)}
                       >
                         Team Contracts
@@ -378,7 +378,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                     </Link>
                     <Link
                       href={signInHref}
-                      className="block rounded-2xl px-4 py-3 text-center text-sm font-medium text-text-secondary transition hover:bg-white/6 hover:text-white"
+                      className="block rounded-2xl px-4 py-3 text-center text-sm font-medium text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
                       onClick={() => setMobileOpen(false)}
                     >
                       Connexion

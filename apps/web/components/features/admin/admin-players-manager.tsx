@@ -468,7 +468,7 @@ export function AdminPlayersManager() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-kicker">Registry</p>
-              <h2 className="mt-2 font-display text-2xl font-bold text-white">
+              <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                 Joueurs transfermarket
               </h2>
             </div>
@@ -495,7 +495,7 @@ export function AdminPlayersManager() {
 
           <div className="space-y-3">
             {registryQuery.isLoading ? (
-              <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+              <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Chargement du registre joueurs...
               </div>
@@ -511,7 +511,7 @@ export function AdminPlayersManager() {
                       'w-full rounded-3xl border p-4 text-left transition',
                       active
                         ? 'border-accent-primary/40 bg-accent-primary/12 shadow-[0_0_30px_rgba(124,58,237,0.12)]'
-                        : 'border-white/8 bg-white/5 hover:border-accent-primary/18 hover:bg-white/7',
+                        : 'border-white/[0.05] bg-white/[0.035] hover:border-accent-primary/18 hover:bg-white/7',
                     )}
                     onClick={() => {
                       setSelectedPlayerId(player.id);
@@ -523,10 +523,10 @@ export function AdminPlayersManager() {
                         <img
                           src={player.imageUrl}
                           alt={player.displayName}
-                          className="h-14 w-14 rounded-2xl object-cover ring-1 ring-white/10"
+                          className="h-14 w-14 rounded-2xl object-cover ring-1 ring-white/[0.06]"
                         />
                       ) : (
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/8 text-sm font-semibold text-white ring-1 ring-white/10">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/8 text-sm font-semibold text-white ring-1 ring-white/[0.06]">
                           {getInitials(player.displayName)}
                         </div>
                       )}
@@ -539,7 +539,7 @@ export function AdminPlayersManager() {
                         <p className="mt-1 text-sm text-text-secondary">
                           {player.teamName} • {buildPlayerRiotId(player)}
                         </p>
-                        <div className="mt-3 flex items-center justify-between text-xs uppercase tracking-[0.18em] text-text-secondary">
+                        <div className="mt-3 flex items-center justify-between text-xs uppercase tracking-[0.06em] text-text-secondary">
                           <span>{formatCurrency(player.marketValue)}</span>
                           <span>{player.secondaryRoles.join(' / ') || 'Mono role'}</span>
                         </div>
@@ -549,7 +549,7 @@ export function AdminPlayersManager() {
                 );
               })
             ) : (
-              <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+              <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
                 Aucun joueur ne correspond a la recherche.
               </div>
             )}
@@ -561,7 +561,7 @@ export function AdminPlayersManager() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-kicker">Player editor</p>
-                <h2 className="mt-2 font-display text-3xl font-bold text-white">
+                <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                   {selectedPlayerId ? 'Editer un joueur' : 'Ajouter un joueur'}
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-7 text-text-secondary">
@@ -570,7 +570,7 @@ export function AdminPlayersManager() {
                 </p>
               </div>
               {selectedPlayer ? (
-                <div className="rounded-3xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-text-secondary">
+                <div className="rounded-3xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-text-secondary">
                   Derniere sync joueur :{' '}
                   <span className="font-semibold text-white">
                     {formatCurrency(selectedPlayer.marketValue)}
@@ -582,7 +582,7 @@ export function AdminPlayersManager() {
             <form className="space-y-6" onSubmit={handlePlayerSubmit}>
               <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
                 <div className="space-y-4">
-                  <div className="overflow-hidden rounded-[28px] border border-white/8 bg-white/5">
+                  <div className="overflow-hidden rounded-[28px] border border-white/[0.05] bg-white/[0.035]">
                     {draft.imageUrl ? (
                       <img
                         src={draft.imageUrl}
@@ -590,13 +590,13 @@ export function AdminPlayersManager() {
                         className="h-[220px] w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-[220px] items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.22),_transparent_58%)] text-4xl font-display font-bold text-white">
+                      <div className="flex h-[220px] items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.22),_transparent_58%)] text-2xl font-display font-bold text-white">
                         {getInitials(draft.displayName || draft.gameName || 'NL')}
                       </div>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                       Photo URL
                     </label>
                     <Input
@@ -611,7 +611,7 @@ export function AdminPlayersManager() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                       Pseudo public
                     </label>
                     <Input
@@ -624,7 +624,7 @@ export function AdminPlayersManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                       Pseudo in game
                     </label>
                     <Input
@@ -637,7 +637,7 @@ export function AdminPlayersManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                       Tag in game
                     </label>
                     <Input
@@ -650,7 +650,7 @@ export function AdminPlayersManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                       Team assignment
                     </label>
                     <Select
@@ -671,7 +671,7 @@ export function AdminPlayersManager() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                       Role principal
                     </label>
                     <Select
@@ -686,7 +686,7 @@ export function AdminPlayersManager() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                       Market value
                     </label>
                     <Input
@@ -700,7 +700,7 @@ export function AdminPlayersManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                       Salaire
                     </label>
                     <Input
@@ -713,7 +713,7 @@ export function AdminPlayersManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                       Age
                     </label>
                     <Input
@@ -726,7 +726,7 @@ export function AdminPlayersManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                       Nationalite
                     </label>
                     <Input
@@ -740,7 +740,7 @@ export function AdminPlayersManager() {
               </div>
 
               <div className="space-y-3">
-                <label className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
                   Roles secondaires
                 </label>
                 <div className="flex flex-wrap gap-3">
@@ -755,7 +755,7 @@ export function AdminPlayersManager() {
                           'flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-sm transition',
                           checked
                             ? 'border-accent-primary/40 bg-accent-primary/12 text-white'
-                            : 'border-white/10 bg-white/5 text-text-secondary hover:text-white',
+                            : 'border-white/[0.05] bg-white/[0.035] text-text-secondary hover:text-white',
                           disabled && 'cursor-not-allowed opacity-50',
                         )}
                       >
@@ -771,7 +771,7 @@ export function AdminPlayersManager() {
                     );
                   })}
                 </div>
-                <label className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-text-secondary">
+                <label className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-text-secondary">
                   <input
                     type="checkbox"
                     checked={draft.isActive}
@@ -829,17 +829,17 @@ export function AdminPlayersManager() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-kicker">Market value history</p>
-                    <h3 className="mt-2 font-display text-2xl font-bold text-white">
+                    <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                       Historique de valorisation
                     </h3>
                   </div>
-                  <div className="rounded-full border border-white/8 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.18em] text-text-secondary">
+                  <div className="rounded-full border border-white/[0.05] bg-white/[0.035] px-4 py-2 text-xs uppercase tracking-[0.06em] text-text-secondary">
                     {selectedPlayer?.marketValueHistory.length ?? 0} entrees
                   </div>
                 </div>
 
                 <form
-                  className="grid gap-3 rounded-3xl border border-white/8 bg-white/5 p-4 md:grid-cols-[1fr_220px_1fr_auto]"
+                  className="grid gap-3 rounded-3xl border border-white/[0.05] bg-white/[0.035] p-4 md:grid-cols-[1fr_220px_1fr_auto]"
                   onSubmit={handleCreateHistoryEntry}
                 >
                   <Input name="newValue" type="number" min={0} required placeholder="Nouvelle valeur" />
@@ -868,7 +868,7 @@ export function AdminPlayersManager() {
 
                 <div className="space-y-3">
                   {selectedPlayerQuery.isLoading ? (
-                    <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+                    <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Chargement de l'historique...
                     </div>
@@ -876,7 +876,7 @@ export function AdminPlayersManager() {
                     selectedPlayer.marketValueHistory.map((entry) => (
                       <form
                         key={entry.id}
-                        className="grid gap-3 rounded-3xl border border-white/8 bg-white/5 p-4 md:grid-cols-[1fr_220px_1fr_auto_auto]"
+                        className="grid gap-3 rounded-3xl border border-white/[0.05] bg-white/[0.035] p-4 md:grid-cols-[1fr_220px_1fr_auto_auto]"
                         onSubmit={(event) => handleUpdateHistoryEntry(event, entry.id)}
                       >
                         <Input
@@ -912,7 +912,7 @@ export function AdminPlayersManager() {
                         >
                           Supprimer
                         </Button>
-                        <div className="md:col-span-5 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.18em] text-text-secondary">
+                        <div className="md:col-span-5 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.06em] text-text-secondary">
                           <span>
                             {entry.changedBy?.name ? `Par ${entry.changedBy.name}` : 'Par systeme'}
                           </span>
@@ -924,7 +924,7 @@ export function AdminPlayersManager() {
                       </form>
                     ))
                   ) : (
-                    <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+                    <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
                       Aucun historique disponible pour ce joueur.
                     </div>
                   )}
@@ -935,17 +935,17 @@ export function AdminPlayersManager() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-kicker">Palmares</p>
-                    <h3 className="mt-2 font-display text-2xl font-bold text-white">
+                    <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                       Editer le palmares du joueur
                     </h3>
                   </div>
-                  <div className="rounded-full border border-white/8 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.18em] text-text-secondary">
+                  <div className="rounded-full border border-white/[0.05] bg-white/[0.035] px-4 py-2 text-xs uppercase tracking-[0.06em] text-text-secondary">
                     {selectedPlayer?.playerTrophies.length ?? 0} distinctions
                   </div>
                 </div>
 
                 <form
-                  className="grid gap-3 rounded-3xl border border-white/8 bg-white/5 p-4 md:grid-cols-2 xl:grid-cols-[1.2fr_220px_220px_1fr_auto]"
+                  className="grid gap-3 rounded-3xl border border-white/[0.05] bg-white/[0.035] p-4 md:grid-cols-2 xl:grid-cols-[1.2fr_220px_220px_1fr_auto]"
                   onSubmit={handleCreateTrophy}
                 >
                   <Input name="name" required placeholder="Ex: Spring Split MVP" />
@@ -997,7 +997,7 @@ export function AdminPlayersManager() {
                     <textarea
                       name="description"
                       rows={3}
-                      className="w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-text-muted focus:border-accent-primary/50 focus:ring-2 focus:ring-accent-primary/24"
+                      className="w-full rounded-3xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-white outline-none transition placeholder:text-text-muted focus:border-accent-primary/50 focus:ring-2 focus:ring-accent-primary/24"
                       placeholder="Description du trophee ou contexte"
                     />
                   </div>
@@ -1005,7 +1005,7 @@ export function AdminPlayersManager() {
 
                 <div className="space-y-3">
                   {selectedPlayerQuery.isLoading ? (
-                    <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+                    <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Chargement du palmares...
                     </div>
@@ -1013,7 +1013,7 @@ export function AdminPlayersManager() {
                     selectedPlayer.playerTrophies.map((trophy) => (
                       <form
                         key={trophy.id}
-                        className="grid gap-3 rounded-3xl border border-white/8 bg-white/5 p-4 md:grid-cols-2 xl:grid-cols-[1.2fr_220px_220px_1fr_auto_auto]"
+                        className="grid gap-3 rounded-3xl border border-white/[0.05] bg-white/[0.035] p-4 md:grid-cols-2 xl:grid-cols-[1.2fr_220px_220px_1fr_auto_auto]"
                         onSubmit={(event) => handleUpdateTrophy(event, trophy.id)}
                       >
                         <Input name="name" required defaultValue={trophy.name} />
@@ -1063,10 +1063,10 @@ export function AdminPlayersManager() {
                             name="description"
                             rows={3}
                             defaultValue={trophy.description ?? ''}
-                            className="w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-text-muted focus:border-accent-primary/50 focus:ring-2 focus:ring-accent-primary/24"
+                            className="w-full rounded-3xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-white outline-none transition placeholder:text-text-muted focus:border-accent-primary/50 focus:ring-2 focus:ring-accent-primary/24"
                           />
                         </div>
-                        <div className="md:col-span-2 xl:col-span-6 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.18em] text-text-secondary">
+                        <div className="md:col-span-2 xl:col-span-6 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.06em] text-text-secondary">
                           <span>
                             {trophy.team
                               ? `${trophy.team.name} (${trophy.team.shortCode})`
@@ -1077,7 +1077,7 @@ export function AdminPlayersManager() {
                       </form>
                     ))
                   ) : (
-                    <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-4 text-sm text-text-secondary">
+                    <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
                       Aucun palmares enregistre pour ce joueur.
                     </div>
                   )}

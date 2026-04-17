@@ -29,7 +29,7 @@ export default async function TeamDashboardPage() {
     <div className="space-y-8">
       <div>
         <p className="text-kicker">Protected area</p>
-        <h1 className="mt-2 font-display text-4xl font-bold text-white">{team.name}</h1>
+        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">{team.name}</h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
           Dashboard de gestion d'effectif et simulation budgétaire.
         </p>
@@ -62,7 +62,7 @@ export default async function TeamDashboardPage() {
       <Card className="space-y-5">
         <div>
           <p className="text-kicker">Current roster</p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-white">Starting five</h2>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Starting five</h2>
           <p className="mt-1 text-sm text-text-secondary">
             Modifiez le role equipe de chaque joueur. Le role originel reste visible sur sa fiche publique.
           </p>
@@ -83,7 +83,7 @@ export default async function TeamDashboardPage() {
       <Card className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-kicker">Contracts workspace</p>
-          <h2 className="mt-2 font-display text-3xl font-bold text-white">Contrats</h2>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Contrats</h2>
           <p className="mt-1 max-w-2xl text-sm text-text-secondary">
             Les prolongations, ruptures et nouvelles propositions ont maintenant leur page dediee.
           </p>
