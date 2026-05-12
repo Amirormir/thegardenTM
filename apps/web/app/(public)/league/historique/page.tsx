@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { MatchCard } from '@/components/features/league/match-card';
+import { FightMatchCard } from '@/components/features/league/fight-match-card';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils/cn';
 import { getServerCaller } from '@/server/caller';
@@ -65,7 +65,7 @@ export default async function HistoriquePage({ searchParams }: HistoriquePagePro
           </h2>
           <div className="grid gap-4 xl:grid-cols-2">
             {completedMatches.map((match) => (
-              <MatchCard key={match.id} match={match} />
+              <FightMatchCard key={match.id} match={match} />
             ))}
           </div>
         </section>
@@ -78,7 +78,7 @@ export default async function HistoriquePage({ searchParams }: HistoriquePagePro
           </h2>
           <div className="grid gap-4 xl:grid-cols-2">
             {upcomingMatches.map((match) => (
-              <MatchCard key={match.id} match={match} />
+              <FightMatchCard key={match.id} match={match} />
             ))}
           </div>
         </section>

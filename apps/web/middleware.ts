@@ -35,3 +35,4 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/team/:path*', '/admin/:path*', '/notifications/:path*', '/profile/:path*'],
 };
+

@@ -1,11 +1,30 @@
+import type { TeamStanding } from '@nexus/types';
 import Link from 'next/link';
-import { MatchCard } from '@/components/features/league/match-card';
-import { StandingsTable } from '@/components/features/league/standings-table';
+import { FightMatchCard } from '@/components/features/league/fight-match-card';
+import { StandingsStack } from '@/components/features/league/standings-stack';
 import { Hero } from '@/components/features/home/hero';
 import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils/cn';
 import { getServerCaller } from '@/server/caller';
+
+function computeRecentForm(
+  standings: TeamStanding[],
+  matches: { homeTeam: { id: string }; awayTeam: { id: string }; homeScore: number; awayScore: number; isCompleted: boolean }[],
+): Record<string, ('W' | 'L')[]> {
+  const completed = matches.filter((m) => m.isCompleted);
+  const form: Record<string, ('W' | 'L')[]> = {};
+  for (const team of standings) {
+    form[team.id] = completed
+      .filter((m) => m.homeTeam.id === team.id || m.awayTeam.id === team.id)
+      .slice(0, 5)
+      .map((m) => {
+        const isHome = m.homeTeam.id === team.id;
+        return (isHome ? m.homeScore > m.awayScore : m.awayScore > m.homeScore) ? 'W' : 'L';
+      });
+  }
+  return form;
+}
 
 export const revalidate = 60;
 
@@ -27,6 +46,7 @@ export default async function HomePage() {
         new Date(left.playedAt ?? left.scheduledAt).getTime(),
     );
   const recentResults = completedMatches.slice(0, 3);
+  const recentForm = computeRecentForm(standings, allMatches);
   const totalMarketValue = players.reduce((sum, player) => sum + player.marketValue, 0);
   const topTeam = standings[0]
     ? {
@@ -77,27 +97,27 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
-          <Card className="p-0">
-            <div className="border-b border-white/[0.05] px-6 py-5">
+        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <div>
+            <div className="mb-4 px-1">
               <p className="text-kicker">Standings</p>
               <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                 Le haut du classement
               </h3>
             </div>
-            <div className="p-4">
-              {standings.length > 0 ? (
-                <StandingsTable standings={standings} />
-              ) : (
-                <p className="px-2 py-4 text-sm text-text-secondary">
+            {standings.length > 0 ? (
+              <StandingsStack standings={standings} recentForm={recentForm} />
+            ) : (
+              <Card>
+                <p className="text-sm text-text-secondary">
                   Aucune donnee de classement pour le moment.
                 </p>
-              )}
-            </div>
-          </Card>
+              </Card>
+            )}
+          </div>
 
           <div className="space-y-4">
-            <div className="rounded-[1.5rem] border border-white/[0.05] bg-white/[0.035] px-5 py-5 backdrop-blur-xl">
+            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-5 py-5 backdrop-blur-xl">
               <p className="text-kicker">Derniers resultats</p>
               <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                 Les series qui viennent de tomber
@@ -109,7 +129,9 @@ export default async function HomePage() {
             </div>
 
             {recentResults.length > 0 ? (
-              recentResults.map((match) => <MatchCard key={match.id} match={match} />)
+              recentResults.map((match, i) => (
+                <FightMatchCard key={match.id} match={match} index={i} />
+              ))
             ) : (
               <Card className="space-y-3">
                 <p className="text-kicker">Aucun resultat</p>

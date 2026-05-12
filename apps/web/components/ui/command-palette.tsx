@@ -202,6 +202,10 @@ export function CommandPalette() {
     router.push(item.href);
   }
 
+ 
+
+
+
   return (
     <>
       <button
@@ -288,6 +292,8 @@ export function CommandPalette() {
                           onMouseEnter={() => setActiveIndex(index)}
                           onClick={() => handleSelect(item)}
                         >
+
+                          
                           <div>
                             <p className="font-semibold">{item.label}</p>
                             <p className="mt-1 text-sm text-text-secondary">{item.description}</p>

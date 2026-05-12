@@ -2,7 +2,7 @@
 
 import type { inferRouterOutputs } from '@trpc/server';
 import { ArrowRightLeft, Loader2, Pencil, Plus, Save } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,8 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
+import { normalizeChampionId } from '@/lib/utils/ddragon';
 import { formatDateTime } from '@/lib/utils/format';
 import type { AppRouter } from '@/server/routers/_app';
+import type { ParsedReplay } from '@/lib/validators/replay';
+import { ReplayImportButton } from './replay-import-button';
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 type MatchSummary = RouterOutputs['match']['getAll'][number];
@@ -103,6 +106,8 @@ export function AdminMatchesManager() {
   const [gameCount, setGameCount] = useState(1);
   const [gameSides, setGameSides] = useState<Record<number, boolean>>({});
   const [champions, setChampions] = useState<ChampionOption[]>([]);
+  const [championValues, setChampionValues] = useState<Record<string, string>>({});
+  const recordFormRef = useRef<HTMLFormElement>(null);
 
   const createMatch = api.match.create.useMutation();
   const recordResult = api.match.recordResult.useMutation();
@@ -304,6 +309,7 @@ export function AdminMatchesManager() {
       setRecordingMatchId(null);
       setGameCount(1);
       setGameSides({});
+      setChampionValues({});
       await Promise.all([
         utils.match.getAll.invalidate(),
         utils.match.getById.invalidate(),
@@ -320,6 +326,67 @@ export function AdminMatchesManager() {
       const message = error instanceof Error ? error.message : "L'enregistrement a echoue.";
       setFeedback({ type: 'error', message });
     }
+  }
+
+  function resolveChampionId(internal: string) {
+    if (champions.some((c) => c.id === internal)) return internal;
+    const target = normalizeChampionId(internal);
+    if (!target) return '';
+    const match = champions.find((c) => normalizeChampionId(c.id) === target);
+    return match?.id ?? '';
+  }
+
+  function applyReplayToGame(gameIndex: number, parsed: ParsedReplay) {
+    const form = recordFormRef.current;
+    if (!form) return;
+    if (!recordingMatch) return;
+
+    const sides = getGameSides(gameIndex);
+    if (!sides.blueTeam || !sides.redTeam) return;
+
+    const setInput = (name: string, value: string) => {
+      const element = form.elements.namedItem(name);
+      if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement) {
+        element.value = value;
+      }
+    };
+
+    setInput(`game-${gameIndex}-durationSeconds`, String(parsed.game.duration_seconds));
+
+    const blueReplayTeam = parsed.teams.find((team) => team.side === 'BLUE');
+    if (blueReplayTeam) {
+      const winnerTeamId =
+        blueReplayTeam.result === 'WIN' ? sides.blueTeam.id : sides.redTeam.id;
+      setInput(`game-${gameIndex}-winnerTeamId`, winnerTeamId);
+    }
+
+    const nextChampionValues: Record<string, string> = {};
+
+    for (const side of ['BLUE', 'RED'] as const) {
+      const sidePlayers = parsed.players
+        .filter((player) => player.side === side)
+        .sort((left, right) => left.position_in_team - right.position_in_team);
+
+      sidePlayers.forEach((player, slotIndex) => {
+        const slotKey = `${gameIndex}-${side.toLowerCase()}-${slotIndex}`;
+        nextChampionValues[slotKey] = resolveChampionId(player.champion_internal);
+
+        const base = `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}`;
+        setInput(`${base}-kills`, String(player.prisma.kills));
+        setInput(`${base}-deaths`, String(player.prisma.deaths));
+        setInput(`${base}-assists`, String(player.prisma.assists));
+        setInput(`${base}-cs`, String(player.prisma.cs));
+        setInput(`${base}-gold`, String(player.prisma.gold));
+        setInput(`${base}-damage`, String(player.prisma.damage));
+        setInput(`${base}-visionScore`, String(player.prisma.visionScore));
+      });
+    }
+
+    setChampionValues((prev) => ({ ...prev, ...nextChampionValues }));
+    setFeedback({
+      type: 'success',
+      message: `Game ${gameIndex + 1} importée. Vérifie les sides et associe chaque champion à un joueur.`,
+    });
   }
 
   return (
@@ -447,6 +514,7 @@ export function AdminMatchesManager() {
                         setShowCreateForm(false);
                         setGameCount(1);
                         setGameSides({});
+                        setChampionValues({});
                       }}
                     >
                       Modifier résultat
@@ -461,6 +529,7 @@ export function AdminMatchesManager() {
                         setShowCreateForm(false);
                         setGameCount(1);
                         setGameSides({});
+                        setChampionValues({});
                       }}
                     >
                       Enregistrer résultat
@@ -471,6 +540,7 @@ export function AdminMatchesManager() {
 
               {recordingMatchId === match.id ? (
                 <form
+                  ref={recordFormRef}
                   className="space-y-5 rounded-3xl border border-white/[0.05] bg-white/[0.035] p-5"
                   onSubmit={handleRecordResult}
                 >
@@ -544,6 +614,7 @@ export function AdminMatchesManager() {
                         onClick={() => {
                           setRecordingMatchId(null);
                           setGameCount(1);
+                          setChampionValues({});
                         }}
                       >
                         Annuler
@@ -623,7 +694,7 @@ export function AdminMatchesManager() {
                                 <option value={match.awayTeam.id}>{match.awayTeam.name}</option>
                               </Select>
                             </div>
-                            <div className="flex items-end">
+                            <div className="flex items-end gap-2">
                               <Button
                                 type="button"
                                 size="sm"
@@ -638,6 +709,11 @@ export function AdminMatchesManager() {
                               >
                                 Inverser sides
                               </Button>
+                              <ReplayImportButton
+                                gameIndex={gameIndex}
+                                onImported={applyReplayToGame}
+                                onError={(message) => setFeedback({ type: 'error', message })}
+                              />
                             </div>
                           </div>
 
@@ -679,6 +755,7 @@ export function AdminMatchesManager() {
                                         name={`game-${gameIndex}-blue-slot-${slotIndex}-champion`}
                                         required
                                         placeholder={`Champion ${slotIndex + 1}`}
+                                        value={championValues[`${gameIndex}-blue-${slotIndex}`] ?? ''}
                                       />
                                     </div>
 
@@ -784,6 +861,7 @@ export function AdminMatchesManager() {
                                         name={`game-${gameIndex}-red-slot-${slotIndex}-champion`}
                                         required
                                         placeholder={`Champion ${slotIndex + 1}`}
+                                        value={championValues[`${gameIndex}-red-${slotIndex}`] ?? ''}
                                       />
                                     </div>
 

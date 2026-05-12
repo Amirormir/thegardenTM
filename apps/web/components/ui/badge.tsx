@@ -50,3 +50,16 @@ export function Badge({ variant, className, children, ...props }: BadgeProps) {
     </span>
   );
 }
+
+/* 
+
+int main() {
+  
+          scanf("")     
+          printf("")  
+
+
+
+
+
+*/
