@@ -30,11 +30,11 @@ export function StandingsTable({ standings }: StandingsTableProps) {
       <TableBody>
         {standings.map((team, index) => (
           <TableRow key={team.id} className="transition hover:bg-white/[0.04]">
-            <TableCell className="font-display text-text-secondary tabular-nums">{index + 1}</TableCell>
+            <TableCell className="font-display text-foreground-dim tabular-nums">{index + 1}</TableCell>
             <TableCell className="font-semibold text-white">
               <Link
                 href={`/league/teams/${team.slug}`}
-                className="flex items-center gap-3 rounded-xl py-1 transition hover:text-accent-glow"
+                className="flex items-center gap-3 rounded-xl py-1 transition hover:text-accent"
               >
                 <TeamAvatar
                   name={team.name}
@@ -44,7 +44,7 @@ export function StandingsTable({ standings }: StandingsTableProps) {
                 />
                 <div>
                   <p className="font-semibold text-white">{team.name}</p>
-                  <p className="text-[0.65rem] uppercase tracking-[0.06em] text-text-secondary">
+                  <p className="text-[0.65rem] uppercase tracking-[0.06em] text-foreground-dim">
                     {team.shortCode}
                   </p>
                 </div>
@@ -52,10 +52,10 @@ export function StandingsTable({ standings }: StandingsTableProps) {
             </TableCell>
             <TableCell className="tabular-nums">{team.wins}</TableCell>
             <TableCell className="tabular-nums">{team.losses}</TableCell>
-            <TableCell className="text-text-secondary tabular-nums">
+            <TableCell className="text-foreground-dim tabular-nums">
               {team.mapWins}-{team.mapLosses}
             </TableCell>
-            <TableCell className="font-semibold text-accent-glow tabular-nums">{team.points}</TableCell>
+            <TableCell className="font-semibold text-accent tabular-nums">{team.points}</TableCell>
           </TableRow>
         ))}
       </TableBody>

@@ -1,43 +1,13 @@
 import type { PlayerListItem } from '@nexus/types';
-import { Crown, Medal, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { PlayerValue } from '@/components/ui/player-value';
-import { TeamAvatar } from '@/components/ui/team-avatar';
-import { TeamTintCard, TeamTintMediaFrame } from '@/components/ui/team-tint';
 import { getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCurrency } from '@/lib/utils/format';
+import { cn } from '@/lib/utils/cn';
 
 interface TopPlayersShowcaseProps {
   players: PlayerListItem[];
 }
-
-const PODIUM_CONFIG = [
-  {
-    rank: 1,
-    icon: Crown,
-    label: '#1',
-    photoSize: 'h-28 w-28',
-    textSize: 'text-2xl',
-    initSize: 'text-xl',
-  },
-  {
-    rank: 2,
-    icon: Medal,
-    label: '#2',
-    photoSize: 'h-24 w-24',
-    textSize: 'text-xl',
-    initSize: 'text-lg',
-  },
-  {
-    rank: 3,
-    icon: Trophy,
-    label: '#3',
-    photoSize: 'h-24 w-24',
-    textSize: 'text-xl',
-    initSize: 'text-lg',
-  },
-] as const;
 
 export function TopPlayersShowcase({ players }: TopPlayersShowcaseProps) {
   if (players.length < 3) return null;
@@ -45,86 +15,85 @@ export function TopPlayersShowcase({ players }: TopPlayersShowcaseProps) {
   const top3 = players.slice(0, 3);
 
   return (
-    <section className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-px border-t border-hairline bg-hairline md:grid-cols-3">
       {top3.map((player, index) => {
-        const config = PODIUM_CONFIG[index]!;
-        const Icon = config.icon;
+        const isLeader = index === 0;
+        const delta = player.marketValueDelta ?? 0;
+        const positive = delta >= 0;
 
         return (
-          <Link key={player.id} href={`/transfermarket/${player.id}`} className="group">
-            <TeamTintCard
-              elevated
-              className="relative h-full transition-all duration-300 group-hover:scale-[1.01]"
-              contentClassName="space-y-5"
-              logoUrl={player.teamLogoUrl}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-white/70">
-                  <Icon className="h-4 w-4" />
-                  <span className="text-[0.68rem] font-medium uppercase tracking-[0.06em]">
-                    {config.label} Market Value
-                  </span>
-                </div>
-                <Badge variant={player.role}>{player.role}</Badge>
-              </div>
+          <Link
+            key={player.id}
+            href={`/transfermarket/${player.id}`}
+            className={cn(
+              'group flex flex-col bg-background px-6 py-7 transition-colors duration-150 hover:bg-surface-hover',
+              isLeader && 'border-l-2 border-l-accent',
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <span
+                className={cn(
+                  'font-display text-3xl leading-none tabular-nums',
+                  isLeader ? 'text-accent' : 'text-foreground-muted',
+                )}
+              >
+                § {(index + 1).toString().padStart(2, '0')}
+              </span>
+              <Badge variant={player.role}>{player.role}</Badge>
+            </div>
 
-              <div className="flex flex-col items-center gap-4 text-center">
-                <TeamTintMediaFrame
-                  logoUrl={player.teamLogoUrl}
-                  className={`${config.photoSize} rounded-full`}
-                >
-                  {player.imageUrl ? (
-                    <img
-                      src={player.imageUrl}
-                      alt={player.displayName}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div
-                      className={`flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-500/20 to-violet-600/10 font-display ${config.initSize} font-bold text-white/80`}
-                    >
-                      {getPlayerInitials(player.displayName)}
-                    </div>
-                  )}
-                </TeamTintMediaFrame>
-
-                <div>
-                  <h3 className={`font-display ${config.textSize} font-bold tracking-tight text-white`}>
-                    {player.displayName}
-                  </h3>
-                  <div className="mt-2 flex items-center justify-center gap-2 text-xs text-text-muted">
-                    <TeamAvatar
-                      name={player.teamName}
-                      shortCode={player.teamShortCode ?? 'FA'}
-                      logoUrl={player.teamLogoUrl ?? null}
-                      size="sm"
-                      className="h-5 w-5 rounded-full text-[0.5rem]"
-                    />
-                    <span>
-                      {player.teamName} {player.teamShortCode ? `(${player.teamShortCode})` : ''}
-                    </span>
+            <div className="mt-6 flex items-start gap-4">
+              <div className="placeholder-diag h-20 w-20 shrink-0 overflow-hidden">
+                {player.imageUrl ? (
+                  <img
+                    src={player.imageUrl}
+                    alt={player.displayName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center font-display text-xl text-foreground-dim">
+                    {getPlayerInitials(player.displayName)}
                   </div>
-                </div>
+                )}
               </div>
+              <div className="min-w-0 flex-1 pt-1">
+                <p
+                  className={cn(
+                    'truncate font-display tracking-tight text-foreground',
+                    isLeader ? 'text-3xl' : 'text-2xl',
+                  )}
+                >
+                  {player.displayName}
+                </p>
+                <p className="mt-1 truncate label-mono">
+                  {player.teamShortCode ?? 'FA'} · {player.role}
+                </p>
+              </div>
+            </div>
 
-              <div className="flex justify-center">
-                <PlayerValue
-                  value={player.marketValue}
-                  delta={player.marketValueDelta ?? 0}
-                  size="sm"
-                  tone="neutral"
-                />
-              </div>
-
-              <div className="flex items-center justify-center gap-3 text-xs text-text-secondary">
-                <span>
-                  Salaire <span className="font-display font-bold tracking-tight text-white tabular-nums">{formatCurrency(player.salary)}</span>
-                </span>
-              </div>
-            </TeamTintCard>
+            <div className="mt-auto pt-8">
+              <p className="label-mono">Valeur marchande</p>
+              <p
+                className={cn(
+                  'mt-2 font-display tracking-tight tabular-nums',
+                  isLeader ? 'text-5xl text-accent' : 'text-4xl text-foreground',
+                )}
+              >
+                {formatCurrency(player.marketValue)}
+              </p>
+              <p
+                className={cn(
+                  'mt-2 label-mono tabular-nums',
+                  positive ? 'text-[color:var(--win)]' : 'text-[color:var(--loss)]',
+                )}
+              >
+                {positive ? '+' : ''}
+                {formatCurrency(delta)} · Salaire {formatCurrency(player.salary)}
+              </p>
+            </div>
           </Link>
         );
       })}
-    </section>
+    </div>
   );
 }

@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
 import { MarketValueChart } from '@/components/features/charts/market-value-chart';
 import { PerformanceTrendsChart } from '@/components/features/charts/performance-trends-chart';
 import { RiotFetchButton } from '@/components/features/transfermarket/riot-fetch-button';
@@ -8,10 +7,7 @@ import { TeamLeagueSnapshotCard } from '@/components/features/transfermarket/tea
 import { FreeAgentSignButton } from '@/components/features/transfermarket/free-agent-sign-button';
 import { TransferOfferButton } from '@/components/features/transfermarket/transfer-offer-button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { PlayerValue } from '@/components/ui/player-value';
-import { TeamAvatar } from '@/components/ui/team-avatar';
-import { TeamTintCard, TeamTintMediaFrame } from '@/components/ui/team-tint';
 import {
   Table,
   TableBody,
@@ -23,6 +19,7 @@ import {
 import { auth } from '@/lib/auth';
 import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCompactDate, formatCurrency, formatDateTime } from '@/lib/utils/format';
+import { cn } from '@/lib/utils/cn';
 import { getServerCaller } from '@/server/caller';
 
 export const revalidate = 60;
@@ -49,6 +46,35 @@ function getContractStatusLabel(status: string) {
   if (status === 'TERMINATED') return 'Rompu';
   if (status === 'LOAN') return 'Pret';
   return status;
+}
+
+function KpiBlock({
+  helper,
+  label,
+  value,
+}: {
+  helper: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="border-t border-hairline pt-5">
+      <p className="label-mono">{label}</p>
+      <div className="mt-3 display-md text-foreground tabular-nums">{value}</div>
+      <div className="mt-2 text-sm leading-6 text-foreground-dim">{helper}</div>
+    </div>
+  );
+}
+
+function SidebarFact({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-t border-hairline py-3 first:border-t-0 first:pt-0">
+      <span className="label-mono">{label}</span>
+      <span className="font-display text-lg tracking-tight tabular-nums text-foreground text-right">
+        {value}
+      </span>
+    </div>
+  );
 }
 
 export default async function PlayerDetailPage({ params }: PlayerDetailPageProps) {
@@ -115,156 +141,158 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
   const averageCs = recentGamesCount > 0 ? Math.round(recentTotals.cs / recentGamesCount) : 0;
   const averageDamage =
     recentGamesCount > 0 ? Math.round(recentTotals.damage / recentGamesCount) : 0;
+  const riotId = buildPlayerRiotId(player);
+
+  const canOfferTransfer = Boolean(
+    isCaptain && userTeamId && player.teamId && player.teamId !== userTeamId && activeContract,
+  );
+  const canSignFreeAgent = Boolean(isCaptain && userTeamId && !player.teamId);
 
   return (
-    <div className="space-y-8">
-      <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <TeamTintCard
-          elevated
-          className="min-h-full"
-          contentClassName="space-y-6"
-          logoUrl={player.team?.logoUrl}
-        >
-          <div className="flex flex-col gap-6 md:flex-row md:items-start">
-            <TeamTintMediaFrame
-              logoUrl={player.team?.logoUrl}
-              className="h-36 w-36 shrink-0 rounded-[28px]"
-            >
-              {player.imageUrl ? (
-                <img
-                  src={player.imageUrl}
-                  alt={player.displayName}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-white/8 font-display text-2xl font-bold tracking-tight text-white">
-                  {getPlayerInitials(player.displayName)}
-                </div>
-              )}
-            </TeamTintMediaFrame>
+    <div className="flex flex-col gap-20 md:gap-24">
+      <header className="border-b border-hairline pb-10">
+        <p className="breadcrumb-mono">§ · Joueurs · {teamShortCode}</p>
 
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-3">
-                <Badge variant={player.role}>{player.role}</Badge>
-                {player.secondaryRoles.map((secondaryRole) => (
-                  <Badge key={secondaryRole} variant={secondaryRole}>
-                    {secondaryRole}
-                  </Badge>
-                ))}
-                <Badge variant="actif">{player.isActive ? 'actif' : 'inactif'}</Badge>
+        <div className="mt-8 grid gap-10 lg:grid-cols-[auto_1fr] lg:items-end lg:gap-12">
+          <div className="placeholder-diag h-40 w-40 shrink-0 overflow-hidden lg:h-48 lg:w-48">
+            {player.imageUrl ? (
+              <img
+                src={player.imageUrl}
+                alt={player.displayName}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center font-display text-4xl text-foreground-dim">
+                {getPlayerInitials(player.displayName)}
               </div>
+            )}
+          </div>
 
-              <div className="mt-4">
-                <div className="flex items-center gap-2 text-kicker">
-                  <TeamAvatar
-                    name={teamName}
-                    shortCode={teamShortCode}
-                    logoUrl={player.team?.logoUrl ?? null}
-                    size="sm"
-                    className="h-5 w-5 rounded-md text-[0.55rem]"
-                  />
-                  <span>
-                    {teamName} / {teamShortCode}
-                  </span>
-                </div>
-                <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-white">
-                  {player.displayName}
-                </h1>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-text-secondary">
-                  Profil public alimente par Prisma via tRPC avec historique contractuel,
-                  trajectoire de valorisation et performances stockees game par game.
-                </p>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={player.role}>{player.role}</Badge>
+              {player.secondaryRoles.map((secondaryRole) => (
+                <Badge key={secondaryRole} variant={secondaryRole}>
+                  {secondaryRole}
+                </Badge>
+              ))}
+              <Badge variant={player.isActive ? 'actif' : 'expiré'}>
+                {player.isActive ? 'actif' : 'inactif'}
+              </Badge>
+            </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <Link
-                    href={`/transfermarket/comparison?playerA=${player.id}`}
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-accent-glow transition hover:text-white"
-                  >
-                    Comparer ce joueur
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                  {isAdmin ? <RiotFetchButton playerId={playerId} /> : null}
-                </div>
-                {isCaptain && userTeamId && player.teamId && player.teamId !== userTeamId && activeContract ? (
-                  <div className="mt-4">
-                    <TransferOfferButton
-                      playerId={player.id}
-                      playerName={player.displayName}
-                      releaseClause={activeContract.releaseClause}
-                      buyerTeamId={userTeamId}
-                    />
-                  </div>
-                ) : null}
-                {isCaptain && userTeamId && !player.teamId ? (
-                  <div className="mt-4">
-                    <FreeAgentSignButton
-                      playerId={player.id}
-                      playerName={player.displayName}
-                      teamId={userTeamId}
-                    />
-                  </div>
-                ) : null}
-              </div>
+            <h1 className="mt-4 display-xl text-foreground">{player.displayName}</h1>
+
+            <p className="mt-5 label-mono">
+              {teamName} · {teamShortCode} · {riotId}
+            </p>
+
+            <p className="mt-6 max-w-2xl text-base leading-7 text-foreground-dim">
+              Profil public alimente par Prisma via tRPC avec historique contractuel,
+              trajectoire de valorisation et performances stockees game par game.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-5 label-mono">
+              <Link
+                href={`/transfermarket/comparison?playerA=${player.id}`}
+                className="text-foreground-dim transition-colors duration-150 hover:text-accent"
+              >
+                Comparer ce joueur →
+              </Link>
+              {isAdmin ? <RiotFetchButton playerId={playerId} /> : null}
             </div>
           </div>
+        </div>
 
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card className="border-white/[0.05] bg-white/4">
-              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">Riot ID</p>
-              <p className="mt-2 text-lg font-semibold text-white">
-                {buildPlayerRiotId(player)}
-              </p>
-            </Card>
-            <Card className="border-white/[0.05] bg-white/4">
-              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">Salary</p>
-              <p className="mt-2 font-display tabular-nums text-lg font-semibold text-white">
-                {formatCurrency(player.salary)}
-              </p>
-            </Card>
-            <Card className="border-white/[0.05] bg-white/4">
-              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">Contract</p>
-              <p className="mt-2 text-lg font-semibold text-white">
-                {activeContract ? `${activeContract.durationBo3} BO3` : 'N/A'}
-              </p>
-            </Card>
-            <Card className="border-white/[0.05] bg-white/4">
-              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">Profile</p>
-              <p className="mt-2 text-lg font-semibold text-white">
-                {[player.nationality, player.age ? `${player.age} ans` : null]
-                  .filter(Boolean)
-                  .join(' / ') || 'Non renseigne'}
-              </p>
-            </Card>
+        {canOfferTransfer && activeContract ? (
+          <div className="mt-10">
+            <TransferOfferButton
+              playerId={player.id}
+              playerName={player.displayName}
+              releaseClause={activeContract.releaseClause}
+              buyerTeamId={userTeamId!}
+            />
           </div>
-        </TeamTintCard>
+        ) : null}
 
-        <div className="space-y-4">
+        {canSignFreeAgent ? (
+          <div className="mt-10">
+            <FreeAgentSignButton
+              playerId={player.id}
+              playerName={player.displayName}
+              teamId={userTeamId!}
+            />
+          </div>
+        ) : null}
+      </header>
+
+      <section className="grid gap-10 lg:grid-cols-[1fr_320px] lg:gap-16">
+        <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4 md:gap-12">
+          <KpiBlock
+            label="KDA récent"
+            value={recentKda}
+            helper={`${recentGamesCount} game${recentGamesCount > 1 ? 's' : ''} prises en compte.`}
+          />
+          <KpiBlock
+            label="Win rate"
+            value={`${recentWinRate}%`}
+            helper={`${recentTotals.wins} victoire${recentTotals.wins > 1 ? 's' : ''} récente${recentTotals.wins > 1 ? 's' : ''}.`}
+          />
+          <KpiBlock
+            label="CS moyen"
+            value={averageCs}
+            helper="Moyenne sur les games stockées."
+          />
+          <KpiBlock
+            label="Damage moyen"
+            value={formatCurrency(averageDamage)}
+            helper="Dégâts moyens par game récente."
+          />
+        </div>
+
+        <aside className="space-y-6 border-l-0 border-hairline lg:border-l lg:pl-10">
           <PlayerValue value={player.marketValue} delta={marketDelta} />
-          <Card className="space-y-3">
-            <p className="text-kicker">Contract snapshot</p>
-            <div className="space-y-2 text-sm text-text-secondary">
-              <p>
-                Status{' '}
-                <span className="font-semibold text-white">
-                  {activeContract?.status ?? 'Aucun contrat actif'}
-                </span>
-              </p>
-              <p>
-                Release clause{' '}
-                <span className="font-display tabular-nums font-semibold text-white">
-                  {activeContract?.releaseClause
+
+          <div className="border border-hairline bg-surface p-5">
+            <p className="label-mono">Contrat actif</p>
+            <div className="mt-4 space-y-0">
+              <SidebarFact
+                label="Statut"
+                value={activeContract ? getContractStatusLabel(activeContract.status) : 'Aucun'}
+              />
+              <SidebarFact
+                label="Clause"
+                value={
+                  activeContract?.releaseClause
                     ? formatCurrency(activeContract.releaseClause)
-                    : 'N/A'}
-                </span>
-              </p>
-              <p>
-                Transfer fee{' '}
-                <span className="font-display tabular-nums font-semibold text-white">
-                  {activeContract?.transferFee ? formatCurrency(activeContract.transferFee) : 'N/A'}
-                </span>
-              </p>
+                    : 'N/A'
+                }
+              />
+              <SidebarFact
+                label="Indemnité"
+                value={
+                  activeContract?.transferFee ? formatCurrency(activeContract.transferFee) : 'N/A'
+                }
+              />
+              <SidebarFact
+                label="Salaire"
+                value={formatCurrency(player.salary)}
+              />
+              <SidebarFact
+                label="Durée"
+                value={activeContract ? `${activeContract.durationBo3} BO3` : 'N/A'}
+              />
+              <SidebarFact
+                label="Profil"
+                value={
+                  [player.nationality, player.age ? `${player.age} ans` : null]
+                    .filter(Boolean)
+                    .join(' / ') || '—'
+                }
+              />
             </div>
-          </Card>
+          </div>
+
           {player.team && teamStanding && teamStandingPlace ? (
             <TeamLeagueSnapshotCard
               team={player.team}
@@ -276,230 +304,225 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
               mapLosses={teamStanding.mapLosses}
             />
           ) : null}
+        </aside>
+      </section>
+
+      <section>
+        <p className="label-mono">§ 01 · Trajectoire de valeur</p>
+        <h2 className="mt-3 display-md text-foreground">Évolution de la cote.</h2>
+        <div className="mt-8 border-t border-hairline pt-8">
+          <MarketValueChart history={player.marketValueHistory} />
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <Card className="space-y-2 border-white/[0.05] bg-white/4">
-          <p className="text-kicker">Recent KDA</p>
-          <p className="font-display text-2xl font-bold tracking-tight text-white">{recentKda}</p>
-          <p className="text-sm text-text-secondary">{recentGamesCount} games prises en compte.</p>
-        </Card>
-        <Card className="space-y-2 border-white/[0.05] bg-white/4">
-          <p className="text-kicker">Win rate</p>
-          <p className="font-display text-2xl font-bold tracking-tight text-white">{recentWinRate}%</p>
-          <p className="text-sm text-text-secondary">{recentTotals.wins} wins recentes.</p>
-        </Card>
-        <Card className="space-y-2 border-white/[0.05] bg-white/4">
-          <p className="text-kicker">Average CS</p>
-          <p className="font-display text-2xl font-bold tracking-tight text-white">{averageCs}</p>
-          <p className="text-sm text-text-secondary">Moyenne sur les games stockees.</p>
-        </Card>
-        <Card className="space-y-2 border-white/[0.05] bg-white/4">
-          <p className="text-kicker">Average damage</p>
-          <p className="font-display text-2xl font-bold tracking-tight text-white">
-            {formatCurrency(averageDamage)}
-          </p>
-          <p className="text-sm text-text-secondary">Degats moyens par game recente.</p>
-        </Card>
+      <section>
+        <p className="label-mono">§ 02 · Performances récentes</p>
+        <h2 className="mt-3 display-md text-foreground">Tendances game par game.</h2>
+        <div className="mt-8 border-t border-hairline pt-8">
+          <PerformanceTrendsChart stats={recentStats} />
+        </div>
       </section>
 
       {player.playerTrophies.length > 0 ? (
-        <Card className="space-y-5">
-          <div>
-            <p className="text-kicker">Palmares</p>
-            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-              Distinctions du joueur
-            </h2>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <section>
+          <p className="label-mono">§ 03 · Palmarès</p>
+          <h2 className="mt-3 display-md text-foreground">Distinctions du joueur.</h2>
+          <div className="mt-8 grid gap-px border-t border-hairline bg-hairline md:grid-cols-2 xl:grid-cols-3">
             {player.playerTrophies.map((trophy) => (
-              <Card key={trophy.id} className="border-white/[0.05] bg-white/4">
-                <p className="text-kicker">{trophy.season.name}</p>
-                <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">{trophy.name}</h3>
-                <p className="mt-3 text-sm leading-7 text-text-secondary">
-                  {trophy.description ?? 'Distinction officielle enregistree dans Garden.'}
+              <article key={trophy.id} className="flex flex-col bg-background px-5 py-5 md:px-6">
+                <p className="label-mono">{trophy.season.name}</p>
+                <h3 className="mt-3 font-display text-2xl tracking-tight text-foreground">
+                  {trophy.name}
+                </h3>
+                <p className="mt-3 text-sm leading-6 text-foreground-dim">
+                  {trophy.description ?? 'Distinction officielle enregistrée dans Garden.'}
                 </p>
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-[0.06em] text-text-secondary">
-                  <span>
-                    {trophy.team ? `${trophy.team.name} (${trophy.team.shortCode})` : 'Individuel'}
-                  </span>
-                  <span>{formatCompactDate(trophy.awardedAt)}</span>
+                <div className="mt-auto pt-6 border-t border-hairline flex flex-wrap items-center justify-between gap-3 label-mono">
+                  <span>{trophy.team ? `${trophy.team.shortCode}` : 'Individuel'}</span>
+                  <span className="tabular-nums">{formatCompactDate(trophy.awardedAt)}</span>
                 </div>
-              </Card>
+              </article>
             ))}
           </div>
-        </Card>
+        </section>
       ) : null}
 
-      <section className="grid gap-6 xl:grid-cols-2">
-        <Card className="space-y-5">
-          <div>
-            <p className="text-kicker">Market trajectory</p>
-            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-              Evolution de la valeur
-            </h2>
-          </div>
-          <MarketValueChart history={player.marketValueHistory} />
-        </Card>
-
-        <Card className="space-y-5">
-          <div>
-            <p className="text-kicker">Recent performance</p>
-            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-              Tendances de performance
-            </h2>
-          </div>
-          <PerformanceTrendsChart stats={recentStats} />
-        </Card>
+      <section>
+        <p className="label-mono">§ 04 · Historique contractuel</p>
+        <h2 className="mt-3 display-md text-foreground">
+          {contractHistory.length.toString().padStart(2, '0')} contrat
+          {contractHistory.length > 1 ? 's' : ''} consigné{contractHistory.length > 1 ? 's' : ''}.
+        </h2>
+        <div className="mt-8 border-t border-hairline pt-8">
+          {contractHistory.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Équipe</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Salaire</TableHead>
+                  <TableHead>Durée</TableHead>
+                  <TableHead>Clause</TableHead>
+                  <TableHead>Frais</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {contractHistory.map((contract) => (
+                  <TableRow key={contract.id}>
+                    <TableCell className="font-display text-foreground">
+                      {contract.team.name}{' '}
+                      <span className="label-mono ml-1">{contract.team.shortCode}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          contract.status === 'ACTIVE' || contract.status === 'LOAN'
+                            ? 'actif'
+                            : 'expiré'
+                        }
+                      >
+                        {getContractStatusLabel(contract.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {formatCurrency(contract.salary)}
+                    </TableCell>
+                    <TableCell className="tabular-nums">{contract.durationBo3} BO3</TableCell>
+                    <TableCell className="tabular-nums">
+                      {formatCurrency(contract.releaseClause)}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {contract.transferFee ? formatCurrency(contract.transferFee) : 'N/A'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm leading-7 text-foreground-dim">
+              Aucun historique contractuel n&apos;est disponible pour ce joueur.
+            </p>
+          )}
+        </div>
       </section>
 
-      <Card className="space-y-5">
-        <div>
-          <p className="text-kicker">Contract history</p>
-          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-            Historique contractuel
-          </h2>
-        </div>
-        {contractHistory.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Equipe</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Salaire</TableHead>
-                <TableHead>Duree</TableHead>
-                <TableHead>Clause</TableHead>
-                <TableHead>Frais</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contractHistory.map((contract) => (
-                <TableRow key={contract.id}>
-                  <TableCell className="font-semibold text-white">
-                    {contract.team.name} ({contract.team.shortCode})
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        contract.status === 'ACTIVE' || contract.status === 'LOAN'
-                          ? 'actif'
-                          : 'expiré'
-                      }
-                    >
-                      {getContractStatusLabel(contract.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-display tabular-nums">{formatCurrency(contract.salary)}</TableCell>
-                  <TableCell>{contract.durationBo3} BO3</TableCell>
-                  <TableCell className="font-display tabular-nums">{formatCurrency(contract.releaseClause)}</TableCell>
-                  <TableCell className="font-display tabular-nums">
-                    {contract.transferFee ? formatCurrency(contract.transferFee) : 'N/A'}
-                  </TableCell>
+      <section>
+        <p className="label-mono">§ 05 · Dernières stats</p>
+        <h2 className="mt-3 display-md text-foreground">
+          {player.playerMatchStats.length.toString().padStart(2, '0')} game
+          {player.playerMatchStats.length > 1 ? 's' : ''} stockée
+          {player.playerMatchStats.length > 1 ? 's' : ''}.
+        </h2>
+        <div className="mt-8 border-t border-hairline pt-8">
+          {player.playerMatchStats.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Match</TableHead>
+                  <TableHead>Champion</TableHead>
+                  <TableHead>K / D / A</TableHead>
+                  <TableHead>CS</TableHead>
+                  <TableHead>Gold</TableHead>
+                  <TableHead>Damage</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <p className="text-sm leading-7 text-text-secondary">
-            Aucun historique contractuel n&apos;est disponible pour ce joueur.
-          </p>
-        )}
-      </Card>
-
-      <Card className="space-y-5">
-        <div>
-          <p className="text-kicker">Recent stored matches</p>
-          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Dernieres stats</h2>
-        </div>
-        {player.playerMatchStats.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Match</TableHead>
-                <TableHead>Champion</TableHead>
-                <TableHead>K / D / A</TableHead>
-                <TableHead>CS</TableHead>
-                <TableHead>Gold</TableHead>
-                <TableHead>Damage</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {player.playerMatchStats.map((stat) => (
-                <TableRow key={stat.id}>
-                  <TableCell>
-                    <div className="font-semibold text-white">
-                      {stat.matchGame.match.homeTeam.shortCode} vs{' '}
-                      {stat.matchGame.match.awayTeam.shortCode}
-                    </div>
-                    <div className="text-xs text-text-secondary">
-                      Game {stat.matchGame.gameNumber} /{' '}
-                      {formatCompactDate(stat.matchGame.playedAt ?? stat.matchGame.match.scheduledAt)}
-                    </div>
-                  </TableCell>
-                  <TableCell>{stat.champion}</TableCell>
-                  <TableCell>
-                    {stat.kills} / {stat.deaths} / {stat.assists}
-                  </TableCell>
-                  <TableCell>{stat.cs.toLocaleString('fr-FR')}</TableCell>
-                  <TableCell>{stat.gold.toLocaleString('fr-FR')}</TableCell>
-                  <TableCell>{stat.damage.toLocaleString('fr-FR')}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <p className="text-sm leading-7 text-text-secondary">
-            Aucune statistique locale n&apos;est encore stockee pour ce joueur.
-          </p>
-        )}
-      </Card>
-
-      <Card className="space-y-5">
-        <div>
-          <p className="text-kicker">Audit trail</p>
-          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-            Historique de valorisation
-          </h2>
-        </div>
-        {player.marketValueHistory.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Valeur</TableHead>
-                <TableHead>Delta</TableHead>
-                <TableHead>Motif</TableHead>
-                <TableHead>Par</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {player.marketValueHistory.map((entry) => {
-                const delta = entry.newValue - entry.previousValue;
-
-                return (
-                  <TableRow key={entry.id}>
-                    <TableCell>{formatDateTime(entry.changedAt)}</TableCell>
-                    <TableCell className="font-display tabular-nums text-white">
-                      {formatCurrency(entry.newValue)}
+              </TableHeader>
+              <TableBody>
+                {player.playerMatchStats.map((stat) => (
+                  <TableRow key={stat.id}>
+                    <TableCell>
+                      <div className="font-display text-foreground">
+                        {stat.matchGame.match.homeTeam.shortCode} ·{' '}
+                        {stat.matchGame.match.awayTeam.shortCode}
+                      </div>
+                      <div className="mt-1 label-mono tabular-nums">
+                        Game {stat.matchGame.gameNumber} ·{' '}
+                        {formatCompactDate(
+                          stat.matchGame.playedAt ?? stat.matchGame.match.scheduledAt,
+                        )}
+                      </div>
                     </TableCell>
-                    <TableCell className={delta >= 0 ? 'text-emerald-300' : 'text-rose-300'}>
-                      {delta >= 0 ? '+' : ''}
-                      {formatCurrency(delta)}
+                    <TableCell>{stat.champion}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {stat.kills} / {stat.deaths} / {stat.assists}
                     </TableCell>
-                    <TableCell>{entry.reason ?? 'Ajustement manuel'}</TableCell>
-                    <TableCell>{entry.changedBy?.name ?? 'System'}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {stat.cs.toLocaleString('fr-FR')}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {stat.gold.toLocaleString('fr-FR')}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {stat.damage.toLocaleString('fr-FR')}
+                    </TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        ) : (
-          <p className="text-sm leading-7 text-text-secondary">
-            Aucun historique de valorisation n&apos;est encore disponible pour ce joueur.
-          </p>
-        )}
-      </Card>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm leading-7 text-foreground-dim">
+              Aucune statistique locale n&apos;est encore stockée pour ce joueur.
+            </p>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <p className="label-mono">§ 06 · Historique de valorisation</p>
+        <h2 className="mt-3 display-md text-foreground">
+          {player.marketValueHistory.length.toString().padStart(2, '0')} entrée
+          {player.marketValueHistory.length > 1 ? 's' : ''} consignée
+          {player.marketValueHistory.length > 1 ? 's' : ''}.
+        </h2>
+        <div className="mt-8 border-t border-hairline pt-8">
+          {player.marketValueHistory.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Valeur</TableHead>
+                  <TableHead>Delta</TableHead>
+                  <TableHead>Motif</TableHead>
+                  <TableHead>Par</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {player.marketValueHistory.map((entry) => {
+                  const delta = entry.newValue - entry.previousValue;
+                  const positive = delta >= 0;
+
+                  return (
+                    <TableRow key={entry.id}>
+                      <TableCell className="tabular-nums">
+                        {formatDateTime(entry.changedAt)}
+                      </TableCell>
+                      <TableCell className="font-display tabular-nums text-foreground">
+                        {formatCurrency(entry.newValue)}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          'tabular-nums',
+                          positive
+                            ? 'text-[color:var(--win)]'
+                            : 'text-[color:var(--loss)]',
+                        )}
+                      >
+                        {positive ? '+' : ''}
+                        {formatCurrency(delta)}
+                      </TableCell>
+                      <TableCell>{entry.reason ?? 'Ajustement manuel'}</TableCell>
+                      <TableCell>{entry.changedBy?.name ?? 'System'}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm leading-7 text-foreground-dim">
+              Aucun historique de valorisation n&apos;est encore disponible pour ce joueur.
+            </p>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

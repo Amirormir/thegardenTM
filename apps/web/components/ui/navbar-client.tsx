@@ -3,10 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
-import { ChevronDown, Menu, Shield, UserRound, X } from 'lucide-react';
+import { Diamond, Menu, Search, UserRound, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { buttonVariants } from './button';
 import { NotificationBell } from './notification-bell';
 import { cn } from '@/lib/utils/cn';
 
@@ -20,6 +19,12 @@ interface NavbarUser {
 
 interface NavbarClientProps {
   user: NavbarUser | null;
+  seasonLabel?: string | null;
+}
+
+interface NavItem {
+  href: string;
+  label: string;
 }
 
 function isNavItemActive(pathname: string | null, href: string) {
@@ -27,32 +32,28 @@ function isNavItemActive(pathname: string | null, href: string) {
     return false;
   }
 
-  if (href === '/team') {
-    return pathname === '/team' || (pathname.startsWith('/team/') && !pathname.startsWith('/team/contracts'));
+  if (href === '/') {
+    return pathname === '/';
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function NavbarClient({ user }: NavbarClientProps) {
+function openCommandPalette() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('nexus:command-palette:open'));
+}
+
+export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
 
-  const signInHref = useMemo(() => {
-    if (!pathname) {
-      return '/api/auth/signin';
-    }
-
-    const params = new URLSearchParams({ callbackUrl: pathname });
-    return `/api/auth/signin?${params.toString()}`;
-  }, [pathname]);
-
   useEffect(() => {
     setMobileOpen(false);
-    setOpen(false);
+    setUserMenuOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -80,246 +81,257 @@ export function NavbarClient({ user }: NavbarClientProps) {
       }
     : user;
 
-  const userName = currentUser?.name ?? 'Guest';
+  const userName = currentUser?.name ?? 'Invité';
   const userRole = currentUser?.role ?? 'USER';
   const showAvatar = Boolean(currentUser?.image) && !avatarLoadFailed;
-  const navItems = useMemo(() => {
-    const items = [
-      { href: '/', label: 'Home' },
-      { href: '/transfermarket', label: 'Transfermarket' },
-      { href: '/league', label: 'League' },
+
+  const navItems = useMemo<NavItem[]>(() => {
+    const items: NavItem[] = [
+      { href: '/', label: 'Accueil' },
+      { href: '/league', label: 'Classements' },
+      { href: '/league/matches', label: 'Matchs' },
+      { href: '/transfermarket', label: 'Marché' },
     ];
 
     if (currentUser?.teamId) {
-      items.push(
-        { href: '/team', label: 'Team' },
-        { href: '/team/contracts', label: 'Contracts' },
-      );
+      items.push({ href: '/team', label: 'Équipe' });
     }
 
     return items;
   }, [currentUser?.teamId]);
 
+  const signInHref = useMemo(() => {
+    if (!pathname) {
+      return '/api/auth/signin';
+    }
+    const params = new URLSearchParams({ callbackUrl: pathname });
+    return `/api/auth/signin?${params.toString()}`;
+  }, [pathname]);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#0b0a10]/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6">
+    <header className="sticky top-0 z-40 hairline-b bg-background">
+      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-6 px-6 py-4 md:px-10">
+        {/* Brand */}
         <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-accent-primary/[0.12] bg-accent-primary/[0.08] font-display text-base font-bold text-white shadow-[0_0_24px_rgba(124,58,237,0.16)]">
-            G
-          </div>
-          <div>
-            <div className="font-display text-lg font-bold tracking-tight text-white">Garden</div>
-            <div className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-              League Manager
-            </div>
+          <Diamond className="h-3.5 w-3.5 text-accent" strokeWidth={2.5} />
+          <div className="flex items-center gap-3">
+            <span className="label-mono-strong text-foreground">Nexus · League</span>
+            {seasonLabel ? (
+              <span className="hidden h-3 w-px bg-hairline md:block" aria-hidden />
+            ) : null}
+            {seasonLabel ? (
+              <span className="hidden label-mono md:inline-block">{seasonLabel}</span>
+            ) : null}
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.03] p-1 md:flex">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'rounded-full px-4 py-2 text-sm font-medium transition',
-                isNavItemActive(pathname, item.href)
-                  ? 'bg-white/10 text-white'
-                  : 'text-text-secondary hover:text-white',
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
+        {/* Center nav */}
+        <nav className="hidden flex-1 items-center justify-center gap-6 lg:flex">
+          {navItems.map((item) => {
+            const active = isNavItemActive(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'relative pb-1 text-sm transition-colors duration-150',
+                  active
+                    ? 'text-foreground'
+                    : 'text-foreground-dim hover:text-foreground',
+                )}
+              >
+                {item.label}
+                {active ? (
+                  <span className="absolute inset-x-0 -bottom-px h-px bg-accent" />
+                ) : null}
+              </Link>
+            );
+          })}
         </nav>
 
+        {/* Right cluster */}
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-2.5 text-text-secondary transition hover:text-white md:hidden"
-            onClick={() => setMobileOpen(true)}
+            onClick={openCommandPalette}
+            className="hidden h-9 items-center gap-3 border border-hairline bg-surface px-3 text-sm text-foreground-dim transition-colors duration-150 hover:bg-surface-hover hover:text-foreground md:flex"
+            aria-label="Ouvrir la recherche"
           >
-            <Menu className="h-5 w-5" />
+            <Search className="h-3.5 w-3.5" />
+            <span className="hidden xl:inline">Rechercher joueur, équipe…</span>
+            <span className="label-mono ml-2 hidden border border-hairline px-1.5 py-0.5 md:inline">
+              ⌘ K
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className="border border-hairline bg-surface p-2 text-foreground-dim transition-colors duration-150 hover:bg-surface-hover hover:text-foreground lg:hidden"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Ouvrir le menu"
+          >
+            <Menu className="h-4 w-4" />
           </button>
 
           {currentUser ? <NotificationBell /> : null}
 
-          <div className="relative">
-            {currentUser ? (
-              <>
-                <button
-                  type="button"
-                  className="flex items-center gap-3 rounded-full border border-white/[0.06] bg-white/[0.04] px-4 py-2 text-sm text-white transition hover:border-accent-primary/30"
-                  onClick={() => setOpen((value) => !value)}
-                >
-                  <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/[0.06] bg-accent-primary/20 text-accent-glow">
-                    {showAvatar ? (
-                      <img
-                        src={currentUser?.image ?? undefined}
-                        alt={userName}
-                        className="h-full w-full object-cover"
-                        referrerPolicy="no-referrer"
-                        onError={() => setAvatarLoadFailed(true)}
-                      />
-                    ) : (
-                      <UserRound className="h-4 w-4" />
-                    )}
-                  </span>
-                  <span className="hidden text-left md:block">
-                    <span className="block font-semibold">{userName}</span>
-                    <span className="block text-xs uppercase tracking-[0.06em] text-text-secondary">
-                      {userRole}
-                    </span>
-                  </span>
-                  <ChevronDown className="h-4 w-4 text-text-secondary" />
-                </button>
-                {open ? (
-                  <div className="absolute right-0 mt-3 w-56 rounded-[24px] border border-white/[0.06] bg-[#151421]/95 p-2 shadow-2xl backdrop-blur-xl">
-                    <Link
-                      href="/profile"
-                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
-                      onClick={() => setOpen(false)}
-                    >
-                      Mon profil
-                    </Link>
-                    <Link
-                      href="/notifications"
-                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
-                      onClick={() => setOpen(false)}
-                    >
-                      Notifications
-                    </Link>
-                    {currentUser.teamId ? (
-                      <>
-                        <Link
-                          href="/team"
-                          className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
-                          onClick={() => setOpen(false)}
-                        >
-                          Team Dashboard
-                        </Link>
-                        <Link
-                          href="/team/contracts"
-                          className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
-                          onClick={() => setOpen(false)}
-                        >
-                          Team Contracts
-                        </Link>
-                      </>
-                    ) : null}
-                    {currentUser.role === 'ADMIN' ? (
-                      <Link
-                        href="/admin"
-                        className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
-                        onClick={() => setOpen(false)}
-                      >
-                        Admin Area
-                      </Link>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="mt-1 w-full rounded-2xl px-4 py-3 text-left text-sm text-rose-200 transition hover:bg-rose-500/10"
-                      onClick={() => void signOut({ callbackUrl: '/' })}
-                    >
-                      Disconnect
-                    </button>
+          {currentUser ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen((value) => !value)}
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-hairline bg-surface text-foreground-dim transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
+                aria-label="Menu utilisateur"
+              >
+                {showAvatar ? (
+                  <img
+                    src={currentUser.image ?? undefined}
+                    alt={userName}
+                    className="h-full w-full object-cover"
+                    referrerPolicy="no-referrer"
+                    onError={() => setAvatarLoadFailed(true)}
+                  />
+                ) : (
+                  <UserRound className="h-4 w-4" />
+                )}
+              </button>
+
+              {userMenuOpen ? (
+                <div className="absolute right-0 mt-2 w-60 border border-hairline bg-surface p-2 shadow-lg">
+                  <div className="border-b border-hairline px-3 pb-3 pt-1">
+                    <p className="text-sm text-foreground">{userName}</p>
+                    <p className="mt-1 label-mono">{userRole}</p>
                   </div>
-                ) : null}
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/register"
-                  className={cn(
-                    buttonVariants({ size: 'sm' }),
-                    'inline-flex items-center',
-                  )}
-                >
-                  S&apos;inscrire
-                </Link>
-                <Link
-                  href={signInHref}
-                  className={cn(
-                    buttonVariants({ variant: 'secondary', size: 'sm' }),
-                    'inline-flex items-center',
-                  )}
-                >
-                  <Shield className="h-4 w-4" />
-                  Connexion
-                </Link>
-              </div>
-            )}
-          </div>
+                  <UserMenuLink href="/profile" onClick={() => setUserMenuOpen(false)}>
+                    Mon profil
+                  </UserMenuLink>
+                  <UserMenuLink href="/notifications" onClick={() => setUserMenuOpen(false)}>
+                    Notifications
+                  </UserMenuLink>
+                  {currentUser.teamId ? (
+                    <>
+                      <UserMenuLink href="/team" onClick={() => setUserMenuOpen(false)}>
+                        Espace équipe
+                      </UserMenuLink>
+                      <UserMenuLink
+                        href="/team/contracts"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        Contrats
+                      </UserMenuLink>
+                    </>
+                  ) : null}
+                  {currentUser.role === 'ADMIN' ? (
+                    <UserMenuLink href="/admin" onClick={() => setUserMenuOpen(false)}>
+                      Back-office
+                    </UserMenuLink>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="mt-1 w-full border-t border-hairline px-3 py-3 text-left text-sm text-[color:var(--loss)] transition-colors duration-150 hover:bg-surface-hover"
+                    onClick={() => void signOut({ callbackUrl: '/' })}
+                  >
+                    Déconnexion
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link
+                href={signInHref}
+                className="border border-hairline bg-surface px-4 py-2 text-sm text-foreground transition-colors duration-150 hover:bg-surface-hover"
+              >
+                Connexion
+              </Link>
+              <Link
+                href="/register"
+                className="bg-accent px-4 py-2 text-sm font-medium text-background transition-colors duration-150 hover:bg-accent-dim"
+              >
+                S'inscrire
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Mobile drawer */}
       <AnimatePresence>
         {mobileOpen ? (
           <>
             <motion.div
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-50 bg-background/80 lg:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
               onClick={() => setMobileOpen(false)}
             />
             <motion.nav
-              className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/[0.06] bg-[#0e0d15]/95 backdrop-blur-xl md:hidden"
+              className="fixed inset-y-0 left-0 z-50 flex w-80 flex-col border-r border-hairline bg-surface lg:hidden"
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 26, stiffness: 300 }}
+              transition={{ type: 'tween', duration: 0.2, ease: 'easeOut' }}
             >
-              <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-5">
-                <div className="font-display text-lg font-bold tracking-tight text-white">Garden</div>
+              <div className="flex items-center justify-between border-b border-hairline px-6 py-5">
+                <div className="flex items-center gap-3">
+                  <Diamond className="h-3.5 w-3.5 text-accent" strokeWidth={2.5} />
+                  <span className="label-mono-strong text-foreground">Nexus · League</span>
+                </div>
                 <button
                   type="button"
-                  className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-2 text-text-secondary transition hover:text-white"
+                  className="border border-hairline bg-surface p-2 text-foreground-dim transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
                   onClick={() => setMobileOpen(false)}
+                  aria-label="Fermer le menu"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="flex-1 space-y-1 px-3 py-4">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      'block rounded-2xl px-4 py-3 text-sm font-medium transition',
-                      isNavItemActive(pathname, item.href)
-                        ? 'bg-accent-primary/14 text-white'
-                        : 'text-text-secondary hover:bg-white/[0.04] hover:text-white',
-                    )}
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+              <div className="flex-1 px-3 py-4">
+                {navItems.map((item) => {
+                  const active = isNavItemActive(pathname, item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'block border-l-2 px-4 py-3 text-sm transition-colors duration-150',
+                        active
+                          ? 'border-accent text-foreground'
+                          : 'border-transparent text-foreground-dim hover:bg-surface-hover hover:text-foreground',
+                      )}
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
                 {currentUser?.role === 'ADMIN' ? (
                   <Link
                     href="/admin"
                     className={cn(
-                      'block rounded-2xl px-4 py-3 text-sm font-medium transition',
-                      pathname.startsWith('/admin')
-                        ? 'bg-accent-primary/14 text-white'
-                        : 'text-text-secondary hover:bg-white/[0.04] hover:text-white',
+                      'block border-l-2 px-4 py-3 text-sm transition-colors duration-150',
+                      pathname?.startsWith('/admin')
+                        ? 'border-accent text-foreground'
+                        : 'border-transparent text-foreground-dim hover:bg-surface-hover hover:text-foreground',
                     )}
                     onClick={() => setMobileOpen(false)}
                   >
-                    Admin Area
+                    Back-office
                   </Link>
                 ) : null}
               </div>
 
-              <div className="border-t border-white/[0.06] px-3 py-4">
+              <div className="border-t border-hairline px-3 py-4">
                 {currentUser ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 px-4 py-2">
-                      <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/[0.06] bg-accent-primary/20 text-accent-glow">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-hairline bg-surface text-foreground-dim">
                         {showAvatar ? (
                           <img
-                            src={currentUser?.image ?? undefined}
+                            src={currentUser.image ?? undefined}
                             alt={userName}
                             className="h-full w-full object-cover"
                             referrerPolicy="no-referrer"
@@ -330,58 +342,47 @@ export function NavbarClient({ user }: NavbarClientProps) {
                         )}
                       </span>
                       <div>
-                        <p className="text-sm font-semibold text-white">{userName}</p>
-                        <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                          {userRole}
-                        </p>
+                        <p className="text-sm text-foreground">{userName}</p>
+                        <p className="mt-0.5 label-mono">{userRole}</p>
                       </div>
                     </div>
-                    <Link
-                      href="/profile"
-                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
-                      onClick={() => setMobileOpen(false)}
-                    >
+                    <UserMenuLink href="/profile" onClick={() => setMobileOpen(false)}>
                       Mon profil
-                    </Link>
-                    <Link
-                      href="/notifications"
-                      className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
-                      onClick={() => setMobileOpen(false)}
-                    >
+                    </UserMenuLink>
+                    <UserMenuLink href="/notifications" onClick={() => setMobileOpen(false)}>
                       Notifications
-                    </Link>
+                    </UserMenuLink>
                     {currentUser.teamId ? (
-                      <Link
+                      <UserMenuLink
                         href="/team/contracts"
-                        className="block rounded-2xl px-4 py-3 text-sm text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
                         onClick={() => setMobileOpen(false)}
                       >
-                        Team Contracts
-                      </Link>
+                        Contrats
+                      </UserMenuLink>
                     ) : null}
                     <button
                       type="button"
-                      className="w-full rounded-2xl px-4 py-3 text-left text-sm text-rose-200 transition hover:bg-rose-500/10"
+                      className="mt-1 w-full px-4 py-3 text-left text-sm text-[color:var(--loss)] transition-colors duration-150 hover:bg-surface-hover"
                       onClick={() => void signOut({ callbackUrl: '/' })}
                     >
-                      Disconnect
+                      Déconnexion
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <Link
-                      href="/register"
-                      className="block rounded-2xl bg-accent-primary/14 px-4 py-3 text-center text-sm font-medium text-white transition hover:bg-accent-primary/20"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      S&apos;inscrire
-                    </Link>
+                  <div className="space-y-2 px-3">
                     <Link
                       href={signInHref}
-                      className="block rounded-2xl px-4 py-3 text-center text-sm font-medium text-text-secondary transition hover:bg-white/[0.04] hover:text-white"
+                      className="block border border-hairline bg-surface px-4 py-3 text-center text-sm text-foreground transition-colors duration-150 hover:bg-surface-hover"
                       onClick={() => setMobileOpen(false)}
                     >
                       Connexion
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="block bg-accent px-4 py-3 text-center text-sm font-medium text-background transition-colors duration-150 hover:bg-accent-dim"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      S'inscrire
                     </Link>
                   </div>
                 )}
@@ -391,5 +392,25 @@ export function NavbarClient({ user }: NavbarClientProps) {
         ) : null}
       </AnimatePresence>
     </header>
+  );
+}
+
+function UserMenuLink({
+  href,
+  onClick,
+  children,
+}: {
+  href: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="block px-3 py-2.5 text-sm text-foreground-dim transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
+    >
+      {children}
+    </Link>
   );
 }

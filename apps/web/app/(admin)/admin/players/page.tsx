@@ -3,15 +3,15 @@ import { TRPCProvider } from '@/lib/trpc/provider';
 
 export default function AdminPlayersPage() {
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-kicker">Admin zone</p>
-        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Gestion joueurs</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-text-secondary">
-          Back-office dedie au transfermarket pour piloter les profils, les valorisations
-          historiques et le palmares des joueurs.
+    <div className="flex flex-col gap-16 md:gap-20">
+      <header className="border-b border-hairline pb-8">
+        <p className="breadcrumb-mono">§ · Admin · Joueurs</p>
+        <h1 className="mt-4 display-lg text-foreground">Gestion joueurs.</h1>
+        <p className="mt-4 max-w-3xl text-base leading-7 text-foreground-dim">
+          Back-office dédié au transfermarket pour piloter les profils, les valorisations
+          historiques et le palmarès des joueurs.
         </p>
-      </div>
+      </header>
 
       <TRPCProvider>
         <AdminPlayersManager />

@@ -69,7 +69,7 @@ export function TransferOfferButton({
 
   if (!open) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <Button
           type="button"
           variant="secondary"
@@ -82,10 +82,10 @@ export function TransferOfferButton({
         {feedback ? (
           <div
             className={cn(
-              'rounded-2xl border px-4 py-3 text-sm',
+              'border-l-2 px-4 py-3 text-sm',
               feedback.type === 'success'
-                ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-                : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+                ? 'border-l-[color:var(--win)] bg-surface text-foreground'
+                : 'border-l-[color:var(--loss)] bg-surface text-foreground',
             )}
           >
             {feedback.message}
@@ -96,20 +96,22 @@ export function TransferOfferButton({
   }
 
   return (
-    <div className="rounded-3xl border border-accent-primary/20 bg-accent-primary/5 p-5 space-y-4">
-      <h3 className="font-display text-lg font-bold tracking-tight text-white">
-        Offre de transfert — {playerName}
-      </h3>
-      <p className="text-sm text-text-secondary">
-        Clause liberatoire : <span className="font-display tabular-nums text-white">{formatCurrency(releaseClause)}</span>.
-        Si votre offre atteint ce montant, le transfert est automatique.
+    <div className="border-l-2 border-l-accent border-y border-r border-hairline bg-surface p-6 space-y-5">
+      <div>
+        <p className="label-mono">§ Offre de transfert</p>
+        <h3 className="mt-2 display-md text-foreground">{playerName}</h3>
+      </div>
+      <p className="text-sm leading-6 text-foreground-dim">
+        Clause liberatoire{' '}
+        <span className="font-display tabular-nums text-foreground">
+          {formatCurrency(releaseClause)}
+        </span>
+        . Si votre offre atteint ce montant, le transfert est automatique.
       </p>
 
       <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
-        <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-            Montant de l'offre *
-          </label>
+        <label className="flex flex-col gap-2">
+          <span className="label-mono">Montant de l&apos;offre *</span>
           <Input
             name="offeredFee"
             type="number"
@@ -117,13 +119,11 @@ export function TransferOfferButton({
             required
             placeholder={`Min. suggeree: ${releaseClause}`}
           />
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-            Message (optionnel)
-          </label>
+        </label>
+        <label className="flex flex-col gap-2">
+          <span className="label-mono">Message (optionnel)</span>
           <Input name="message" placeholder="Ex: Offre ferme, negociable..." />
-        </div>
+        </label>
         <div className="flex gap-3 md:col-span-2">
           <Button
             type="submit"
@@ -136,9 +136,9 @@ export function TransferOfferButton({
               )
             }
           >
-            Envoyer l'offre
+            Envoyer l&apos;offre
           </Button>
-          <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+          <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
             Annuler
           </Button>
         </div>
@@ -147,10 +147,10 @@ export function TransferOfferButton({
       {feedback ? (
         <div
           className={cn(
-            'rounded-2xl border px-4 py-3 text-sm',
+            'border-l-2 px-4 py-3 text-sm',
             feedback.type === 'success'
-              ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-              : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+              ? 'border-l-[color:var(--win)] bg-background text-foreground'
+              : 'border-l-[color:var(--loss)] bg-background text-foreground',
           )}
         >
           {feedback.message}

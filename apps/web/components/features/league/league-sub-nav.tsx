@@ -20,21 +20,33 @@ export function LeagueSubNav() {
   }
 
   return (
-    <nav className="flex gap-1 overflow-x-auto border-b border-white/[0.05] pb-3">
-      {LEAGUE_LINKS.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          className={cn(
-            'whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition',
-            isActive(link.href)
-              ? 'bg-white/10 text-white'
-              : 'text-text-secondary hover:bg-white/[0.035] hover:text-white',
-          )}
-        >
-          {link.label}
-        </Link>
-      ))}
+    <nav
+      aria-label="Sections league"
+      className="flex items-center gap-6 overflow-x-auto border-b border-hairline"
+    >
+      {LEAGUE_LINKS.map((link) => {
+        const active = isActive(link.href);
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={cn(
+              'relative whitespace-nowrap pb-3 text-sm transition-colors duration-150',
+              active
+                ? 'text-foreground'
+                : 'text-foreground-dim hover:text-foreground',
+            )}
+          >
+            {link.label}
+            {active ? (
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 -bottom-px h-px bg-accent"
+              />
+            ) : null}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils/cn';
@@ -13,41 +12,51 @@ interface MarketFiltersProps {
 
 export function MarketFilters({ search, role, sort }: MarketFiltersProps) {
   return (
-    <Card className="grid gap-3 md:min-w-[640px] md:grid-cols-[minmax(0,1fr)_180px_180px_auto]">
-      <form action="/transfermarket" className="contents">
+    <form
+      action="/transfermarket"
+      className="grid gap-4 border-y border-hairline bg-surface px-5 py-5 md:grid-cols-[minmax(0,1fr)_180px_200px_auto] md:items-end md:gap-5 md:px-6"
+    >
+      <label className="flex flex-col gap-2">
+        <span className="label-mono">Recherche</span>
         <Input
           name="q"
           variant="search"
-          placeholder="Rechercher un joueur, une team ou un tag"
+          placeholder="Joueur, team ou tag"
           defaultValue={search}
         />
+      </label>
+      <label className="flex flex-col gap-2">
+        <span className="label-mono">Rôle</span>
         <Select name="role" defaultValue={role ?? 'all'}>
-          <option value="all">Tous les roles</option>
+          <option value="all">Tous les rôles</option>
           <option value="TOP">Top</option>
           <option value="JUNGLE">Jungle</option>
           <option value="MID">Mid</option>
           <option value="ADC">ADC</option>
           <option value="SUPPORT">Support</option>
         </Select>
+      </label>
+      <label className="flex flex-col gap-2">
+        <span className="label-mono">Tri</span>
         <Select name="sort" defaultValue={sort ?? 'marketValue-desc'}>
-          <option value="marketValue-desc">Valeur decroissante</option>
+          <option value="marketValue-desc">Valeur décroissante</option>
           <option value="marketValue-asc">Valeur croissante</option>
-          <option value="salary-desc">Salaire decroissant</option>
+          <option value="salary-desc">Salaire décroissant</option>
           <option value="salary-asc">Salaire croissant</option>
           <option value="name-asc">Nom A-Z</option>
         </Select>
-        <div className="flex items-center gap-2">
-          <Button type="submit" size="md">
-            Filtrer
-          </Button>
-          <Link
-            href="/transfermarket"
-            className={cn(buttonVariants({ variant: 'ghost', size: 'md' }))}
-          >
-            Reset
-          </Link>
-        </div>
-      </form>
-    </Card>
+      </label>
+      <div className="flex items-center gap-3">
+        <Button type="submit" size="md">
+          Filtrer
+        </Button>
+        <Link
+          href="/transfermarket"
+          className={cn(buttonVariants({ variant: 'ghost', size: 'md' }))}
+        >
+          Réinitialiser
+        </Link>
+      </div>
+    </form>
   );
 }

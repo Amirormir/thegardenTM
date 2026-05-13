@@ -40,6 +40,13 @@ const recordedPlayerStatSchema = z.object({
   gold: z.number().int().nonnegative(),
   damage: z.number().int().nonnegative(),
   visionScore: z.number().int().nonnegative(),
+  kda: z.number().nonnegative(),
+  csPerMin: z.number().nonnegative(),
+  goldPerMin: z.number().nonnegative(),
+  damagePerMin: z.number().nonnegative(),
+  killParticipation: z.number().min(0).max(1),
+  damageShare: z.number().min(0).max(1),
+  goldShare: z.number().min(0).max(1),
 });
 
 const recordedGameSchema = z

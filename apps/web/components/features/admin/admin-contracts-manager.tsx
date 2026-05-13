@@ -86,16 +86,16 @@ export function AdminContractsManager() {
     <Card className="space-y-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-kicker">Validation</p>
+          <p className="label-mono">Validation</p>
           <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
             Contrats en attente
           </h2>
-          <p className="mt-1 text-sm text-text-secondary">
+          <p className="mt-1 text-sm text-foreground-dim">
             Les contrats soumis par les capitaines doivent etre approuves avant activation.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-text-secondary" />
+          <Filter className="h-4 w-4 text-foreground-dim" />
           <Select
             value={teamFilter}
             onChange={(e) => setTeamFilter(e.target.value)}
@@ -116,8 +116,8 @@ export function AdminContractsManager() {
           className={cn(
             'rounded-2xl border px-4 py-3 text-sm',
             feedback.type === 'success'
-              ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-              : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+              ? 'border-emerald-400/20 bg-emerald-500/10 text-[color:var(--win)]'
+              : 'border-rose-400/20 bg-rose-500/10 text-[color:var(--loss)]',
           )}
         >
           {feedback.message}
@@ -125,7 +125,7 @@ export function AdminContractsManager() {
       ) : null}
 
       {pendingQuery.isLoading ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-foreground-dim">
           <Loader2 className="h-4 w-4 animate-spin" />
           Chargement...
         </div>
@@ -161,7 +161,7 @@ export function AdminContractsManager() {
                     <Badge variant={contract.player.role}>{contract.player.role}</Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="font-display tabular-nums text-xs text-text-secondary">
+                    <span className="font-display tabular-nums text-xs text-foreground-dim">
                       {contract.team.shortCode}
                     </span>{' '}
                     {contract.team.name}
@@ -182,13 +182,13 @@ export function AdminContractsManager() {
                     <span
                       className={cn(
                         'font-display tabular-nums',
-                        budgetDanger ? 'text-rose-400' : 'text-emerald-400',
+                        budgetDanger ? 'text-[color:var(--loss)]' : 'text-[color:var(--win)]',
                       )}
                     >
                       {formatCurrency(budgetRemaining)}
                     </span>
                   </TableCell>
-                  <TableCell className="text-xs text-text-secondary">
+                  <TableCell className="text-xs text-foreground-dim">
                     {formatDateTime(contract.createdAt)}
                   </TableCell>
                   <TableCell>
@@ -226,7 +226,7 @@ export function AdminContractsManager() {
           </TableBody>
         </Table>
       ) : (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-foreground-dim">
           <Clock className="h-4 w-4" />
           Aucun contrat en attente de validation.
         </div>
@@ -234,10 +234,10 @@ export function AdminContractsManager() {
 
       {rejectingId ? (
         <div className="rounded-3xl border border-rose-400/20 bg-rose-500/8 p-5 space-y-4">
-          <h3 className="font-display text-xl font-bold tracking-tight text-rose-100">Rejeter le contrat</h3>
+          <h3 className="font-display text-xl font-bold tracking-tight text-[color:var(--loss)]">Rejeter le contrat</h3>
           <form className="grid gap-4 md:grid-cols-[1fr_auto]" onSubmit={handleReject}>
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                 Motif (optionnel)
               </label>
               <Input name="reason" placeholder="Ex: Budget insuffisant, doublon..." />

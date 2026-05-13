@@ -1,17 +1,59 @@
+/* ----------------------------------------------------------------------------
+ * Tailwind 4 theme — Nexus League editorial palette
+ *
+ * Exposes the editorial CSS variables (defined in apps/web/app/globals.css)
+ * as Tailwind utility tokens. Use `bg-surface`, `text-foreground-dim`,
+ * `border-hairline`, etc. in components.
+ *
+ * Legacy Tailwind tokens (`bg-bg-primary`, `text-text-secondary`,
+ * `bg-accent-primary`) are kept as aliases pointing to the new vars so we
+ * can migrate component-by-component in phase 2/3 without breaking builds.
+ * -------------------------------------------------------------------------- */
+
 @theme inline {
-  --color-bg-primary: var(--bg-primary);
-  --color-bg-secondary: var(--bg-secondary);
-  --color-bg-elevated: var(--bg-elevated);
-  --color-accent-primary: var(--accent-primary);
-  --color-accent-glow: var(--accent-glow);
-  --color-accent-gold: var(--accent-gold);
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
+  /* --- Editorial palette (preferred names) ----------------------------- */
+  --color-background: var(--bg);
+  --color-surface: var(--bg-elev);
+  --color-surface-hover: var(--bg-hover);
+
+  --color-hairline: var(--border);
+  --color-hairline-strong: var(--border-strong);
+
+  --color-foreground: var(--text);
+  --color-foreground-dim: var(--text-dim);
+  --color-foreground-muted: var(--text-muted);
+
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--accent-dim);
+
+  --color-role-top: var(--role-top);
+  --color-role-jg: var(--role-jg);
+  --color-role-mid: var(--role-mid);
+  --color-role-adc: var(--role-adc);
+  --color-role-sup: var(--role-sup);
+
+  --color-win: var(--win);
+  --color-loss: var(--loss);
+
+  /* --- Editorial fonts ------------------------------------------------- */
+  --font-display: var(--font-instrument-serif);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* --- Editorial radii (mostly square, light rounding for pills) ------- */
+  --radius-pill: 999px;
+
+  /* --- Legacy aliases (migration safety net) --------------------------- */
+  --color-bg-primary: var(--bg);
+  --color-bg-secondary: var(--bg-elev);
+  --color-bg-elevated: var(--bg-elev);
+  --color-accent-primary: var(--accent);
+  --color-accent-glow: var(--accent);
+  --color-accent-gold: var(--accent);
+  --color-text-primary: var(--text);
+  --color-text-secondary: var(--text-dim);
   --color-text-muted: var(--text-muted);
-  --color-border-subtle: var(--border-subtle);
-  --font-display: var(--font-satoshi);
-  --font-body: var(--font-inter);
-  --font-mono: var(--font-satoshi);
-  --shadow-glow: 0 0 40px rgba(168, 85, 247, 0.35);
-  --shadow-glow-gold: 0 0 40px rgba(245, 158, 11, 0.28);
+  --color-border-subtle: var(--border);
+  --shadow-glow: none;
+  --shadow-glow-gold: none;
 }

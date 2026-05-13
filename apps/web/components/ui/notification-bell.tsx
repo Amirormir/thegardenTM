@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, ExternalLink } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { api } from '@/lib/trpc/react';
@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils/cn';
 
 function timeAgo(date: Date) {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (seconds < 60) return "a l'instant";
+  if (seconds < 60) return "À l'instant";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
@@ -16,14 +16,14 @@ function timeAgo(date: Date) {
   return `${Math.floor(hours / 24)}j`;
 }
 
-const TYPE_ICON: Record<string, string> = {
-  TRANSFER_OFFER_RECEIVED: '📩',
-  TRANSFER_ACCEPTED: '✅',
-  TRANSFER_REJECTED: '❌',
-  TRANSFER_COUNTER_PROPOSED: '🔄',
-  TRANSFER_AUTO_ACCEPTED: '⚡',
-  TRANSFER_CLAUSE_TRIGGERED: '⚠️',
-  CONTRACT_APPROVED: '📋',
+const TYPE_LABEL: Record<string, string> = {
+  TRANSFER_OFFER_RECEIVED: 'Offre',
+  TRANSFER_ACCEPTED: 'Accepté',
+  TRANSFER_REJECTED: 'Refusé',
+  TRANSFER_COUNTER_PROPOSED: 'Contre-offre',
+  TRANSFER_AUTO_ACCEPTED: 'Auto',
+  TRANSFER_CLAUSE_TRIGGERED: 'Clause',
+  CONTRACT_APPROVED: 'Contrat',
 };
 
 export function NotificationBell() {
@@ -42,7 +42,6 @@ export function NotificationBell() {
   const unreadCount = countQuery.data ?? 0;
   const notifications = allQuery.data ?? [];
 
-  // Close on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -58,15 +57,11 @@ export function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
-  // Auto-mark all as read 2s after opening if there are unread
   useEffect(() => {
     if (open && unreadCount > 0) {
       autoReadTimer.current = setTimeout(async () => {
         await markAllRead.mutateAsync({});
-        await Promise.all([
-          countQuery.refetch(),
-          allQuery.refetch(),
-        ]);
+        await Promise.all([countQuery.refetch(), allQuery.refetch()]);
       }, 2000);
     }
     return () => {
@@ -80,7 +75,6 @@ export function NotificationBell() {
   }
 
   async function handleLinkClick() {
-    // Invalidate on navigate
     setOpen(false);
     await utils.notification.getUnreadCount.invalidate();
   }
@@ -90,13 +84,16 @@ export function NotificationBell() {
       <button
         ref={buttonRef}
         type="button"
-        className="relative rounded-2xl border border-white/[0.05] bg-white/[0.035] p-2.5 text-text-secondary transition hover:bg-white/10 hover:text-white"
+        className="relative inline-flex h-9 w-9 items-center justify-center border border-hairline bg-surface text-foreground-dim transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
         onClick={handleToggle}
         aria-label="Notifications"
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 ? (
-          <span className="absolute -right-1 -top-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-accent-primary text-[0.6rem] font-bold text-white animate-in zoom-in-50 duration-150">
+          <span
+            className="absolute -right-1 -top-1 inline-flex h-4 min-w-[1rem] items-center justify-center bg-accent px-1 text-[10px] font-medium text-background tabular-nums"
+            aria-label={`${unreadCount} notifications non lues`}
+          >
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         ) : null}
@@ -105,17 +102,16 @@ export function NotificationBell() {
       {open ? (
         <div
           ref={panelRef}
-          className="absolute right-0 top-full z-50 mt-2 w-80 rounded-3xl border border-white/[0.05] bg-[#12121A]/95 shadow-2xl backdrop-blur-xl"
+          className="absolute right-0 top-full z-50 mt-2 w-80 border border-hairline bg-surface"
         >
-          <div className="flex items-center justify-between border-b border-white/[0.05] px-4 py-3">
-            <p className="text-sm font-semibold text-white">Notifications</p>
+          <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
+            <p className="label-mono-strong text-foreground">Notifications</p>
             <Link
               href="/notifications"
-              className="flex items-center gap-1 text-xs text-accent-glow transition hover:text-white"
+              className="label-mono text-foreground-muted transition-colors duration-150 hover:text-accent"
               onClick={handleLinkClick}
             >
-              <ExternalLink className="h-3 w-3" />
-              Historique
+              Historique →
             </Link>
           </div>
 
@@ -125,22 +121,24 @@ export function NotificationBell() {
                 <div
                   key={notif.id}
                   className={cn(
-                    'flex items-start gap-3 border-b border-white/5 px-4 py-3 transition hover:bg-white/[0.035]',
-                    !notif.isRead && 'bg-accent-primary/5',
+                    'flex items-start gap-3 border-b border-hairline px-4 py-3 transition-colors duration-150 hover:bg-surface-hover',
+                    !notif.isRead && 'border-l-2 border-l-accent pl-[14px]',
                   )}
                 >
-                  <span className="mt-0.5 text-base leading-none">
-                    {TYPE_ICON[notif.type] ?? '🔔'}
+                  <span className="mt-0.5 label-mono text-foreground-muted whitespace-nowrap">
+                    {TYPE_LABEL[notif.type] ?? 'Info'}
                   </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white truncate">{notif.title}</p>
-                    <p className="mt-0.5 text-xs text-text-secondary line-clamp-2">{notif.message}</p>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <span className="text-[0.65rem] text-text-muted">{timeAgo(notif.createdAt)}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-foreground">{notif.title}</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-foreground-dim">
+                      {notif.message}
+                    </p>
+                    <div className="mt-1.5 flex items-center gap-3 label-mono text-foreground-muted">
+                      <span>{timeAgo(notif.createdAt)}</span>
                       {notif.link ? (
                         <Link
                           href={notif.link}
-                          className="text-[0.65rem] text-accent-glow hover:underline"
+                          className="text-foreground-dim transition-colors duration-150 hover:text-accent"
                           onClick={() => setOpen(false)}
                         >
                           Voir
@@ -148,22 +146,19 @@ export function NotificationBell() {
                       ) : null}
                     </div>
                   </div>
-                  {!notif.isRead ? (
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-primary" />
-                  ) : null}
                 </div>
               ))
             ) : (
-              <div className="px-4 py-6 text-center text-xs text-text-secondary">
+              <div className="px-4 py-8 text-center text-xs text-foreground-muted">
                 Aucune notification.
               </div>
             )}
           </div>
 
-          <div className="border-t border-white/[0.05] px-4 py-2.5 text-center">
+          <div className="border-t border-hairline px-4 py-3 text-center">
             <Link
               href="/notifications"
-              className="text-xs text-text-secondary transition hover:text-white"
+              className="label-mono text-foreground-muted transition-colors duration-150 hover:text-accent"
               onClick={handleLinkClick}
             >
               Voir tout l'historique →

@@ -63,7 +63,7 @@ export function FreeAgentSignButton({
 
   if (!open) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <Button
           type="button"
           variant="secondary"
@@ -76,10 +76,10 @@ export function FreeAgentSignButton({
         {feedback ? (
           <div
             className={cn(
-              'rounded-2xl border px-4 py-3 text-sm',
+              'border-l-2 px-4 py-3 text-sm',
               feedback.type === 'success'
-                ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-                : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+                ? 'border-l-[color:var(--win)] bg-surface text-foreground'
+                : 'border-l-[color:var(--loss)] bg-surface text-foreground',
             )}
           >
             {feedback.message}
@@ -90,39 +90,32 @@ export function FreeAgentSignButton({
   }
 
   return (
-    <div className="rounded-3xl border border-emerald-400/20 bg-emerald-500/5 p-5 space-y-4">
-      <h3 className="font-display text-lg font-bold tracking-tight text-white">
-        Signer le free agent — {playerName}
-      </h3>
-      <p className="text-sm text-text-secondary">
+    <div className="border-l-2 border-l-accent border-y border-r border-hairline bg-surface p-6 space-y-5">
+      <div>
+        <p className="label-mono">§ Signature free agent</p>
+        <h3 className="mt-2 display-md text-foreground">{playerName}</h3>
+      </div>
+      <p className="text-sm leading-6 text-foreground-dim">
         Ce joueur est libre. Proposez un contrat directement — il sera soumis a validation admin.
       </p>
 
       <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
-        <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-            Salaire *
-          </label>
+        <label className="flex flex-col gap-2">
+          <span className="label-mono">Salaire *</span>
           <Input name="salary" type="number" min={0} required placeholder="Ex: 150000" />
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-            Duree (nombre de BO3) *
-          </label>
+        </label>
+        <label className="flex flex-col gap-2">
+          <span className="label-mono">Duree (BO3) *</span>
           <Input name="durationBo3" type="number" min={1} required placeholder="Ex: 10" />
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-            Clause liberatoire *
-          </label>
+        </label>
+        <label className="flex flex-col gap-2">
+          <span className="label-mono">Clause liberatoire *</span>
           <Input name="releaseClause" type="number" min={1} required placeholder="Obligatoire" />
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-            Notes
-          </label>
+        </label>
+        <label className="flex flex-col gap-2">
+          <span className="label-mono">Notes</span>
           <Input name="notes" placeholder="Optionnel" />
-        </div>
+        </label>
         <div className="flex gap-3 md:col-span-2">
           <Button
             type="submit"
@@ -137,7 +130,7 @@ export function FreeAgentSignButton({
           >
             Soumettre le contrat
           </Button>
-          <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+          <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
             Annuler
           </Button>
         </div>
@@ -146,10 +139,10 @@ export function FreeAgentSignButton({
       {feedback ? (
         <div
           className={cn(
-            'rounded-2xl border px-4 py-3 text-sm',
+            'border-l-2 px-4 py-3 text-sm',
             feedback.type === 'success'
-              ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-              : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+              ? 'border-l-[color:var(--win)] bg-background text-foreground'
+              : 'border-l-[color:var(--loss)] bg-background text-foreground',
           )}
         >
           {feedback.message}

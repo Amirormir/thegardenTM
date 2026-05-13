@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface RoleBudgetEntry {
@@ -11,25 +12,54 @@ interface BudgetPieChartProps {
   roleBudget: RoleBudgetEntry[];
 }
 
-const ROLE_COLORS: Record<string, string> = {
-  TOP: '#38bdf8',
-  JUNGLE: '#34d399',
-  MID: '#a78bfa',
-  ADC: '#fbbf24',
-  SUPPORT: '#e879f9',
+const ROLE_VAR: Record<string, string> = {
+  TOP: '--role-top',
+  JUNGLE: '--role-jg',
+  MID: '--role-mid',
+  ADC: '--role-adc',
+  SUPPORT: '--role-sup',
 };
 
-function getColor(role: string) {
-  return ROLE_COLORS[role] ?? '#94a3b8';
+function useThemeColors() {
+  const [colors, setColors] = useState({
+    TOP: '#94a3b8',
+    JUNGLE: '#94a3b8',
+    MID: '#94a3b8',
+    ADC: '#94a3b8',
+    SUPPORT: '#94a3b8',
+    border: '#1a1a1a',
+    surface: '#0a0a0a',
+    text: '#fafafa',
+    textMuted: '#737373',
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const s = getComputedStyle(root);
+    setColors({
+      TOP: s.getPropertyValue(ROLE_VAR.TOP!).trim() || '#94a3b8',
+      JUNGLE: s.getPropertyValue(ROLE_VAR.JUNGLE!).trim() || '#94a3b8',
+      MID: s.getPropertyValue(ROLE_VAR.MID!).trim() || '#94a3b8',
+      ADC: s.getPropertyValue(ROLE_VAR.ADC!).trim() || '#94a3b8',
+      SUPPORT: s.getPropertyValue(ROLE_VAR.SUPPORT!).trim() || '#94a3b8',
+      border: s.getPropertyValue('--border').trim() || '#1a1a1a',
+      surface: s.getPropertyValue('--bg-elev').trim() || '#0a0a0a',
+      text: s.getPropertyValue('--text').trim() || '#fafafa',
+      textMuted: s.getPropertyValue('--text-muted').trim() || '#737373',
+    });
+  }, []);
+
+  return colors;
 }
 
 export function BudgetPieChart({ roleBudget }: BudgetPieChartProps) {
+  const colors = useThemeColors();
   const filtered = roleBudget.filter((entry) => entry.value > 0);
 
   if (filtered.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
-        Aucune donnee de budget par role.
+      <div className="border border-hairline bg-surface px-4 py-4 text-sm text-foreground-dim">
+        Aucune donnée de budget par rôle.
       </div>
     );
   }
@@ -50,20 +80,24 @@ export function BudgetPieChart({ roleBudget }: BudgetPieChartProps) {
             labelLine={false}
           >
             {filtered.map((entry) => (
-              <Cell key={entry.role} fill={getColor(entry.role)} fillOpacity={0.7} />
+              <Cell
+                key={entry.role}
+                fill={colors[entry.role as keyof typeof colors] ?? colors.text}
+                fillOpacity={0.85}
+              />
             ))}
           </Pie>
           <Tooltip
             contentStyle={{
-              backgroundColor: 'rgba(15, 14, 21, 0.95)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '16px',
-              color: '#fff',
-              fontSize: '13px',
-              backdropFilter: 'blur(12px)',
+              backgroundColor: colors.surface,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 0,
+              color: colors.text,
+              fontSize: '12px',
+              fontFamily: 'var(--font-geist-mono)',
             }}
             formatter={(value: number) => [new Intl.NumberFormat('fr-FR').format(value), 'Salaire']}
-            labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
+            labelStyle={{ color: colors.textMuted }}
           />
         </PieChart>
       </ResponsiveContainer>

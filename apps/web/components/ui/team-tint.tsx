@@ -11,9 +11,9 @@ export interface TeamTintColor {
 }
 
 const DEFAULT_TEAM_TINT: TeamTintColor = {
-  r: 124,
-  g: 58,
-  b: 237,
+  r: 200,
+  g: 168,
+  b: 96,
 };
 
 function toRgba(color: TeamTintColor, alpha: number) {
@@ -192,44 +192,37 @@ interface TeamTintCardProps extends HTMLAttributes<HTMLDivElement> {
   logoUrl?: string | null | undefined;
 }
 
+/**
+ * Editorial team card: flat surface with a 2px tinted left-border drawn
+ * from the team's dominant logo color. Replaces the old glassmorphism
+ * gradient treatment with a magazine-style sidebar accent.
+ */
 export function TeamTintCard({
   children,
   className,
   contentClassName,
-  elevated = false,
+  elevated: _elevated = false,
   logoUrl,
   style,
   ...props
 }: TeamTintCardProps) {
+  void _elevated;
   const { dominantColor } = useTeamTint(logoUrl);
 
   const cardStyle: CSSProperties = {
-    background: elevated
-      ? `linear-gradient(180deg, ${toRgba(dominantColor, 0.14)} 0%, transparent 52%), linear-gradient(145deg, ${toRgba(dominantColor, 0.1)} 0%, rgba(16, 15, 23, 0.88) 60%, rgba(255, 255, 255, 0.035) 100%)`
-      : `linear-gradient(145deg, ${toRgba(dominantColor, 0.1)} 0%, rgba(18, 18, 26, 0.84) 62%, rgba(255, 255, 255, 0.035) 100%)`,
-    borderColor: toRgba(dominantColor, elevated ? 0.14 : 0.08),
-    boxShadow: elevated
-      ? `0 30px 80px rgba(0, 0, 0, 0.45), 0 0 32px ${toRgba(dominantColor, 0.08)}`
-      : `var(--glass-shadow), 0 0 24px ${toRgba(dominantColor, 0.06)}`,
-    backdropFilter: `blur(${elevated ? 20 : 16}px) saturate(180%)`,
+    borderLeftColor: toRgba(dominantColor, 0.9),
     ...style,
-  };
-
-  const glowStyle: CSSProperties = {
-    background: `radial-gradient(circle at top right, ${toRgba(dominantColor, elevated ? 0.22 : 0.14)} 0%, transparent 42%)`,
   };
 
   return (
     <div
       className={cn(
-        'relative overflow-hidden border p-5 transition duration-300 hover:-translate-y-0.5',
-        elevated ? 'rounded-[1.5rem]' : 'rounded-[1.25rem]',
+        'relative border border-hairline border-l-2 bg-surface p-5 transition-colors duration-150 hover:bg-surface-hover',
         className,
       )}
       style={cardStyle}
       {...props}
     >
-      <div className="pointer-events-none absolute inset-0 opacity-90" style={glowStyle} />
       <div className={cn('relative', contentClassName)}>{children}</div>
     </div>
   );
@@ -240,6 +233,10 @@ interface TeamTintMediaFrameProps extends HTMLAttributes<HTMLDivElement> {
   logoUrl?: string | null | undefined;
 }
 
+/**
+ * Square media frame for team logos / illustrations. Flat surface with a
+ * hairline border tinted by the dominant logo color.
+ */
 export function TeamTintMediaFrame({
   children,
   className,
@@ -250,18 +247,13 @@ export function TeamTintMediaFrame({
   const { dominantColor } = useTeamTint(logoUrl);
 
   const mediaStyle: CSSProperties = {
-    background: `linear-gradient(145deg, ${toRgba(dominantColor, 0.14)} 0%, rgba(255, 255, 255, 0.04) 100%)`,
-    borderColor: toRgba(dominantColor, 0.1),
-    boxShadow: `0 0 28px ${toRgba(dominantColor, 0.1)}`,
+    borderColor: toRgba(dominantColor, 0.4),
     ...style,
   };
 
   return (
     <div
-      className={cn(
-        'overflow-hidden border ring-1 ring-white/[0.06]',
-        className,
-      )}
+      className={cn('overflow-hidden border bg-surface', className)}
       style={mediaStyle}
       {...props}
     >

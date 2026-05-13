@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { FightMatchCard } from '@/components/features/league/fight-match-card';
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils/cn';
 import { getServerCaller } from '@/server/caller';
 
@@ -30,40 +29,54 @@ export default async function HistoriquePage({ searchParams }: HistoriquePagePro
   const upcomingMatches = matches.filter((m) => !m.isCompleted);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-kicker">League</p>
-        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Historique</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
-          Resultats et calendrier de la saison. Selectionnez une saison pour consulter
-          l&apos;historique complet.
+    <div className="flex flex-col gap-20 md:gap-24">
+      <header className="border-b border-hairline pb-8">
+        <p className="breadcrumb-mono">§ 04 · Historique</p>
+        <h1 className="mt-4 display-lg text-foreground">Résultats &amp; calendrier.</h1>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-foreground-dim">
+          Toutes les rencontres consignées saison après saison. Sélectionnez une édition
+          pour basculer sur ses matchs joués et à venir.
         </p>
-      </div>
 
-      <div className="flex flex-wrap gap-2">
-        {seasons.map((season) => (
-          <Link
-            key={season.id}
-            href={`/league/historique?season=${season.id}`}
-            className={cn(
-              'rounded-full px-4 py-2 text-sm font-semibold transition',
-              season.id === activeSeasonId
-                ? 'bg-white text-[#12111a]'
-                : 'border border-white/[0.05] bg-white/[0.035] text-white/78 hover:bg-white/8 hover:text-white',
-            )}
-          >
-            {season.name}
-            {season.isCurrent ? ' (courante)' : ''}
-          </Link>
-        ))}
-      </div>
+        <nav
+          aria-label="Saisons"
+          className="mt-8 flex flex-wrap items-center gap-6 border-b border-hairline"
+        >
+          {seasons.map((season) => {
+            const active = season.id === activeSeasonId;
+            return (
+              <Link
+                key={season.id}
+                href={`/league/historique?season=${season.id}`}
+                className={cn(
+                  'relative whitespace-nowrap pb-3 text-sm transition-colors duration-150',
+                  active ? 'text-foreground' : 'text-foreground-dim hover:text-foreground',
+                )}
+              >
+                {season.name}
+                {season.isCurrent ? (
+                  <span className="ml-2 label-mono">(courante)</span>
+                ) : null}
+                {active ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-x-0 -bottom-px h-px bg-accent"
+                  />
+                ) : null}
+              </Link>
+            );
+          })}
+        </nav>
+      </header>
 
       {completedMatches.length > 0 ? (
-        <section className="space-y-4">
-          <h2 className="font-display text-2xl font-bold tracking-tight text-white">
-            Resultats — {activeSeasonName}
+        <section>
+          <p className="label-mono">§ Résultats · {activeSeasonName}</p>
+          <h2 className="mt-3 display-md text-foreground">
+            {completedMatches.length.toString().padStart(2, '0')} match
+            {completedMatches.length > 1 ? 's' : ''} joué{completedMatches.length > 1 ? 's' : ''}.
           </h2>
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="mt-8 grid gap-5 xl:grid-cols-2">
             {completedMatches.map((match) => (
               <FightMatchCard key={match.id} match={match} />
             ))}
@@ -72,11 +85,13 @@ export default async function HistoriquePage({ searchParams }: HistoriquePagePro
       ) : null}
 
       {upcomingMatches.length > 0 ? (
-        <section className="space-y-4">
-          <h2 className="font-display text-2xl font-bold tracking-tight text-white">
-            Matchs a venir — {activeSeasonName}
+        <section>
+          <p className="label-mono">§ À venir · {activeSeasonName}</p>
+          <h2 className="mt-3 display-md text-foreground">
+            {upcomingMatches.length.toString().padStart(2, '0')} match
+            {upcomingMatches.length > 1 ? 's' : ''} programmé{upcomingMatches.length > 1 ? 's' : ''}.
           </h2>
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="mt-8 grid gap-5 xl:grid-cols-2">
             {upcomingMatches.map((match) => (
               <FightMatchCard key={match.id} match={match} />
             ))}
@@ -85,16 +100,16 @@ export default async function HistoriquePage({ searchParams }: HistoriquePagePro
       ) : null}
 
       {completedMatches.length === 0 && upcomingMatches.length === 0 ? (
-        <Card className="space-y-3">
-          <p className="text-kicker">Aucun match</p>
-          <h2 className="font-display text-2xl font-bold tracking-tight text-white">
-            Aucun match enregistre pour cette saison
+        <section className="border-y border-hairline py-12">
+          <p className="label-mono">Aucun match</p>
+          <h2 className="mt-3 display-md text-foreground">
+            Aucune rencontre enregistrée pour {activeSeasonName}.
           </h2>
-          <p className="max-w-2xl text-sm leading-7 text-text-secondary">
-            Les matchs apparaitront ici une fois qu&apos;ils auront ete programmes par
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-foreground-dim">
+            Les matchs apparaîtront ici une fois qu&apos;ils auront été programmés par
             l&apos;admin.
           </p>
-        </Card>
+        </section>
       ) : null}
     </div>
   );

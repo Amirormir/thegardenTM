@@ -1,8 +1,12 @@
 import { auth } from '@/lib/auth';
+import { getServerCaller } from '@/server/caller';
 import { NavbarClient } from './navbar-client';
 
 export async function Navbar() {
-  const session = await auth();
+  const [session, caller] = await Promise.all([auth(), getServerCaller()]);
+
+  const season = await caller.league.getCurrentSeason().catch(() => null);
+  const seasonLabel = season?.name ?? null;
 
   return (
     <NavbarClient
@@ -17,6 +21,7 @@ export async function Navbar() {
             }
           : null
       }
+      seasonLabel={seasonLabel}
     />
   );
 }

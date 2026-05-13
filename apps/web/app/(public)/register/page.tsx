@@ -6,7 +6,6 @@ import { signIn } from 'next-auth/react';
 import { Loader2, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils/cn';
 import { api } from '@/lib/trpc/react';
@@ -50,46 +49,44 @@ export default function RegisterPage() {
       } else {
         setFeedback({
           type: 'success',
-          message: 'Compte cree. Vous pouvez maintenant vous connecter.',
+          message: 'Compte créé. Vous pouvez maintenant vous connecter.',
         });
         setSigningIn(false);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "L'inscription a echoue.";
+      const message = error instanceof Error ? error.message : "L'inscription a échoué.";
       setFeedback({ type: 'error', message });
       setSigningIn(false);
     }
   }
 
   return (
-    <div className="mx-auto max-w-md py-12">
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-accent-primary/20 bg-accent-primary/12">
-          <UserPlus className="h-7 w-7 text-accent-glow" />
-        </div>
-        <h1 className="font-display text-2xl tracking-tight font-bold text-white">Creer un compte</h1>
-        <p className="mt-2 text-sm text-text-secondary">
-          Rejoignez la ligue et commencez a suivre le transfermarket.
+    <div className="mx-auto flex max-w-md flex-col gap-12 py-12">
+      <header className="border-b border-hairline pb-8">
+        <p className="breadcrumb-mono">§ · Compte · Inscription</p>
+        <h1 className="mt-4 display-lg text-foreground">Créer un compte.</h1>
+        <p className="mt-4 text-base leading-7 text-foreground-dim">
+          Rejoignez la ligue et commencez à suivre le transfermarket.
         </p>
-      </div>
+      </header>
 
-      <Card className="space-y-6">
+      <section className="flex flex-col gap-8">
         {feedback ? (
           <div
             className={cn(
-              'rounded-2xl border px-4 py-3 text-sm',
+              'border-l-2 border-y border-r border-hairline bg-surface px-5 py-4 label-mono',
               feedback.type === 'success'
-                ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-                : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+                ? 'border-l-[color:var(--win)] text-[color:var(--win)]'
+                : 'border-l-[color:var(--loss)] text-[color:var(--loss)]',
             )}
           >
             {feedback.message}
           </div>
         ) : null}
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="space-y-2">
-            <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Nom</label>
+        <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+          <div className="flex flex-col gap-2">
+            <label className="label-mono">Nom</label>
             <Input
               required
               placeholder="Votre nom"
@@ -98,8 +95,8 @@ export default function RegisterPage() {
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Email</label>
+          <div className="flex flex-col gap-2">
+            <label className="label-mono">Email</label>
             <Input
               required
               type="email"
@@ -109,28 +106,24 @@ export default function RegisterPage() {
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-              Mot de passe
-            </label>
+          <div className="flex flex-col gap-2">
+            <label className="label-mono">Mot de passe</label>
             <Input
               required
               type="password"
-              placeholder="8 caracteres minimum"
+              placeholder="8 caractères minimum"
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-              Confirmer le mot de passe
-            </label>
+          <div className="flex flex-col gap-2">
+            <label className="label-mono">Confirmer le mot de passe</label>
             <Input
               required
               type="password"
-              placeholder="Repetez le mot de passe"
+              placeholder="Répétez le mot de passe"
               minLength={8}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -149,20 +142,17 @@ export default function RegisterPage() {
               )
             }
           >
-            {isPending ? 'Creation en cours...' : "S'inscrire"}
+            {isPending ? 'Création en cours…' : "S'inscrire"}
           </Button>
         </form>
 
-        <div className="text-center text-sm text-text-secondary">
-          Deja un compte ?{' '}
-          <Link
-            href="/api/auth/signin"
-            className="font-semibold text-accent-glow transition hover:text-white"
-          >
+        <div className="border-t border-hairline pt-6 label-mono text-foreground-dim">
+          Déjà un compte ?{' '}
+          <Link href="/api/auth/signin" className="text-accent transition hover:text-foreground">
             Se connecter
           </Link>
         </div>
-      </Card>
+      </section>
     </div>
   );
 }

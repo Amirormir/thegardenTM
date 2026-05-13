@@ -1,6 +1,6 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { ChampionIcon } from '@/components/ui/champion-icon';
 import {
   Table,
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table';
 import { PlayerLink } from '@/components/ui/player-link';
 import { TeamAvatar } from '@/components/ui/team-avatar';
+import { cn } from '@/lib/utils/cn';
 import { formatDateTime } from '@/lib/utils/format';
 import { getServerCaller } from '@/server/caller';
 
@@ -19,12 +20,26 @@ interface MatchDetailPageProps {
   params: Promise<{
     matchId: string;
   }>;
+  searchParams: Promise<{
+    game?: string | string[];
+  }>;
 }
 
 export const revalidate = 60;
 
-export default async function MatchDetailPage({ params }: MatchDetailPageProps) {
+function parseSelectedGameNumber(value: string | string[] | undefined) {
+  const raw = typeof value === 'string' ? value : Array.isArray(value) ? value[0] : undefined;
+  if (!raw) return null;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+export default async function MatchDetailPage({
+  params,
+  searchParams,
+}: MatchDetailPageProps) {
   const { matchId } = await params;
+  const search = await searchParams;
   const caller = await getServerCaller();
 
   let match: Awaited<ReturnType<typeof caller.match.getById>>;
@@ -34,129 +49,206 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
     notFound();
   }
 
+  const homeWon = match.homeScore > match.awayScore;
+  const awayWon = match.awayScore > match.homeScore;
+
+  const requestedGame = parseSelectedGameNumber(search.game);
+  const selectedGame =
+    match.games.find((game) => game.gameNumber === requestedGame) ??
+    match.games[0] ??
+    null;
+
   return (
-    <div className="space-y-8">
-      <Card elevated className="space-y-6">
-        <p className="text-kicker">
-          {match.format} — {match.season.name} — {formatDateTime(match.scheduledAt)}
+    <div className="flex flex-col gap-20 md:gap-24">
+      <header className="border-b border-hairline pb-10">
+        <p className="breadcrumb-mono">
+          § · Matchs · {match.homeTeam.shortCode}–{match.awayTeam.shortCode}
         </p>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-6">
-          <div className="flex flex-col items-center gap-3 text-center">
+
+        <p className="mt-6 label-mono tabular-nums">
+          {match.format} · {match.season.name} · {formatDateTime(match.scheduledAt)}
+        </p>
+
+        <div className="mt-8 grid grid-cols-[1fr_auto_1fr] items-end gap-6 md:gap-10">
+          <div className="flex flex-col gap-4">
             <TeamAvatar
               name={match.homeTeam.name}
               shortCode={match.homeTeam.shortCode}
               logoUrl={match.homeTeam.logoUrl}
               size="lg"
+              className="h-16 w-16 md:h-20 md:w-20"
             />
             <div>
-              <p className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
+              <p
+                className={cn(
+                  'font-display text-3xl tracking-tight md:text-4xl',
+                  homeWon ? 'text-foreground' : 'text-foreground-dim',
+                )}
+              >
                 {match.homeTeam.name}
               </p>
-              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                {match.homeTeam.shortCode}
-              </p>
+              <p className="mt-1 label-mono">{match.homeTeam.shortCode}</p>
             </div>
           </div>
-          <div className="rounded-[24px] border border-white/[0.05] bg-black/20 px-6 py-4 text-center">
-            <p className="font-display text-2xl font-bold tracking-tight text-white">
-              {match.homeScore} - {match.awayScore}
+
+          <div className="flex flex-col items-center gap-2 px-4">
+            <p className="font-display text-6xl tracking-tight tabular-nums text-foreground md:text-7xl">
+              <span className={homeWon ? 'text-accent' : 'text-foreground-muted'}>
+                {match.homeScore}
+              </span>
+              <span className="mx-3 text-foreground-muted">–</span>
+              <span className={awayWon ? 'text-accent' : 'text-foreground-muted'}>
+                {match.awayScore}
+              </span>
             </p>
-            <p className="mt-1 text-xs uppercase tracking-[0.06em] text-text-secondary">
-              {match.isCompleted ? 'Final' : 'Scheduled'}
-            </p>
+            <p className="label-mono">{match.isCompleted ? 'Final' : 'Programmé'}</p>
           </div>
-          <div className="flex flex-col items-center gap-3 text-center">
+
+          <div className="flex flex-col gap-4 items-end text-right">
             <TeamAvatar
               name={match.awayTeam.name}
               shortCode={match.awayTeam.shortCode}
               logoUrl={match.awayTeam.logoUrl}
               size="lg"
+              className="h-16 w-16 md:h-20 md:w-20"
             />
             <div>
-              <p className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
+              <p
+                className={cn(
+                  'font-display text-3xl tracking-tight md:text-4xl',
+                  awayWon ? 'text-foreground' : 'text-foreground-dim',
+                )}
+              >
                 {match.awayTeam.name}
               </p>
-              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                {match.awayTeam.shortCode}
-              </p>
+              <p className="mt-1 label-mono">{match.awayTeam.shortCode}</p>
             </div>
           </div>
         </div>
-        {match.notes ? (
-          <p className="text-sm leading-7 text-text-secondary">{match.notes}</p>
-        ) : null}
-      </Card>
 
-      {match.games.length > 0 ? (
-        match.games.map((game) => (
-          <Card key={game.id} className="space-y-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-kicker">Game {game.gameNumber}</p>
-                <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Scoreboard</h2>
-              </div>
-              <div className="flex items-center gap-3">
-                {game.durationSeconds ? (
-                  <span className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                    {Math.floor(game.durationSeconds / 60)}m {game.durationSeconds % 60}s
-                  </span>
-                ) : null}
-                {game.winnerTeamId ? (
-                  <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-                    {game.winnerTeamId === match.homeTeam.id
-                      ? match.homeTeam.shortCode
-                      : match.awayTeam.shortCode}{' '}
-                    WIN
-                  </span>
-                ) : null}
-              </div>
+        {match.notes ? (
+          <p className="mt-8 max-w-2xl text-base leading-7 text-foreground-dim">{match.notes}</p>
+        ) : null}
+      </header>
+
+      {selectedGame ? (
+        <section>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="label-mono">§ Scoreboard</p>
+              <h2 className="mt-3 display-md text-foreground">
+                Game {selectedGame.gameNumber} sur {match.games.length}.
+              </h2>
             </div>
-            {game.playerStats.length > 0 ? (
-              <>
-                {(['BLUE', 'RED'] as const).map((side) => {
-                  const sideStats = game.playerStats.filter((s) => s.side === side);
-                  if (sideStats.length === 0) return null;
-                  const sideTeamId = side === 'BLUE' ? game.blueTeamId : game.redTeamId;
-                  const sideTeamName =
-                    sideTeamId === match.homeTeam.id
-                      ? match.homeTeam.shortCode
-                      : match.awayTeam.shortCode;
-                  return (
-                    <div key={side} className="space-y-2">
-                      <div className="flex items-center gap-2 px-1">
-                        <span
-                          className={`inline-block h-2 w-2 rounded-full ${side === 'BLUE' ? 'bg-sky-400' : 'bg-rose-400'}`}
-                        />
-                        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-text-secondary">
-                          {side} side — {sideTeamName}
-                        </span>
-                      </div>
+            <div className="flex items-center gap-4 label-mono">
+              {selectedGame.durationSeconds ? (
+                <span className="tabular-nums">
+                  {Math.floor(selectedGame.durationSeconds / 60)}m{' '}
+                  {selectedGame.durationSeconds % 60}s
+                </span>
+              ) : null}
+              {selectedGame.winnerTeamId ? (
+                <span className="border border-hairline border-l-2 border-l-accent px-3 py-1 text-foreground">
+                  Win ·{' '}
+                  {selectedGame.winnerTeamId === match.homeTeam.id
+                    ? match.homeTeam.shortCode
+                    : match.awayTeam.shortCode}
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          {match.games.length > 1 ? (
+            <nav
+              aria-label="Sélecteur de game"
+              className="mt-6 flex flex-wrap items-center gap-px border-y border-hairline bg-hairline"
+            >
+              {match.games.map((game) => {
+                const isActive = game.gameNumber === selectedGame.gameNumber;
+                const gameWinnerShort =
+                  game.winnerTeamId === match.homeTeam.id
+                    ? match.homeTeam.shortCode
+                    : game.winnerTeamId === match.awayTeam.id
+                      ? match.awayTeam.shortCode
+                      : null;
+                return (
+                  <Link
+                    key={game.id}
+                    href={`?game=${game.gameNumber}`}
+                    scroll={false}
+                    className={cn(
+                      'flex min-w-[8rem] flex-col gap-1 bg-background px-4 py-3 transition',
+                      isActive
+                        ? 'border-l-2 border-l-accent text-foreground'
+                        : 'text-foreground-dim hover:text-foreground',
+                    )}
+                  >
+                    <span className="label-mono">Game {game.gameNumber}</span>
+                    <span className="font-display text-foreground tabular-nums">
+                      {gameWinnerShort ?? '—'}
+                    </span>
+                  </Link>
+                );
+              })}
+            </nav>
+          ) : null}
+
+          <div className="mt-8 flex flex-col gap-8">
+            {selectedGame.playerStats.length > 0 ? (
+              (['BLUE', 'RED'] as const).map((side) => {
+                const sideStats = selectedGame.playerStats.filter((s) => s.side === side);
+                if (sideStats.length === 0) return null;
+                const sideTeamId =
+                  side === 'BLUE' ? selectedGame.blueTeamId : selectedGame.redTeamId;
+                const sideTeamName =
+                  sideTeamId === match.homeTeam.id
+                    ? match.homeTeam.shortCode
+                    : match.awayTeam.shortCode;
+                const sideWon = sideTeamId === selectedGame.winnerTeamId;
+                return (
+                  <div key={side}>
+                    <div
+                      className={cn(
+                        'flex items-center justify-between gap-4 border-l-2 pl-4 py-1',
+                        sideWon ? 'border-l-accent' : 'border-l-hairline',
+                      )}
+                    >
+                      <p className="label-mono tabular-nums">
+                        {side} side · {sideTeamName}
+                      </p>
+                      {sideWon ? (
+                        <span className="label-mono text-accent">Victoire</span>
+                      ) : (
+                        <span className="label-mono text-foreground-muted">Défaite</span>
+                      )}
+                    </div>
+                    <div className="mt-4 overflow-x-auto border-t border-hairline">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Player</TableHead>
+                            <TableHead>Joueur</TableHead>
                             <TableHead>Champion</TableHead>
                             <TableHead>K / D / A</TableHead>
                             <TableHead>CS</TableHead>
                             <TableHead>Gold</TableHead>
                             <TableHead>Damage</TableHead>
                             <TableHead>Vision</TableHead>
-                            <TableHead>Result</TableHead>
+                            <TableHead>Résultat</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {sideStats.map((stat) => (
                             <TableRow key={stat.id}>
-                              <TableCell className="font-semibold text-white">
-                                <PlayerLink
-                                  playerId={stat.player.id}
-                                  className="font-semibold text-white"
-                                >
-                                  {stat.player.displayName}
-                                </PlayerLink>
-                                <span className="ml-2">
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <PlayerLink
+                                    playerId={stat.player.id}
+                                    className="font-display text-foreground"
+                                  >
+                                    {stat.player.displayName}
+                                  </PlayerLink>
                                   <Badge variant={stat.player.role}>{stat.player.role}</Badge>
-                                </span>
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <span className="flex items-center gap-2">
@@ -164,20 +256,25 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
                                   {stat.champion}
                                 </span>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="tabular-nums">
                                 {stat.kills} / {stat.deaths} / {stat.assists}
                               </TableCell>
-                              <TableCell>{stat.cs}</TableCell>
-                              <TableCell>{stat.gold.toLocaleString('fr-FR')}</TableCell>
-                              <TableCell>{stat.damage.toLocaleString('fr-FR')}</TableCell>
-                              <TableCell>{stat.visionScore}</TableCell>
+                              <TableCell className="tabular-nums">{stat.cs}</TableCell>
+                              <TableCell className="tabular-nums">
+                                {stat.gold.toLocaleString('fr-FR')}
+                              </TableCell>
+                              <TableCell className="tabular-nums">
+                                {stat.damage.toLocaleString('fr-FR')}
+                              </TableCell>
+                              <TableCell className="tabular-nums">{stat.visionScore}</TableCell>
                               <TableCell>
                                 <span
-                                  className={
+                                  className={cn(
+                                    'label-mono',
                                     stat.result === 'WIN'
-                                      ? 'font-semibold text-emerald-400'
-                                      : 'text-rose-400'
-                                  }
+                                      ? 'text-[color:var(--win)]'
+                                      : 'text-[color:var(--loss)]',
+                                  )}
                                 >
                                   {stat.result}
                                 </span>
@@ -187,20 +284,24 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
                         </TableBody>
                       </Table>
                     </div>
-                  );
-                })}
-              </>
+                  </div>
+                );
+              })
             ) : (
-              <p className="text-sm text-text-secondary">Aucune statistique joueur pour cette game.</p>
+              <p className="text-sm text-foreground-dim">
+                Aucune statistique joueur pour cette game.
+              </p>
             )}
-          </Card>
-        ))
+          </div>
+        </section>
       ) : (
-        <Card>
-          <p className="text-sm text-text-secondary">
-            Aucune game enregistrée pour ce match.
+        <section className="border-y border-hairline py-12">
+          <p className="label-mono">Aucune game</p>
+          <h2 className="mt-3 display-md text-foreground">Pas de détail enregistré.</h2>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-foreground-dim">
+            Les game logs apparaîtront ici dès que les stats seront importées via la Riot API.
           </p>
-        </Card>
+        </section>
       )}
     </div>
   );

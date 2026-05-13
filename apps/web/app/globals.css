@@ -2,26 +2,67 @@
 @import '@nexus/config/tailwind/nexus-theme.css';
 @import '../styles/animations.css';
 
+/* ---------------------------------------------------------------------------
+ * Nexus League — Editorial Magazine Design System
+ *
+ * Inspired by The Athletic / NYT Games / Bloomberg Businessweek.
+ * Warm near-black sepia palette, single pastel violet accent, hairlines over shadows.
+ *
+ * All values are oklch() so designers can tweak lightness/chroma/hue
+ * independently. Never hardcode hex in components — use these vars.
+ * ------------------------------------------------------------------------- */
+
 :root {
   color-scheme: dark;
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #12121a;
-  --bg-elevated: #1a1a2e;
-  --accent-primary: #7c3aed;
-  --accent-glow: #a855f7;
-  --accent-gold: #f59e0b;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #475569;
-  --border-subtle: rgba(124, 58, 237, 0.12);
-  --glass-bg: rgba(255, 255, 255, 0.035);
-  --glass-border: rgba(255, 255, 255, 0.06);
-  --glass-bg-elevated: rgba(24, 18, 44, 0.68);
-  --glass-shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
-  --surface-noise:
-    radial-gradient(circle at 20% 20%, rgba(168, 85, 247, 0.14), transparent 28%),
-    radial-gradient(circle at 80% 10%, rgba(245, 158, 11, 0.08), transparent 22%),
-    radial-gradient(circle at 50% 100%, rgba(124, 58, 237, 0.14), transparent 24%);
+
+  /* Surfaces (warm near-black, slightly sepia) */
+  --bg: oklch(0.14 0.008 80);
+  --bg-elev: oklch(0.17 0.01 80);
+  --bg-hover: oklch(0.2 0.012 80);
+
+  /* Hairlines */
+  --border: oklch(0.25 0.01 80);
+  --border-strong: oklch(0.35 0.012 80);
+
+  /* Text */
+  --text: oklch(0.93 0.008 80);
+  --text-dim: oklch(0.65 0.01 80);
+  --text-muted: oklch(0.45 0.01 80);
+
+  /* Accent (pastel violet) */
+  --accent: oklch(0.78 0.1 300);
+  --accent-dim: oklch(0.55 0.09 300);
+
+  /* Roles (desaturated, role-specific tints) */
+  --role-top: oklch(0.65 0.1 50);
+  --role-jg: oklch(0.6 0.1 150);
+  --role-mid: oklch(0.72 0.1 270);
+  --role-adc: oklch(0.62 0.13 30);
+  --role-sup: oklch(0.62 0.06 230);
+
+  /* States */
+  --win: oklch(0.6 0.1 150);
+  --loss: oklch(0.55 0.15 25);
+
+  /* ------------------------------------------------------------------------
+   * Legacy aliases — kept while we migrate phase 2/3 component-by-component.
+   * Do NOT use these in new code. Resolve to the editorial tokens above so
+   * existing call-sites adopt the new palette without breaking layout.
+   * ---------------------------------------------------------------------- */
+  --bg-primary: var(--bg);
+  --bg-secondary: var(--bg-elev);
+  --bg-elevated: var(--bg-elev);
+  --accent-primary: var(--accent);
+  --accent-glow: var(--accent);
+  --accent-gold: var(--accent);
+  --text-primary: var(--text);
+  --text-secondary: var(--text-dim);
+  --border-subtle: var(--border);
+  --glass-bg: var(--bg-elev);
+  --glass-border: var(--border);
+  --glass-bg-elevated: var(--bg-elev);
+  --glass-shadow: none;
+  --surface-noise: none;
 }
 
 * {
@@ -34,23 +75,21 @@ body {
 }
 
 html {
-  background-color: var(--bg-primary);
+  background-color: var(--bg);
 }
 
 body {
   margin: 0;
-  background:
-    linear-gradient(180deg, rgba(10, 10, 15, 0.94), rgba(10, 10, 15, 1)),
-    var(--surface-noise),
-    var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-inter), -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-geist-sans), -apple-system, sans-serif;
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 *::selection {
-  background-color: rgba(168, 85, 247, 0.32);
-  color: var(--text-primary);
+  background-color: oklch(0.78 0.1 300 / 0.32);
+  color: var(--text);
 }
 
 a {
@@ -72,56 +111,255 @@ textarea {
 }
 
 @layer utilities {
+  /* -----------------------------------------------------------------------
+   * Editorial typography
+   *
+   * Display = Instrument Serif (titles, KPIs, hero names)
+   * Body    = Geist Sans       (labels, paragraphs, navigation)
+   * Mono    = Geist Mono       (numbers, IDs, breadcrumbs, kickers)
+   * --------------------------------------------------------------------- */
+
+  .font-display {
+    font-family: var(--font-instrument-serif), serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  .font-mono {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+  }
+
+  .display-xl {
+    font-family: var(--font-instrument-serif), serif;
+    font-size: clamp(4rem, 9vw, 8rem);
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+    font-weight: 400;
+  }
+
+  .display-lg {
+    font-family: var(--font-instrument-serif), serif;
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-weight: 400;
+  }
+
+  .display-md {
+    font-family: var(--font-instrument-serif), serif;
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    font-weight: 400;
+  }
+
+  .display-kpi {
+    font-family: var(--font-instrument-serif), serif;
+    font-size: clamp(3rem, 5vw, 4.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    font-weight: 400;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  /* Small-caps mono labels, e.g. "01 KDA", "POSTE", "FORME" */
+  .label-mono {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .label-mono-strong {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  /* Section preamble: "§ 02   Pool de champions" */
+  .section-counter {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* Hairline 1px divider */
+  .hairline {
+    border-color: var(--border);
+  }
+
+  .hairline-t {
+    border-top: 1px solid var(--border);
+  }
+
+  .hairline-b {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hairline-y {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Editorial card: flat surface, hairline, no shadow */
+  .editorial-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 0;
+  }
+
+  .editorial-card-hover {
+    transition: background-color 0.15s ease;
+  }
+
+  .editorial-card-hover:hover {
+    background: var(--bg-hover);
+  }
+
+  /* Percentile bar (thin track + accent segment + numeric value to the right) */
+  .percentile-bar {
+    position: relative;
+    height: 1px;
+    background: var(--border);
+    overflow: visible;
+  }
+
+  .percentile-bar::after {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--percentile, 0%);
+    height: 1px;
+    background: var(--accent);
+    content: '';
+  }
+
+  /* Role pill: dot + uppercase mono label */
+  .role-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    line-height: 1;
+  }
+
+  .role-pill::before {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: var(--role-color, var(--accent));
+    content: '';
+  }
+
+  /* Team monogram: 3-letter pastille in colored square */
+  .team-monogram {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.25rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--team-tint, var(--bg-hover));
+    color: var(--text);
+  }
+
+  /* Diagonal-striped image placeholder for portraits / hero illustrations */
+  .placeholder-diag {
+    background-color: var(--bg-elev);
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0,
+      transparent 14px,
+      oklch(0.22 0.01 80 / 0.5) 14px,
+      oklch(0.22 0.01 80 / 0.5) 15px
+    );
+    border: 1px solid var(--border);
+  }
+
+  /* Breadcrumb in mono with slash separators */
+  .breadcrumb-mono {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Highlight row for "VOUS" in standings */
+  .highlight-self {
+    border-left: 2px solid var(--accent);
+    background: oklch(0.78 0.1 300 / 0.04);
+  }
+
+  /* Tabular figures everywhere we display numbers */
+  .tabular-nums {
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  /* -----------------------------------------------------------------------
+   * Legacy utilities — neutralised, kept only so unmigrated components
+   * (phase 2/3 will replace call sites) don't visually break the new DA.
+   * No glass, no glow, no gradient. Plain hairline cards on warm surface.
+   * --------------------------------------------------------------------- */
+
   .surface-grid {
-    background-image:
-      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-    background-size: 28px 28px;
+    background-image: none;
   }
 
   .glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 1.25rem;
-    box-shadow: var(--glass-shadow);
+    background: var(--bg-elev);
+    backdrop-filter: none;
+    border: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .glass-card-elevated {
-    background:
-      linear-gradient(180deg, rgba(124, 58, 237, 0.08), transparent),
-      var(--glass-bg-elevated);
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(168, 85, 247, 0.14);
-    border-radius: 1.5rem;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+    background: var(--bg-elev);
+    backdrop-filter: none;
+    border: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .gradient-text {
-    background: linear-gradient(135deg, #ffffff 0%, #d8b4fe 55%, #fcd34d 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    background: none;
+    -webkit-background-clip: initial;
+    background-clip: initial;
+    color: var(--text);
   }
 
-  .glow-violet {
-    box-shadow:
-      0 0 0 1px rgba(168, 85, 247, 0.18),
-      0 0 32px rgba(168, 85, 247, 0.16);
-  }
-
+  .glow-violet,
   .glow-gold {
-    box-shadow:
-      0 0 0 1px rgba(245, 158, 11, 0.2),
-      0 0 28px rgba(245, 158, 11, 0.14);
+    box-shadow: none;
   }
 
   .text-kicker {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--accent-gold);
-    font-size: 0.68rem;
-    font-weight: 600;
+    color: var(--text-muted);
+    font-weight: 500;
   }
 
   .panel-outline {
@@ -130,27 +368,12 @@ textarea {
   }
 
   .panel-outline::before {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.08),
-      rgba(168, 85, 247, 0.2),
-      rgba(245, 158, 11, 0.14)
-    );
-    -webkit-mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
+    display: none;
     content: '';
-    pointer-events: none;
   }
 
   .backdrop-solid-fallback {
-    background-color: rgba(18, 18, 26, 0.92);
+    background-color: var(--bg-elev);
   }
 
   .shimmer {
@@ -164,7 +387,7 @@ textarea {
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.06),
+      oklch(0.93 0.008 80 / 0.04),
       transparent
     );
     animation: shimmer 1.8s infinite;
@@ -172,10 +395,6 @@ textarea {
   }
 
   .float-soft {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
+    /* animation removed — DA cible exclut les flottements gratuits */
   }
 }

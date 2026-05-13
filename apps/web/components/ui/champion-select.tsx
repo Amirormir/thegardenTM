@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
+import { ChampionIcon } from './champion-icon';
 import { cn } from '@/lib/utils/cn';
 
 export interface ChampionOption {
@@ -73,25 +74,21 @@ export function ChampionSelect({
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 text-sm outline-none transition focus:border-accent-primary/50 focus:ring-2 focus:ring-accent-primary/24',
-          selected ? 'text-white' : 'text-text-muted',
+          'flex h-10 w-full items-center justify-between gap-2 border border-hairline bg-surface px-3 text-sm outline-none transition-colors duration-150 focus:border-accent',
+          selected ? 'text-foreground' : 'text-foreground-muted',
         )}
       >
         <span className="flex items-center gap-2 truncate">
           {selectedChampion ? (
             <>
-              <img
-                src={`https://ddragon.leagueoflegends.com/cdn/15.6.1/img/champion/${selectedChampion.id}.png`}
-                alt={selectedChampion.name}
-                className="h-6 w-6 rounded"
-              />
+              <ChampionIcon championId={selectedChampion.id} size="sm" />
               {selectedChampion.name}
             </>
           ) : (
             placeholder
           )}
         </span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-text-muted" />
+        <ChevronDown className="h-4 w-4 shrink-0 text-foreground-muted" />
       </button>
 
       {required && !selected ? (
@@ -105,16 +102,16 @@ export function ChampionSelect({
       ) : null}
 
       {open ? (
-        <div className="absolute z-50 mt-1 max-h-72 w-full overflow-hidden rounded-2xl border border-white/[0.05] bg-bg-elevated shadow-xl">
-          <div className="flex items-center gap-2 border-b border-white/[0.05] px-3 py-2">
-            <Search className="h-4 w-4 text-text-muted" />
+        <div className="absolute z-50 mt-1 max-h-72 w-full overflow-hidden border border-hairline bg-surface">
+          <div className="flex items-center gap-2 border-b border-hairline px-3 py-2">
+            <Search className="h-4 w-4 text-foreground-muted" />
             <input
               ref={searchInputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher..."
-              className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-text-muted"
+              className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-foreground-muted"
             />
           </div>
           <div className="max-h-56 overflow-y-auto">
@@ -125,22 +122,18 @@ export function ChampionSelect({
                   type="button"
                   onClick={() => handleSelect(champion.id)}
                   className={cn(
-                    'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-white/8',
+                    'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors duration-150 hover:bg-surface-hover',
                     selected === champion.id
-                      ? 'bg-accent-primary/14 text-white'
-                      : 'text-text-secondary',
+                      ? 'bg-surface-hover text-foreground'
+                      : 'text-foreground-dim',
                   )}
                 >
-                  <img
-                    src={`https://ddragon.leagueoflegends.com/cdn/15.6.1/img/champion/${champion.id}.png`}
-                    alt={champion.name}
-                    className="h-6 w-6 rounded"
-                  />
+                  <ChampionIcon championId={champion.id} size="sm" />
                   {champion.name}
                 </button>
               ))
             ) : (
-              <p className="px-3 py-4 text-center text-sm text-text-muted">Aucun champion.</p>
+              <p className="px-3 py-4 text-center text-sm text-foreground-muted">Aucun champion.</p>
             )}
           </div>
         </div>

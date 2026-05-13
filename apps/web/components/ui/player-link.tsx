@@ -13,7 +13,7 @@ export function PlayerLink({ playerId, children, className }: PlayerLinkProps) {
     <Link
       href={`/transfermarket/${playerId}`}
       className={cn(
-        'rounded-sm underline-offset-4 transition hover:text-accent-glow hover:underline focus-visible:outline-none focus-visible:underline',
+        'underline-offset-4 transition-colors duration-150 hover:text-accent hover:underline focus-visible:outline-none focus-visible:underline',
         className,
       )}
     >

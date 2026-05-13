@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useId, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -33,10 +34,42 @@ function formatValue(value: number) {
   return value.toString();
 }
 
+function useThemeColors() {
+  const [colors, setColors] = useState({
+    accent: '#c9b8e8',
+    text: '#eee5d6',
+    textMuted: '#8d8470',
+    border: '#3a352b',
+    bgElev: '#23211c',
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const styles = getComputedStyle(root);
+    const resolve = (token: string, fallback: string) => {
+      const raw = styles.getPropertyValue(token).trim();
+      return raw ? raw : fallback;
+    };
+    setColors({
+      accent: resolve('--accent', colors.accent),
+      text: resolve('--text', colors.text),
+      textMuted: resolve('--text-muted', colors.textMuted),
+      border: resolve('--border', colors.border),
+      bgElev: resolve('--bg-elev', colors.bgElev),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return colors;
+}
+
 export function MarketValueChart({ history }: MarketValueChartProps) {
+  const gradientId = useId();
+  const colors = useThemeColors();
+
   if (history.length < 2) {
     return (
-      <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+      <div className="border border-hairline bg-surface px-4 py-4 text-sm text-foreground-dim">
         Pas assez de donnees pour afficher le graphique.
       </div>
     );
@@ -54,43 +87,45 @@ export function MarketValueChart({ history }: MarketValueChartProps) {
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <defs>
-            <linearGradient id="marketValueGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#7C3AED" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="#7C3AED" stopOpacity={0} />
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={colors.accent} stopOpacity={0.32} />
+              <stop offset="100%" stopColor={colors.accent} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+          <CartesianGrid strokeDasharray="0" stroke={colors.border} vertical={false} />
           <XAxis
             dataKey="date"
-            tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
-            axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+            tick={{ fill: colors.textMuted, fontSize: 11 }}
+            axisLine={{ stroke: colors.border }}
             tickLine={false}
           />
           <YAxis
             tickFormatter={formatValue}
-            tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
-            axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+            tick={{ fill: colors.textMuted, fontSize: 11 }}
+            axisLine={{ stroke: colors.border }}
             tickLine={false}
             width={50}
           />
           <Tooltip
+            cursor={{ stroke: colors.accent, strokeWidth: 1, strokeDasharray: '0' }}
             contentStyle={{
-              backgroundColor: 'rgba(15, 14, 21, 0.95)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '16px',
-              color: '#fff',
-              fontSize: '13px',
-              backdropFilter: 'blur(12px)',
+              backgroundColor: colors.bgElev,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 0,
+              color: colors.text,
+              fontSize: '12px',
+              padding: '8px 12px',
             }}
             formatter={(value: number) => [new Intl.NumberFormat('fr-FR').format(value), 'Valeur']}
-            labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
+            labelStyle={{ color: colors.textMuted, fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase' }}
           />
           <Area
             type="monotone"
             dataKey="value"
-            stroke="#7C3AED"
-            strokeWidth={2}
-            fill="url(#marketValueGradient)"
+            stroke={colors.accent}
+            strokeWidth={1.5}
+            fill={`url(#${gradientId})`}
+            activeDot={{ r: 3, fill: colors.accent, stroke: colors.bgElev, strokeWidth: 2 }}
           />
         </AreaChart>
       </ResponsiveContainer>

@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  BarChart3,
   CalendarRange,
   FileText,
   LayoutDashboard,
@@ -33,34 +32,33 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'sticky top-0 hidden h-screen border-r border-white/[0.05] bg-[#0d0b13]/82 px-3 py-5 backdrop-blur-xl lg:block',
-        collapsed ? 'w-[92px]' : 'w-[280px]',
+        'sticky top-0 hidden h-screen border-r border-hairline bg-background px-3 py-6 lg:block',
+        collapsed ? 'w-[88px]' : 'w-[260px]',
       )}
     >
-      <div className="flex items-center justify-between gap-3 px-2">
-        <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
-          <div className="rounded-2xl border border-accent-primary/20 bg-accent-primary/12 p-3 text-accent-glow">
-            <BarChart3 className="h-5 w-5" />
+      <div
+        className={cn(
+          'flex items-center gap-3 px-2',
+          collapsed ? 'justify-center' : 'justify-between',
+        )}
+      >
+        {!collapsed ? (
+          <div className="flex flex-col">
+            <p className="font-display text-xl tracking-tight text-foreground">Nexus</p>
+            <p className="label-mono text-foreground-muted">Admin · Operations</p>
           </div>
-          {!collapsed ? (
-            <div>
-              <p className="font-display text-lg font-bold tracking-tight text-white">Garden Admin</p>
-              <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                Operations hub
-              </p>
-            </div>
-          ) : null}
-        </div>
+        ) : null}
         <button
           type="button"
-          className="rounded-2xl border border-white/[0.05] bg-white/[0.035] p-2 text-text-secondary transition hover:text-white"
+          className="inline-flex h-9 w-9 items-center justify-center border border-hairline bg-surface text-foreground-dim transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
           onClick={() => setCollapsed((value) => !value)}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <Menu className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="mt-8 space-y-1">
+      <nav className="mt-10 flex flex-col">
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
 
@@ -69,19 +67,27 @@ export function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 rounded-2xl px-3 py-3 transition',
+                'group relative flex items-center gap-3 border-l-2 px-3 py-2.5 transition-colors duration-150',
                 active
-                  ? 'bg-accent-primary/16 text-white shadow-[0_0_30px_rgba(124,58,237,0.16)]'
-                  : 'text-text-secondary hover:bg-white/[0.035] hover:text-white',
+                  ? 'border-accent bg-surface text-foreground'
+                  : 'border-transparent text-foreground-dim hover:bg-surface-hover hover:text-foreground',
                 collapsed && 'justify-center',
               )}
+              aria-current={active ? 'page' : undefined}
             >
-              <Icon className="h-5 w-5 shrink-0" />
-              {!collapsed ? <span className="text-sm font-medium">{label}</span> : null}
+              <Icon
+                className={cn(
+                  'h-4 w-4 shrink-0',
+                  active ? 'text-accent' : 'text-foreground-muted group-hover:text-foreground-dim',
+                )}
+              />
+              {!collapsed ? (
+                <span className="text-sm tracking-tight">{label}</span>
+              ) : null}
             </Link>
           );
         })}
-      </div>
+      </nav>
     </aside>
   );
 }

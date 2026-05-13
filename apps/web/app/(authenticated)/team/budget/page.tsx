@@ -15,16 +15,14 @@ export default async function TeamBudgetPage() {
   const team = await caller.team.getById({ id: teamId });
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-kicker">Protected area</p>
-        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-          Calculateur budget — {team.name}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
+    <div className="flex flex-col gap-16 md:gap-20">
+      <header className="border-b border-hairline pb-8">
+        <p className="breadcrumb-mono">§ · Équipe · Budget</p>
+        <h1 className="mt-4 display-lg text-foreground">Calculateur budget — {team.name}.</h1>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-foreground-dim">
           Simulateur côté client pour la planification budgétaire.
         </p>
-      </div>
+      </header>
       <BudgetCalculator
         budget={team.budget}
         players={team.players.map((player) => ({ role: player.role, salary: player.salary }))}

@@ -1,6 +1,5 @@
 import { AdminLeagueManager } from '@/components/features/admin/admin-league-manager';
 import { StandingsTable } from '@/components/features/league/standings-table';
-import { Card } from '@/components/ui/card';
 import { getServerCaller } from '@/server/caller';
 
 export default async function AdminLeaguePage() {
@@ -8,24 +7,23 @@ export default async function AdminLeaguePage() {
   const standings = await caller.league.getStandings();
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-kicker">Admin zone</p>
-        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Gestion ligue</h1>
-      </div>
+    <div className="flex flex-col gap-16 md:gap-20">
+      <header className="border-b border-hairline pb-8">
+        <p className="breadcrumb-mono">§ · Admin · Ligue</p>
+        <h1 className="mt-4 display-lg text-foreground">Gestion ligue.</h1>
+      </header>
 
-      <Card className="p-0">
-        <div className="border-b border-white/[0.05] px-6 py-5">
-          <h2 className="font-display text-2xl font-bold tracking-tight text-white">Standings</h2>
-        </div>
-        <div className="p-4">
+      <section>
+        <p className="label-mono">§ 01 Classement</p>
+        <h2 className="mt-3 display-md text-foreground">Standings actuels.</h2>
+        <div className="mt-8 border-t border-hairline">
           {standings.length > 0 ? (
             <StandingsTable standings={standings} />
           ) : (
-            <p className="px-2 py-4 text-sm text-text-secondary">Aucune donnée de classement.</p>
+            <p className="py-6 text-sm text-foreground-dim">Aucune donnée de classement.</p>
           )}
         </div>
-      </Card>
+      </section>
 
       <AdminLeagueManager />
     </div>

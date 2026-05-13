@@ -220,24 +220,31 @@ model MatchGame {
 }
 
 model PlayerMatchStats {
-  id            String      @id @default(cuid())
-  playerId      String
-  matchGameId   String
-  teamId        String
-  champion      String
-  kills         Int         @default(0)
-  deaths        Int         @default(0)
-  assists       Int         @default(0)
-  cs            Int         @default(0)
-  gold          Int         @default(0)
-  damage        Int         @default(0)
-  visionScore   Int         @default(0)
-  side          String
-  result        MatchResult
-  player        Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  matchGame     MatchGame   @relation(fields: [matchGameId], references: [id], onDelete: Cascade)
-  team          Team        @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  createdAt     DateTime    @default(now())
+  id                String      @id @default(cuid())
+  playerId          String
+  matchGameId       String
+  teamId            String
+  champion          String
+  kills             Int         @default(0)
+  deaths            Int         @default(0)
+  assists           Int         @default(0)
+  cs                Int         @default(0)
+  gold              Int         @default(0)
+  damage            Int         @default(0)
+  visionScore       Int         @default(0)
+  side              String
+  result            MatchResult
+  kda               Float       @default(0)
+  csPerMin          Float       @default(0)
+  goldPerMin        Float       @default(0)
+  damagePerMin      Float       @default(0)
+  killParticipation Float       @default(0)
+  damageShare       Float       @default(0)
+  goldShare         Float       @default(0)
+  player            Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  matchGame         MatchGame   @relation(fields: [matchGameId], references: [id], onDelete: Cascade)
+  team              Team        @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  createdAt         DateTime    @default(now())
 
   @@unique([playerId, matchGameId])
   @@index([teamId])

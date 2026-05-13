@@ -4,7 +4,6 @@ import { ArrowRightLeft, CheckCircle2, Loader2, RefreshCw, XCircle } from 'lucid
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -27,17 +26,17 @@ interface FeedbackState {
 const STATUS_LABEL: Record<string, string> = {
   PENDING: 'En attente',
   COUNTER_PROPOSED: 'Contre-offre',
-  ACCEPTED: 'Accepte',
-  REJECTED: 'Refuse',
-  CANCELLED: 'Annule',
-  COMPLETED: 'Finalise',
+  ACCEPTED: 'Acceptée',
+  REJECTED: 'Refusée',
+  CANCELLED: 'Annulée',
+  COMPLETED: 'Finalisée',
 };
 
 function statusColor(status: string) {
-  if (status === 'ACCEPTED' || status === 'COMPLETED') return 'text-emerald-400';
-  if (status === 'REJECTED' || status === 'CANCELLED') return 'text-rose-400';
-  if (status === 'COUNTER_PROPOSED') return 'text-violet-400';
-  return 'text-amber-400';
+  if (status === 'ACCEPTED' || status === 'COMPLETED') return 'text-[color:var(--win)]';
+  if (status === 'REJECTED' || status === 'CANCELLED') return 'text-[color:var(--loss)]';
+  if (status === 'COUNTER_PROPOSED') return 'text-accent';
+  return 'text-foreground-dim';
 }
 
 interface TransferOffersProps {
@@ -81,9 +80,9 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
     try {
       await acceptMutation.mutateAsync({ id });
       await invalidateAll();
-      setFeedback({ type: 'success', message: 'Offre acceptee. Le contrat est en attente de validation admin.' });
+      setFeedback({ type: 'success', message: 'Offre acceptée. Le contrat est en attente de validation admin.' });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "L'acceptation a echoue.";
+      const message = error instanceof Error ? error.message : "L'acceptation a échoué.";
       setFeedback({ type: 'error', message });
     }
   }
@@ -103,9 +102,9 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
       form.reset();
       setRejectingId(null);
       await invalidateAll();
-      setFeedback({ type: 'success', message: 'Offre refusee.' });
+      setFeedback({ type: 'success', message: 'Offre refusée.' });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Le rejet a echoue.';
+      const message = error instanceof Error ? error.message : 'Le rejet a échoué.';
       setFeedback({ type: 'error', message });
     }
   }
@@ -129,9 +128,9 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
       form.reset();
       setCounterProposingId(null);
       await invalidateAll();
-      setFeedback({ type: 'success', message: 'Contre-offre envoyee.' });
+      setFeedback({ type: 'success', message: 'Contre-offre envoyée.' });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "L'envoi de la contre-offre a echoue.";
+      const message = error instanceof Error ? error.message : "L'envoi de la contre-offre a échoué.";
       setFeedback({ type: 'error', message });
     }
   }
@@ -141,9 +140,9 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
     try {
       await cancelMutation.mutateAsync({ id });
       await invalidateAll();
-      setFeedback({ type: 'success', message: 'Offre annulee.' });
+      setFeedback({ type: 'success', message: 'Offre annulée.' });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "L'annulation a echoue.";
+      const message = error instanceof Error ? error.message : "L'annulation a échoué.";
       setFeedback({ type: 'error', message });
     }
   }
@@ -152,19 +151,14 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
   const isLoading = incomingQuery.isLoading || outgoingQuery.isLoading;
 
   return (
-    <Card className="space-y-5">
-      <div>
-        <p className="text-kicker">Transfer market</p>
-        <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Offres de transfert</h2>
-      </div>
-
+    <div className="flex flex-col gap-8">
       {feedback ? (
         <div
           className={cn(
-            'rounded-2xl border px-4 py-3 text-sm',
+            'border-l-2 border-y border-r border-hairline bg-surface px-5 py-4 label-mono',
             feedback.type === 'success'
-              ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-              : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+              ? 'border-l-[color:var(--win)] text-[color:var(--win)]'
+              : 'border-l-[color:var(--loss)] text-[color:var(--loss)]',
           )}
         >
           {feedback.message}
@@ -172,227 +166,217 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
       ) : null}
 
       {isLoading ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+        <div className="flex items-center gap-3 border border-hairline bg-surface px-5 py-4 label-mono text-foreground-dim">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Chargement...
+          Chargement…
         </div>
       ) : !hasData ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+        <div className="flex items-center gap-3 border border-hairline bg-surface px-5 py-4 label-mono text-foreground-dim">
           <ArrowRightLeft className="h-4 w-4" />
           Aucune offre de transfert.
         </div>
       ) : null}
 
       {incoming.length > 0 ? (
-        <div className="space-y-3">
-          <h3 className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-            Offres recues ({incoming.length})
-          </h3>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Joueur</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>De</TableHead>
-                <TableHead>Offre</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {incoming.map((offer) => (
-                <TableRow key={offer.id}>
-                  <TableCell>
-                    <PlayerLink playerId={offer.player.id} className="font-semibold text-white">
-                      {offer.player.displayName}
-                    </PlayerLink>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={offer.player.role}>{offer.player.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-display tabular-nums text-xs text-text-secondary">
-                      {offer.fromTeam.shortCode}
-                    </span>{' '}
-                    {offer.fromTeam.name}
-                  </TableCell>
-                  <TableCell className="font-display tabular-nums">
-                    <div>{formatCurrency(offer.offeredFee)}</div>
-                    {'counterOffer' in offer && offer.counterOffer != null ? (
-                      <div className="text-xs text-violet-400">
-                        Contre: {formatCurrency(offer.counterOffer as number)}
-                      </div>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>
-                    <span className={cn('text-xs font-semibold uppercase', statusColor(offer.status))}>
-                      {STATUS_LABEL[offer.status] ?? offer.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-xs text-text-secondary">
-                    {formatDateTime(offer.createdAt)}
-                  </TableCell>
-                  <TableCell>
-                    {offer.status === 'PENDING' ? (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <Button
-                          type="button"
-                          size="sm"
-                          icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-                          disabled={mutationPending}
-                          onClick={() => handleAccept(offer.id)}
-                        >
-                          Accepter
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          icon={<RefreshCw className="h-3.5 w-3.5" />}
-                          disabled={mutationPending}
-                          onClick={() => { setCounterProposingId(offer.id); setRejectingId(null); }}
-                        >
-                          Contre
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="danger"
-                          size="sm"
-                          icon={<XCircle className="h-3.5 w-3.5" />}
-                          disabled={mutationPending}
-                          onClick={() => { setRejectingId(offer.id); setCounterProposingId(null); }}
-                        >
-                          Refuser
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-text-secondary">--</span>
-                    )}
-                  </TableCell>
+        <div>
+          <p className="label-mono">Offres reçues · {incoming.length.toString().padStart(2, '0')}</p>
+          <div className="mt-4 border-t border-hairline">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Joueur</TableHead>
+                  <TableHead>Rôle</TableHead>
+                  <TableHead>De</TableHead>
+                  <TableHead>Offre</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {incoming.map((offer) => (
+                  <TableRow key={offer.id}>
+                    <TableCell>
+                      <PlayerLink playerId={offer.player.id} className="font-display text-foreground">
+                        {offer.player.displayName}
+                      </PlayerLink>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={offer.player.role}>{offer.player.role}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="label-mono tabular-nums text-foreground-muted">
+                        {offer.fromTeam.shortCode}
+                      </span>{' '}
+                      <span className="text-foreground-dim">{offer.fromTeam.name}</span>
+                    </TableCell>
+                    <TableCell className="font-display tabular-nums">
+                      <div>{formatCurrency(offer.offeredFee)}</div>
+                      {'counterOffer' in offer && offer.counterOffer != null ? (
+                        <div className="label-mono text-accent">
+                          Contre · {formatCurrency(offer.counterOffer as number)}
+                        </div>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>
+                      <span className={cn('label-mono', statusColor(offer.status))}>
+                        {STATUS_LABEL[offer.status] ?? offer.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="label-mono tabular-nums text-foreground-muted">
+                      {formatDateTime(offer.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      {offer.status === 'PENDING' ? (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <Button
+                            type="button"
+                            size="sm"
+                            icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+                            disabled={mutationPending}
+                            onClick={() => handleAccept(offer.id)}
+                          >
+                            Accepter
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            icon={<RefreshCw className="h-3.5 w-3.5" />}
+                            disabled={mutationPending}
+                            onClick={() => { setCounterProposingId(offer.id); setRejectingId(null); }}
+                          >
+                            Contre
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="danger"
+                            size="sm"
+                            icon={<XCircle className="h-3.5 w-3.5" />}
+                            disabled={mutationPending}
+                            onClick={() => { setRejectingId(offer.id); setCounterProposingId(null); }}
+                          >
+                            Refuser
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="label-mono text-foreground-muted">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       ) : null}
 
       {outgoing.length > 0 ? (
-        <div className="space-y-3">
-          <h3 className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-            Offres envoyees ({outgoing.length})
-          </h3>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Joueur</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Vers</TableHead>
-                <TableHead>Offre</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {outgoing.map((offer) => (
-                <TableRow key={offer.id}>
-                  <TableCell>
-                    <PlayerLink playerId={offer.player.id} className="font-semibold text-white">
-                      {offer.player.displayName}
-                    </PlayerLink>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={offer.player.role}>{offer.player.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-display tabular-nums text-xs text-text-secondary">
-                      {offer.toTeam.shortCode}
-                    </span>{' '}
-                    {offer.toTeam.name}
-                  </TableCell>
-                  <TableCell className="font-display tabular-nums">
-                    <div>{formatCurrency(offer.offeredFee)}</div>
-                    {'counterOffer' in offer && offer.counterOffer != null ? (
-                      <div className="text-xs text-violet-400">
-                        Contre: {formatCurrency(offer.counterOffer as number)}
-                      </div>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>
-                    <span className={cn('text-xs font-semibold uppercase', statusColor(offer.status))}>
-                      {STATUS_LABEL[offer.status] ?? offer.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-xs text-text-secondary">
-                    {formatDateTime(offer.createdAt)}
-                  </TableCell>
-                  <TableCell>
-                    {offer.status === 'PENDING' ? (
-                      <Button
-                        type="button"
-                        variant="danger"
-                        size="sm"
-                        icon={<XCircle className="h-3.5 w-3.5" />}
-                        disabled={mutationPending}
-                        onClick={() => handleCancel(offer.id)}
-                      >
-                        Annuler
-                      </Button>
-                    ) : offer.status === 'COUNTER_PROPOSED' ? (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <Button
-                          type="button"
-                          size="sm"
-                          icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-                          disabled={mutationPending}
-                          onClick={() => handleAccept(offer.id)}
-                        >
-                          Accepter
-                        </Button>
+        <div>
+          <p className="label-mono">Offres envoyées · {outgoing.length.toString().padStart(2, '0')}</p>
+          <div className="mt-4 border-t border-hairline">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Joueur</TableHead>
+                  <TableHead>Rôle</TableHead>
+                  <TableHead>Vers</TableHead>
+                  <TableHead>Offre</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {outgoing.map((offer) => (
+                  <TableRow key={offer.id}>
+                    <TableCell>
+                      <PlayerLink playerId={offer.player.id} className="font-display text-foreground">
+                        {offer.player.displayName}
+                      </PlayerLink>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={offer.player.role}>{offer.player.role}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="label-mono tabular-nums text-foreground-muted">
+                        {offer.toTeam.shortCode}
+                      </span>{' '}
+                      <span className="text-foreground-dim">{offer.toTeam.name}</span>
+                    </TableCell>
+                    <TableCell className="font-display tabular-nums">
+                      <div>{formatCurrency(offer.offeredFee)}</div>
+                      {'counterOffer' in offer && offer.counterOffer != null ? (
+                        <div className="label-mono text-accent">
+                          Contre · {formatCurrency(offer.counterOffer as number)}
+                        </div>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>
+                      <span className={cn('label-mono', statusColor(offer.status))}>
+                        {STATUS_LABEL[offer.status] ?? offer.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="label-mono tabular-nums text-foreground-muted">
+                      {formatDateTime(offer.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      {offer.status === 'PENDING' ? (
                         <Button
                           type="button"
                           variant="danger"
                           size="sm"
                           icon={<XCircle className="h-3.5 w-3.5" />}
                           disabled={mutationPending}
-                          onClick={() => { setRejectingId(offer.id); setCounterProposingId(null); }}
+                          onClick={() => handleCancel(offer.id)}
                         >
-                          Refuser
+                          Annuler
                         </Button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-text-secondary">--</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                      ) : offer.status === 'COUNTER_PROPOSED' ? (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <Button
+                            type="button"
+                            size="sm"
+                            icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+                            disabled={mutationPending}
+                            onClick={() => handleAccept(offer.id)}
+                          >
+                            Accepter
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="danger"
+                            size="sm"
+                            icon={<XCircle className="h-3.5 w-3.5" />}
+                            disabled={mutationPending}
+                            onClick={() => { setRejectingId(offer.id); setCounterProposingId(null); }}
+                          >
+                            Refuser
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="label-mono text-foreground-muted">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       ) : null}
 
       {counterProposingId ? (
-        <div className="rounded-3xl border border-violet-400/20 bg-violet-500/8 p-5 space-y-4">
-          <h3 className="font-display text-xl font-bold tracking-tight text-violet-100">Contre-proposer</h3>
-          <form className="grid gap-4 md:grid-cols-[1fr_1fr_auto]" onSubmit={handleCounterPropose}>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                Montant souhaite *
-              </label>
-              <Input
-                name="counterOffer"
-                type="number"
-                min={1}
-                placeholder="Ex: 500000"
-                required
-              />
+        <div className="border-l-2 border-l-accent border-y border-r border-hairline bg-surface p-6">
+          <p className="label-mono text-accent">Contre-proposer</p>
+          <form className="mt-5 grid gap-5 md:grid-cols-[1fr_1fr_auto]" onSubmit={handleCounterPropose}>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Montant souhaité *</label>
+              <Input name="counterOffer" type="number" min={1} placeholder="Ex: 500000" required />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                Message (optionnel)
-              </label>
-              <Input name="counterMessage" placeholder="Ex: Joueur cle, prix minimal..." />
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Message (optionnel)</label>
+              <Input name="counterMessage" placeholder="Ex: Joueur clé, prix minimal…" />
             </div>
             <div className="flex items-end gap-2">
               <Button
@@ -417,14 +401,12 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
       ) : null}
 
       {rejectingId ? (
-        <div className="rounded-3xl border border-rose-400/20 bg-rose-500/8 p-5 space-y-4">
-          <h3 className="font-display text-xl font-bold tracking-tight text-rose-100">Refuser l'offre</h3>
-          <form className="grid gap-4 md:grid-cols-[1fr_auto]" onSubmit={handleReject}>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                Motif (optionnel)
-              </label>
-              <Input name="reason" placeholder="Ex: Offre trop basse, joueur cle..." />
+        <div className="border-l-2 border-l-[color:var(--loss)] border-y border-r border-hairline bg-surface p-6">
+          <p className="label-mono text-[color:var(--loss)]">Refuser l&apos;offre</p>
+          <form className="mt-5 grid gap-5 md:grid-cols-[1fr_auto]" onSubmit={handleReject}>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Motif (optionnel)</label>
+              <Input name="reason" placeholder="Ex: Offre trop basse, joueur clé…" />
             </div>
             <div className="flex items-end gap-2">
               <Button
@@ -448,6 +430,6 @@ export function TransferOffers({ teamId }: TransferOffersProps) {
           </form>
         </div>
       ) : null}
-    </Card>
+    </div>
   );
 }

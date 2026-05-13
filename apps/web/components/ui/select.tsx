@@ -9,14 +9,14 @@ export function Select({ className, children, ...props }: SelectProps) {
     <div className="relative">
       <select
         className={cn(
-          'h-11 w-full appearance-none rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 pr-10 text-sm text-white outline-none transition focus:border-accent-primary/50 focus:ring-2 focus:ring-accent-primary/24',
+          'h-10 w-full appearance-none border border-hairline bg-surface px-4 pr-10 text-sm text-foreground outline-none transition-colors duration-150 focus:border-accent',
           className,
         )}
         {...props}
       >
         {children}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+      <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-muted" />
     </div>
   );
 }

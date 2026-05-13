@@ -40,8 +40,10 @@ export function RiotFetchButton({ playerId }: RiotFetchButtonProps) {
       {feedback ? (
         <span
           className={cn(
-            'text-xs',
-            feedback.type === 'success' ? 'text-emerald-300' : 'text-rose-300',
+            'label-mono tabular-nums',
+            feedback.type === 'success'
+              ? 'text-[color:var(--win)]'
+              : 'text-[color:var(--loss)]',
           )}
         >
           {feedback.message}

@@ -4,8 +4,6 @@ import { FightMatchCard } from '@/components/features/league/fight-match-card';
 import { StandingsStack } from '@/components/features/league/standings-stack';
 import { Hero } from '@/components/features/home/hero';
 import { buttonVariants } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils/cn';
 import { getServerCaller } from '@/server/caller';
 
 function computeRecentForm(
@@ -57,7 +55,7 @@ export default async function HomePage() {
     : null;
 
   return (
-    <div className="space-y-10 md:space-y-12">
+    <div className="flex flex-col gap-24 md:gap-28">
       <Hero
         completedMatchCount={completedMatches.length}
         playerCount={players.length}
@@ -68,82 +66,73 @@ export default async function HomePage() {
         totalMarketValue={totalMarketValue}
       />
 
-      <section id="home-overview" className="space-y-6 scroll-mt-28">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <section id="home-overview" className="scroll-mt-28">
+        <header className="flex flex-col gap-6 border-b border-hairline pb-8 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-kicker">League overview</p>
-            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-              Classement et derniers resultats
+            <p className="breadcrumb-mono">§ 01 · L&apos;état de la ligue</p>
+            <h2 className="mt-3 display-lg text-foreground">
+              Classement et résultats récents.
             </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
-              Une lecture immediate du niveau de la ligue: qui mene, qui prend des points et quels
-              sont les derniers BO deja conclus.
+            <p className="mt-4 max-w-2xl text-base leading-7 text-foreground-dim">
+              Une lecture immédiate du niveau de la ligue : qui mène, qui prend des points,
+              et les BO déjà conclus.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link
-              href="/league"
-              className={buttonVariants({ variant: 'secondary', size: 'md' })}
-            >
+            <Link href="/league" className={buttonVariants({ variant: 'secondary', size: 'md' })}>
               Classement complet
             </Link>
             <Link
               href="/league/matches"
-              className={cn(buttonVariants({ variant: 'ghost', size: 'md' }), 'text-white')}
+              className={buttonVariants({ variant: 'ghost', size: 'md' })}
             >
               Tous les matchs
             </Link>
           </div>
-        </div>
+        </header>
 
-        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="mt-10 grid gap-12 xl:grid-cols-[1.3fr_0.7fr] xl:gap-14">
           <div>
-            <div className="mb-4 px-1">
-              <p className="text-kicker">Standings</p>
-              <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-                Le haut du classement
-              </h3>
-            </div>
-            {standings.length > 0 ? (
-              <StandingsStack standings={standings} recentForm={recentForm} />
-            ) : (
-              <Card>
-                <p className="text-sm text-text-secondary">
-                  Aucune donnee de classement pour le moment.
+            <p className="label-mono">Classement</p>
+            <h3 className="mt-3 display-md text-foreground">Le haut du tableau.</h3>
+            <div className="mt-6">
+              {standings.length > 0 ? (
+                <StandingsStack standings={standings} recentForm={recentForm} />
+              ) : (
+                <p className="border-y border-hairline py-8 text-sm text-foreground-muted">
+                  Aucune donnée de classement pour le moment.
                 </p>
-              </Card>
-            )}
+              )}
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-5 py-5 backdrop-blur-xl">
-              <p className="text-kicker">Derniers resultats</p>
-              <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-                Les series qui viennent de tomber
-              </h3>
-              <p className="mt-3 text-sm leading-6 text-text-secondary">
-                On garde ici les resultats les plus recents pour que la home raconte tout de suite
-                l&apos;etat de la competition.
-              </p>
-            </div>
+          <div>
+            <p className="label-mono">Derniers résultats</p>
+            <h3 className="mt-3 display-md text-foreground">Ce qui vient de tomber.</h3>
+            <p className="mt-3 max-w-md text-sm leading-6 text-foreground-dim">
+              Les résultats les plus récents pour que la home raconte tout de suite
+              l&apos;état de la compétition.
+            </p>
 
-            {recentResults.length > 0 ? (
-              recentResults.map((match, i) => (
-                <FightMatchCard key={match.id} match={match} index={i} />
-              ))
-            ) : (
-              <Card className="space-y-3">
-                <p className="text-kicker">Aucun resultat</p>
-                <h3 className="font-display text-2xl font-bold tracking-tight text-white">
-                  Pas encore de match termine
-                </h3>
-                <p className="text-sm leading-6 text-text-secondary">
-                  Les derniers resultats apparaitront ici des que les premieres series seront
-                  validees.
-                </p>
-              </Card>
-            )}
+            <div className="mt-6 flex flex-col">
+              {recentResults.length > 0 ? (
+                recentResults.map((match, i) => (
+                  <FightMatchCard key={match.id} match={match} index={i} />
+                ))
+              ) : (
+                <div className="border-y border-hairline py-8">
+                  <p className="label-mono">Aucun résultat</p>
+                  <p className="mt-3 display-md text-foreground">
+                    Pas encore de match terminé.
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-foreground-dim">
+                    Les derniers résultats apparaîtront ici dès que les premières séries seront
+                    validées.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>

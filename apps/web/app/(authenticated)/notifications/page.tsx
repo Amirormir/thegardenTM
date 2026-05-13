@@ -3,13 +3,12 @@
 import { Bell, CheckCheck, Filter, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
 
 function timeAgo(date: Date) {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (seconds < 60) return "A l'instant";
+  if (seconds < 60) return "À l'instant";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
@@ -17,14 +16,14 @@ function timeAgo(date: Date) {
   return `${Math.floor(hours / 24)}j`;
 }
 
-const TYPE_ICON: Record<string, string> = {
-  TRANSFER_OFFER_RECEIVED: '📩',
-  TRANSFER_ACCEPTED: '✅',
-  TRANSFER_REJECTED: '❌',
-  TRANSFER_COUNTER_PROPOSED: '🔄',
-  TRANSFER_AUTO_ACCEPTED: '⚡',
-  TRANSFER_CLAUSE_TRIGGERED: '⚠️',
-  CONTRACT_APPROVED: '📋',
+const TYPE_LABEL: Record<string, string> = {
+  TRANSFER_OFFER_RECEIVED: 'Offre reçue',
+  TRANSFER_ACCEPTED: 'Offre acceptée',
+  TRANSFER_REJECTED: 'Offre refusée',
+  TRANSFER_COUNTER_PROPOSED: 'Contre-offre',
+  TRANSFER_AUTO_ACCEPTED: 'Auto-acceptée',
+  TRANSFER_CLAUSE_TRIGGERED: 'Clause activée',
+  CONTRACT_APPROVED: 'Contrat approuvé',
 };
 
 export default function NotificationsPage() {
@@ -58,20 +57,20 @@ export default function NotificationsPage() {
   const hasUnread = allItems.some((n) => !n.isRead);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto flex max-w-4xl flex-col gap-16 md:gap-20">
+      <header className="flex items-end justify-between gap-6 border-b border-hairline pb-8">
         <div>
-          <p className="text-kicker">Centre de notifications</p>
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Notifications</h1>
+          <p className="breadcrumb-mono">§ · Compte · Notifications</p>
+          <h1 className="mt-4 display-lg text-foreground">Centre de notifications.</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button
             type="button"
             variant="secondary"
             size="sm"
             icon={<Filter className="h-3.5 w-3.5" />}
             onClick={() => setOnlyUnread((v) => !v)}
-            className={cn(onlyUnread && 'border-accent-primary/50 bg-accent-primary/10 text-accent-glow')}
+            className={cn(onlyUnread && 'border-accent text-accent')}
           >
             {onlyUnread ? 'Non lues' : 'Toutes'}
           </Button>
@@ -94,56 +93,62 @@ export default function NotificationsPage() {
             </Button>
           ) : null}
         </div>
-      </div>
+      </header>
 
-      <Card className="divide-y divide-white/5 p-0 overflow-hidden">
+      <section className="border-y border-hairline">
         {query.isLoading ? (
-          <div className="flex items-center justify-center gap-3 py-12 text-sm text-text-secondary">
+          <div className="flex items-center justify-center gap-3 py-16 label-mono text-foreground-dim">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Chargement...
+            Chargement…
           </div>
         ) : allItems.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-12 text-sm text-text-secondary">
-            <Bell className="h-8 w-8 opacity-30" />
-            <p>Aucune notification{onlyUnread ? ' non lue' : ''}.</p>
+          <div className="flex flex-col items-center gap-4 py-16 text-foreground-dim">
+            <Bell className="h-8 w-8 text-foreground-muted" />
+            <p className="label-mono">Aucune notification{onlyUnread ? ' non lue' : ''}.</p>
           </div>
         ) : (
-          allItems.map((notif) => (
-            <div
-              key={notif.id}
-              className={cn(
-                'flex items-start gap-4 px-5 py-4 transition hover:bg-white/[0.035]',
-                !notif.isRead && 'bg-accent-primary/5',
-              )}
-            >
-              <span className="mt-0.5 text-xl leading-none shrink-0">
-                {TYPE_ICON[notif.type] ?? '🔔'}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white">{notif.title}</p>
-                <p className="mt-0.5 text-sm text-text-secondary">{notif.message}</p>
-                <p className="mt-1.5 text-xs text-text-muted">{timeAgo(notif.createdAt)}</p>
-              </div>
-              <div className="flex shrink-0 items-center gap-3">
-                {!notif.isRead ? (
-                  <>
-                    <span className="h-2 w-2 rounded-full bg-accent-primary" />
+          <ul className="divide-y divide-[var(--border)]">
+            {allItems.map((notif) => (
+              <li
+                key={notif.id}
+                className={cn(
+                  'flex items-start gap-6 px-2 py-5 transition',
+                  !notif.isRead && 'border-l-2 border-l-accent pl-4',
+                )}
+              >
+                <div className="flex flex-1 flex-col gap-1.5 min-w-0">
+                  <div className="flex items-center gap-3">
+                    <p className="label-mono text-foreground-muted">
+                      {TYPE_LABEL[notif.type] ?? 'Notification'}
+                    </p>
+                    <span className="label-mono text-foreground-muted">·</span>
+                    <p className="label-mono text-foreground-muted tabular-nums">
+                      {timeAgo(notif.createdAt)}
+                    </p>
+                  </div>
+                  <p className="font-display text-lg tracking-tight text-foreground">
+                    {notif.title}
+                  </p>
+                  <p className="text-sm leading-6 text-foreground-dim">{notif.message}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-4">
+                  {!notif.isRead ? (
                     <button
                       type="button"
-                      className="text-xs text-text-secondary transition hover:text-white"
+                      className="label-mono text-foreground-dim transition hover:text-accent"
                       onClick={() => markRead.mutate({ id: notif.id })}
                     >
                       Marquer lu
                     </button>
-                  </>
-                ) : null}
-              </div>
-            </div>
-          ))
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
 
         {query.hasNextPage ? (
-          <div className="flex justify-center py-4">
+          <div className="flex justify-center border-t border-hairline py-6">
             <Button
               type="button"
               variant="secondary"
@@ -156,7 +161,7 @@ export default function NotificationsPage() {
             </Button>
           </div>
         ) : null}
-      </Card>
+      </section>
     </div>
   );
 }

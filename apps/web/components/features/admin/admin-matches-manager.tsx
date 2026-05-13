@@ -1,20 +1,18 @@
 'use client';
 
 import type { inferRouterOutputs } from '@trpc/server';
-import { ArrowRightLeft, Loader2, Pencil, Plus, Save } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowRightLeft, Check, Loader2, Pencil, Plus, Save } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { ChampionSelect, type ChampionOption } from '@/components/ui/champion-select';
+import { ChampionIcon } from '@/components/ui/champion-icon';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
-import { normalizeChampionId } from '@/lib/utils/ddragon';
 import { formatDateTime } from '@/lib/utils/format';
 import type { AppRouter } from '@/server/routers/_app';
-import type { ParsedReplay } from '@/lib/validators/replay';
+import type { ParsedReplay, ParsedReplayPlayer } from '@/lib/validators/replay';
 import { ReplayImportButton } from './replay-import-button';
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
@@ -35,6 +33,12 @@ const FORMAT_GAME_LIMIT: Record<MatchSummary['format'], number> = {
 const ROLE_ORDER = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'] as const;
 const SLOT_COUNT = 5;
 
+interface GameState {
+  parsed: ParsedReplay;
+  blueIsHome: boolean;
+  playerOverrides: Record<string, string>;
+}
+
 function toDateTimeLocalValue(value: Date | string) {
   const date = new Date(value);
   const year = date.getFullYear();
@@ -45,37 +49,49 @@ function toDateTimeLocalValue(value: Date | string) {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-function getFormValue(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === 'string' ? value : '';
-}
-
-function parseInteger(value: string, fieldLabel: string) {
-  const parsed = Number.parseInt(value, 10);
-
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    throw new Error(`${fieldLabel} doit etre un entier positif ou nul.`);
-  }
-
-  return parsed;
-}
-
 function sortRoster(players: TeamRosterPlayer[]) {
   return [...players].sort((left, right) => {
     const leftIndex = ROLE_ORDER.indexOf(left.role);
     const rightIndex = ROLE_ORDER.indexOf(right.role);
-
-    if (leftIndex !== rightIndex) {
-      return leftIndex - rightIndex;
-    }
-
+    if (leftIndex !== rightIndex) return leftIndex - rightIndex;
     return left.displayName.localeCompare(right.displayName);
   });
 }
 
-function buildSlotDefaults(players: TeamRosterPlayer[]) {
-  const sorted = sortRoster(players);
-  return Array.from({ length: SLOT_COUNT }, (_, index) => sorted[index] ?? null);
+function matchPlayerByRiotName(
+  riotName: string | null,
+  roster: TeamRosterPlayer[],
+): TeamRosterPlayer | null {
+  if (!riotName) return null;
+  const lower = riotName.toLowerCase();
+  const [namePart, tagPart] = lower.split('#');
+
+  if (tagPart) {
+    const exact = roster.find(
+      (p) =>
+        p.gameName.toLowerCase() === namePart &&
+        p.tagLine.toLowerCase() === tagPart,
+    );
+    if (exact) return exact;
+  }
+
+  return roster.find((p) => p.gameName.toLowerCase() === namePart) ?? null;
+}
+
+function detectBlueIsHome(
+  parsed: ParsedReplay,
+  homeRoster: TeamRosterPlayer[],
+  awayRoster: TeamRosterPlayer[],
+): boolean {
+  const bluePlayers = parsed.players.filter((p) => p.side === 'BLUE');
+  let homeBlue = 0;
+  let awayBlue = 0;
+  for (const player of bluePlayers) {
+    if (matchPlayerByRiotName(player.riot_name, homeRoster)) homeBlue += 1;
+    if (matchPlayerByRiotName(player.riot_name, awayRoster)) awayBlue += 1;
+  }
+  if (homeBlue === 0 && awayBlue === 0) return true;
+  return homeBlue >= awayBlue;
 }
 
 function FeedbackBanner({ feedback }: { feedback: FeedbackState | null }) {
@@ -83,10 +99,10 @@ function FeedbackBanner({ feedback }: { feedback: FeedbackState | null }) {
   return (
     <div
       className={cn(
-        'rounded-2xl border px-4 py-3 text-sm',
+        'border-l-2 border-y border-r border-hairline bg-surface px-5 py-4 label-mono',
         feedback.type === 'success'
-          ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-          : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+          ? 'border-l-[color:var(--win)] text-[color:var(--win)]'
+          : 'border-l-[color:var(--loss)] text-[color:var(--loss)]',
       )}
     >
       {feedback.message}
@@ -103,27 +119,10 @@ export function AdminMatchesManager() {
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [recordingMatchId, setRecordingMatchId] = useState<string | null>(null);
-  const [gameCount, setGameCount] = useState(1);
-  const [gameSides, setGameSides] = useState<Record<number, boolean>>({});
-  const [champions, setChampions] = useState<ChampionOption[]>([]);
-  const [championValues, setChampionValues] = useState<Record<string, string>>({});
-  const recordFormRef = useRef<HTMLFormElement>(null);
+  const [gameStates, setGameStates] = useState<Record<number, GameState>>({});
 
   const createMatch = api.match.create.useMutation();
   const recordResult = api.match.recordResult.useMutation();
-
-  useEffect(() => {
-    fetch('https://ddragon.leagueoflegends.com/cdn/15.6.1/data/en_US/champion.json')
-      .then((res) => res.json() as Promise<{ data: Record<string, { id: string; name: string }> }>)
-      .then((json) => {
-        setChampions(
-          Object.values(json.data)
-            .map((c) => ({ id: c.id, name: c.name }))
-            .sort((a, b) => a.name.localeCompare(b.name)),
-        );
-      })
-      .catch(() => {});
-  }, []);
 
   const matches = matchesQuery.data ?? [];
   const teams = teamsQuery.data ?? [];
@@ -144,22 +143,18 @@ export function AdminMatchesManager() {
 
   const homeRoster = recordingMatch ? sortRoster(homeRosterQuery.data ?? []) : [];
   const awayRoster = recordingMatch ? sortRoster(awayRosterQuery.data ?? []) : [];
-  const homeSlots = buildSlotDefaults(homeRoster);
-  const awaySlots = buildSlotDefaults(awayRoster);
   const maxGames = recordingMatch ? FORMAT_GAME_LIMIT[recordingMatch.format] : 1;
 
-  function getGameSides(gameIndex: number) {
-    if (!recordingMatch) return { blueTeam: null, redTeam: null, blueRoster: [] as TeamRosterPlayer[], redRoster: [] as TeamRosterPlayer[], blueSlots: [] as (TeamRosterPlayer | null)[], redSlots: [] as (TeamRosterPlayer | null)[] };
-    const swapped = gameSides[gameIndex] ?? false;
-    return {
-      blueTeam: swapped ? recordingMatch.awayTeam : recordingMatch.homeTeam,
-      redTeam: swapped ? recordingMatch.homeTeam : recordingMatch.awayTeam,
-      blueRoster: swapped ? awayRoster : homeRoster,
-      redRoster: swapped ? homeRoster : awayRoster,
-      blueSlots: swapped ? awaySlots : homeSlots,
-      redSlots: swapped ? homeSlots : awaySlots,
-    };
+  function resetRecording() {
+    setRecordingMatchId(null);
+    setGameStates({});
   }
+
+  useEffect(() => {
+    if (!recordingMatchId) {
+      setGameStates({});
+    }
+  }, [recordingMatchId]);
 
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -186,116 +181,206 @@ export function AdminMatchesManager() {
     }
   }
 
-  async function handleRecordResult(event: React.FormEvent<HTMLFormElement>) {
+  function applyReplayToGame(gameIndex: number, parsed: ParsedReplay) {
+    const blueIsHome = detectBlueIsHome(parsed, homeRoster, awayRoster);
+    setGameStates((prev) => ({
+      ...prev,
+      [gameIndex]: {
+        parsed,
+        blueIsHome,
+        playerOverrides: {},
+      },
+    }));
+    setFeedback({
+      type: 'success',
+      message: `Game ${gameIndex + 1} importée — stats extraites automatiquement.`,
+    });
+  }
+
+  function swapSides(gameIndex: number) {
+    setGameStates((prev) => {
+      const current = prev[gameIndex];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [gameIndex]: { ...current, blueIsHome: !current.blueIsHome },
+      };
+    });
+  }
+
+  function setOverride(gameIndex: number, key: string, playerId: string) {
+    setGameStates((prev) => {
+      const current = prev[gameIndex];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [gameIndex]: {
+          ...current,
+          playerOverrides: { ...current.playerOverrides, [key]: playerId },
+        },
+      };
+    });
+  }
+
+  function clearGame(gameIndex: number) {
+    setGameStates((prev) => {
+      const next = { ...prev };
+      delete next[gameIndex];
+      return next;
+    });
+  }
+
+  function resolvePlayerForSlot(
+    gameIndex: number,
+    side: 'BLUE' | 'RED',
+    slotIndex: number,
+    replayPlayer: ParsedReplayPlayer,
+    roster: TeamRosterPlayer[],
+  ): TeamRosterPlayer | null {
+    const key = `${side}-${slotIndex}`;
+    const override = gameStates[gameIndex]?.playerOverrides[key];
+    if (override) {
+      return roster.find((p) => p.id === override) ?? null;
+    }
+    const matched = matchPlayerByRiotName(replayPlayer.riot_name, roster);
+    if (matched) return matched;
+    const sameRole = roster.filter((p) => p.role === replayPlayer.role);
+    return sameRole[0] ?? null;
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!recordingMatch) return;
     setFeedback(null);
-    const form = event.currentTarget;
-    const formData = new FormData(form);
+
+    const gameIndices = Object.keys(gameStates)
+      .map((key) => Number.parseInt(key, 10))
+      .filter((value) => Number.isFinite(value))
+      .sort((a, b) => a - b);
+
+    if (gameIndices.length === 0) {
+      setFeedback({
+        type: 'error',
+        message: 'Importez au moins une replay .rofl avant de valider.',
+      });
+      return;
+    }
+
+    if (homeRoster.length < SLOT_COUNT || awayRoster.length < SLOT_COUNT) {
+      setFeedback({
+        type: 'error',
+        message: 'Chaque équipe doit avoir au moins 5 joueurs actifs.',
+      });
+      return;
+    }
 
     try {
-      const homeScore = parseInteger(getFormValue(formData, 'homeScore'), 'Le score domicile');
-      const awayScore = parseInteger(getFormValue(formData, 'awayScore'), 'Le score exterieur');
-      const winnerTeamId = getFormValue(formData, 'winnerTeamId');
+      let homeScore = 0;
+      let awayScore = 0;
+      const games = gameIndices.map((gameIndex, sequentialIndex) => {
+        const state = gameStates[gameIndex]!;
+        const { parsed, blueIsHome } = state;
 
-      if (homeScore + awayScore !== gameCount) {
-        throw new Error('Le total des scores doit correspondre au nombre de games enregistrees.');
-      }
+        const blueTeam = blueIsHome ? recordingMatch.homeTeam : recordingMatch.awayTeam;
+        const redTeam = blueIsHome ? recordingMatch.awayTeam : recordingMatch.homeTeam;
+        const blueRoster = blueIsHome ? homeRoster : awayRoster;
+        const redRoster = blueIsHome ? awayRoster : homeRoster;
 
-      if (!winnerTeamId) {
-        throw new Error('Le vainqueur de la serie doit etre renseigne.');
-      }
+        const blueReplay = parsed.teams.find((t) => t.side === 'BLUE')!;
+        const winnerTeamId =
+          blueReplay.result === 'WIN' ? blueTeam.id : redTeam.id;
 
-      if (homeRoster.length < SLOT_COUNT || awayRoster.length < SLOT_COUNT) {
-        throw new Error(
-          'Chaque equipe doit disposer d au moins cinq joueurs actifs pour saisir les stats.',
-        );
-      }
-
-      const games = Array.from({ length: gameCount }, (_, gameIndex) => {
-        const sides = getGameSides(gameIndex);
-        const winnerTeamIdForGame = getFormValue(formData, `game-${gameIndex}-winnerTeamId`);
-
-        if (!winnerTeamIdForGame) {
-          throw new Error(`Le vainqueur de la game ${gameIndex + 1} doit etre renseigne.`);
-        }
+        if (winnerTeamId === recordingMatch.homeTeam.id) homeScore += 1;
+        else awayScore += 1;
 
         function buildSideStats(side: 'BLUE' | 'RED') {
-          return Array.from({ length: SLOT_COUNT }, (_, slotIndex) => {
-            const playerId = getFormValue(
-              formData,
-              `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-playerId`,
-            );
-            const champion = getFormValue(
-              formData,
-              `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-champion`,
-            ).trim();
+          const roster = side === 'BLUE' ? blueRoster : redRoster;
+          const sideTeamId = side === 'BLUE' ? blueTeam.id : redTeam.id;
+          const sidePlayers = parsed.players
+            .filter((p) => p.side === side)
+            .sort((a, b) => a.position_in_team - b.position_in_team);
 
-            if (!playerId || !champion) {
+          return sidePlayers.map((replayPlayer, slotIndex) => {
+            const player = resolvePlayerForSlot(
+              gameIndex,
+              side,
+              slotIndex,
+              replayPlayer,
+              roster,
+            );
+            if (!player) {
               throw new Error(
-                `Les stats ${side.toLowerCase()} side de la game ${gameIndex + 1} sont incompletes.`,
+                `Joueur introuvable côté ${side} (slot ${slotIndex + 1}) pour la game ${
+                  gameIndex + 1
+                }.`,
               );
             }
-
             return {
-              playerId,
+              playerId: player.id,
+              teamId: sideTeamId,
               side,
-              champion,
-              kills: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-kills`),
-                `Les kills ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
-              ),
-              deaths: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-deaths`),
-                `Les deaths ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
-              ),
-              assists: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-assists`),
-                `Les assists ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
-              ),
-              cs: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-cs`),
-                `Le CS ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
-              ),
-              gold: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-gold`),
-                `Le gold ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
-              ),
-              damage: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-damage`),
-                `Les degats ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
-              ),
-              visionScore: parseInteger(
-                getFormValue(formData, `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}-visionScore`),
-                `La vision ${side.toLowerCase()} side de la game ${gameIndex + 1}`,
-              ),
+              champion: replayPlayer.champion_internal,
+              kills: replayPlayer.prisma.kills,
+              deaths: replayPlayer.prisma.deaths,
+              assists: replayPlayer.prisma.assists,
+              cs: replayPlayer.prisma.cs,
+              gold: replayPlayer.prisma.gold,
+              damage: replayPlayer.prisma.damage,
+              visionScore: replayPlayer.prisma.visionScore,
+              kda: replayPlayer.enriched.kda,
+              csPerMin: replayPlayer.enriched.cs_per_min,
+              goldPerMin: replayPlayer.enriched.gold_per_min,
+              damagePerMin: replayPlayer.enriched.damage_per_min,
+              killParticipation: replayPlayer.enriched.kill_participation,
+              damageShare: replayPlayer.enriched.damage_share,
+              goldShare: replayPlayer.enriched.gold_share,
             };
           });
         }
 
         const playerStats = [...buildSideStats('BLUE'), ...buildSideStats('RED')];
-
-        const uniquePlayerIds = new Set(playerStats.map((entry) => entry.playerId));
-        if (uniquePlayerIds.size !== playerStats.length) {
+        const seenPlayers = new Set(playerStats.map((s) => s.playerId));
+        if (seenPlayers.size !== playerStats.length) {
           throw new Error(
-            `Chaque joueur ne peut apparaitre qu une fois dans la game ${gameIndex + 1}.`,
+            `Doublons de joueurs dans la game ${gameIndex + 1}. Ajustez le mapping manuel.`,
           );
         }
 
         return {
-          gameNumber: gameIndex + 1,
-          riotMatchId: getFormValue(formData, `game-${gameIndex}-riotMatchId`) || undefined,
-          blueTeamId: sides.blueTeam!.id,
-          redTeamId: sides.redTeam!.id,
-          winnerTeamId: winnerTeamIdForGame,
-          playedAt: new Date(getFormValue(formData, `game-${gameIndex}-playedAt`)),
-          durationSeconds: parseInteger(
-            getFormValue(formData, `game-${gameIndex}-durationSeconds`),
-            `La duree de la game ${gameIndex + 1}`,
-          ),
-          playerStats,
+          gameNumber: sequentialIndex + 1,
+          blueTeamId: blueTeam.id,
+          redTeamId: redTeam.id,
+          winnerTeamId,
+          playedAt: new Date(),
+          durationSeconds: parsed.game.duration_seconds,
+          playerStats: playerStats.map((s) => ({
+            playerId: s.playerId,
+            side: s.side,
+            champion: s.champion,
+            kills: s.kills,
+            deaths: s.deaths,
+            assists: s.assists,
+            cs: s.cs,
+            gold: s.gold,
+            damage: s.damage,
+            visionScore: s.visionScore,
+            kda: s.kda,
+            csPerMin: s.csPerMin,
+            goldPerMin: s.goldPerMin,
+            damagePerMin: s.damagePerMin,
+            killParticipation: s.killParticipation,
+            damageShare: s.damageShare,
+            goldShare: s.goldShare,
+          })),
         };
       });
+
+      const winnerTeamId =
+        homeScore > awayScore
+          ? recordingMatch.homeTeam.id
+          : awayScore > homeScore
+            ? recordingMatch.awayTeam.id
+            : undefined;
 
       await recordResult.mutateAsync({
         matchId: recordingMatch.id,
@@ -305,11 +390,8 @@ export function AdminMatchesManager() {
         playedAt: new Date(),
         games,
       });
-      form.reset();
-      setRecordingMatchId(null);
-      setGameCount(1);
-      setGameSides({});
-      setChampionValues({});
+
+      resetRecording();
       await Promise.all([
         utils.match.getAll.invalidate(),
         utils.match.getById.invalidate(),
@@ -320,83 +402,24 @@ export function AdminMatchesManager() {
       ]);
       setFeedback({
         type: 'success',
-        message: 'Le resultat et les stats par game ont ete enregistres.',
+        message: 'Résultat enregistré — stats extraites depuis les replays.',
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "L'enregistrement a echoue.";
+      const message = error instanceof Error ? error.message : "L'enregistrement a échoué.";
       setFeedback({ type: 'error', message });
     }
   }
 
-  function resolveChampionId(internal: string) {
-    if (champions.some((c) => c.id === internal)) return internal;
-    const target = normalizeChampionId(internal);
-    if (!target) return '';
-    const match = champions.find((c) => normalizeChampionId(c.id) === target);
-    return match?.id ?? '';
-  }
-
-  function applyReplayToGame(gameIndex: number, parsed: ParsedReplay) {
-    const form = recordFormRef.current;
-    if (!form) return;
-    if (!recordingMatch) return;
-
-    const sides = getGameSides(gameIndex);
-    if (!sides.blueTeam || !sides.redTeam) return;
-
-    const setInput = (name: string, value: string) => {
-      const element = form.elements.namedItem(name);
-      if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement) {
-        element.value = value;
-      }
-    };
-
-    setInput(`game-${gameIndex}-durationSeconds`, String(parsed.game.duration_seconds));
-
-    const blueReplayTeam = parsed.teams.find((team) => team.side === 'BLUE');
-    if (blueReplayTeam) {
-      const winnerTeamId =
-        blueReplayTeam.result === 'WIN' ? sides.blueTeam.id : sides.redTeam.id;
-      setInput(`game-${gameIndex}-winnerTeamId`, winnerTeamId);
-    }
-
-    const nextChampionValues: Record<string, string> = {};
-
-    for (const side of ['BLUE', 'RED'] as const) {
-      const sidePlayers = parsed.players
-        .filter((player) => player.side === side)
-        .sort((left, right) => left.position_in_team - right.position_in_team);
-
-      sidePlayers.forEach((player, slotIndex) => {
-        const slotKey = `${gameIndex}-${side.toLowerCase()}-${slotIndex}`;
-        nextChampionValues[slotKey] = resolveChampionId(player.champion_internal);
-
-        const base = `game-${gameIndex}-${side.toLowerCase()}-slot-${slotIndex}`;
-        setInput(`${base}-kills`, String(player.prisma.kills));
-        setInput(`${base}-deaths`, String(player.prisma.deaths));
-        setInput(`${base}-assists`, String(player.prisma.assists));
-        setInput(`${base}-cs`, String(player.prisma.cs));
-        setInput(`${base}-gold`, String(player.prisma.gold));
-        setInput(`${base}-damage`, String(player.prisma.damage));
-        setInput(`${base}-visionScore`, String(player.prisma.visionScore));
-      });
-    }
-
-    setChampionValues((prev) => ({ ...prev, ...nextChampionValues }));
-    setFeedback({
-      type: 'success',
-      message: `Game ${gameIndex + 1} importée. Vérifie les sides et associe chaque champion à un joueur.`,
-    });
-  }
+  const importedCount = Object.keys(gameStates).length;
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-10">
       <FeedbackBanner feedback={feedback} />
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-hairline pb-6">
         <div>
-          <p className="text-kicker">Match management</p>
-          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Matchs</h2>
+          <p className="label-mono">§ Admin · Matchs</p>
+          <h2 className="mt-3 display-md text-foreground">Programmation & résultats.</h2>
         </div>
         <Button
           type="button"
@@ -405,8 +428,7 @@ export function AdminMatchesManager() {
           icon={<Plus className="h-4 w-4" />}
           onClick={() => {
             setShowCreateForm(true);
-            setRecordingMatchId(null);
-            setGameCount(1);
+            resetRecording();
           }}
         >
           Programmer un match
@@ -414,56 +436,83 @@ export function AdminMatchesManager() {
       </div>
 
       {showCreateForm ? (
-        <Card className="space-y-5">
-          <h3 className="font-display text-2xl font-bold tracking-tight text-white">Nouveau match</h3>
-          <form className="grid gap-4 md:grid-cols-2" onSubmit={handleCreate}>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Saison</label>
+        <section className="border-l-2 border-l-accent border-y border-r border-hairline bg-surface px-5 py-6">
+          <p className="label-mono">§ Nouveau match</p>
+          <h3 className="mt-3 display-md text-foreground">Programmer.</h3>
+          <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleCreate}>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Saison</label>
               <Select name="seasonId" required defaultValue={seasons.find((s) => s.isCurrent)?.id ?? ''}>
-                <option value="" disabled>Choisir</option>
+                <option value="" disabled>
+                  Choisir
+                </option>
                 {seasons.map((season) => (
                   <option key={season.id} value={season.id}>
-                    {season.name}{season.isCurrent ? ' (current)' : ''}
+                    {season.name}
+                    {season.isCurrent ? ' (current)' : ''}
                   </option>
                 ))}
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Format</label>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Format</label>
               <Select name="format" required defaultValue="BO3">
                 <option value="BO1">BO1</option>
                 <option value="BO3">BO3</option>
                 <option value="BO5">BO5</option>
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Home team</label>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Home team</label>
               <Select name="homeTeamId" required defaultValue="">
-                <option value="" disabled>Choisir</option>
+                <option value="" disabled>
+                  Choisir
+                </option>
                 {teams.map((team) => (
-                  <option key={team.id} value={team.id}>{team.name} ({team.shortCode})</option>
+                  <option key={team.id} value={team.id}>
+                    {team.name} ({team.shortCode})
+                  </option>
                 ))}
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Away team</label>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Away team</label>
               <Select name="awayTeamId" required defaultValue="">
-                <option value="" disabled>Choisir</option>
+                <option value="" disabled>
+                  Choisir
+                </option>
                 {teams.map((team) => (
-                  <option key={team.id} value={team.id}>{team.name} ({team.shortCode})</option>
+                  <option key={team.id} value={team.id}>
+                    {team.name} ({team.shortCode})
+                  </option>
                 ))}
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Date</label>
-              <Input name="scheduledAt" type="datetime-local" required defaultValue={toDateTimeLocalValue(new Date())} />
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Date</label>
+              <Input
+                name="scheduledAt"
+                type="datetime-local"
+                required
+                defaultValue={toDateTimeLocalValue(new Date())}
+              />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Notes</label>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Notes</label>
               <Input name="notes" placeholder="Optionnel" />
             </div>
             <div className="flex gap-3 md:col-span-2">
-              <Button type="submit" disabled={createMatch.isPending} icon={createMatch.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}>
+              <Button
+                type="submit"
+                disabled={createMatch.isPending}
+                icon={
+                  createMatch.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )
+                }
+              >
                 Programmer
               </Button>
               <Button type="button" variant="secondary" onClick={() => setShowCreateForm(false)}>
@@ -471,479 +520,344 @@ export function AdminMatchesManager() {
               </Button>
             </div>
           </form>
-        </Card>
+        </section>
       ) : null}
 
-      <div className="space-y-4">
-        {matchesQuery.isLoading ? (
-          <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Chargement...
-          </div>
-        ) : matches.length > 0 ? (
-          matches.map((match) => (
-            <Card key={match.id} className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-4">
+      <section>
+        <p className="label-mono">§ Calendrier</p>
+        <h3 className="mt-3 display-md text-foreground">Tous les matchs.</h3>
+
+        <div className="mt-8 flex flex-col gap-px bg-hairline">
+          {matchesQuery.isLoading ? (
+            <div className="flex items-center gap-3 bg-background px-5 py-6 text-sm text-foreground-dim">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Chargement...
+            </div>
+          ) : matches.length > 0 ? (
+            matches.map((match) => (
+              <article key={match.id} className="bg-background">
+                <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-5">
                   <div>
-                    <p className="font-semibold text-white">
-                      {match.homeTeam.name} vs {match.awayTeam.name}
+                    <p className="font-display text-xl text-foreground">
+                      {match.homeTeam.name}{' '}
+                      <span className="text-foreground-muted">vs</span> {match.awayTeam.name}
                     </p>
-                    <p className="text-sm text-text-secondary">
-                      {match.format} — {match.season.name} — {formatDateTime(match.scheduledAt)}
+                    <p className="mt-1 label-mono">
+                      {match.format} · {match.season.name} · {formatDateTime(match.scheduledAt)}
                     </p>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="rounded-[18px] border border-white/[0.05] bg-white/[0.035] px-4 py-2 text-center">
-                    <span className="font-display text-xl font-bold tracking-tight text-white">
-                      {match.homeScore} - {match.awayScore}
+                  <div className="flex items-center gap-3">
+                    <span className="font-display text-2xl tabular-nums text-foreground">
+                      {match.homeScore} – {match.awayScore}
                     </span>
-                  </div>
-                  <Badge variant={match.isCompleted ? 'actif' : 'expiré'}>
-                    {match.isCompleted ? 'Terminé' : 'Programmé'}
-                  </Badge>
-                  {match.isCompleted ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      icon={<Pencil className="h-4 w-4" />}
-                      onClick={() => {
-                        setRecordingMatchId(match.id);
-                        setShowCreateForm(false);
-                        setGameCount(1);
-                        setGameSides({});
-                        setChampionValues({});
-                      }}
-                    >
-                      Modifier résultat
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => {
-                        setRecordingMatchId(match.id);
-                        setShowCreateForm(false);
-                        setGameCount(1);
-                        setGameSides({});
-                        setChampionValues({});
-                      }}
-                    >
-                      Enregistrer résultat
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {recordingMatchId === match.id ? (
-                <form
-                  ref={recordFormRef}
-                  className="space-y-5 rounded-3xl border border-white/[0.05] bg-white/[0.035] p-5"
-                  onSubmit={handleRecordResult}
-                >
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                    <div className="space-y-1">
-                      <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                        Score {match.homeTeam.shortCode}
-                      </label>
-                      <Input name="homeScore" type="number" min={0} required defaultValue="0" />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                        Score {match.awayTeam.shortCode}
-                      </label>
-                      <Input name="awayScore" type="number" min={0} required defaultValue="0" />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                        Vainqueur serie
-                      </label>
-                      <Select name="winnerTeamId" required defaultValue="">
-                        <option value="" disabled>
-                          Choisir
-                        </option>
-                        <option value={match.homeTeam.id}>{match.homeTeam.name}</option>
-                        <option value={match.awayTeam.id}>{match.awayTeam.name}</option>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                        Games jouees
-                      </label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={maxGames}
-                        value={gameCount}
-                        onChange={(event) => {
-                          const nextValue = Number.parseInt(event.target.value, 10);
-                          setGameCount(
-                            Number.isFinite(nextValue)
-                              ? Math.max(1, Math.min(maxGames, nextValue))
-                              : 1,
-                          );
-                        }}
-                      />
-                    </div>
-
-                    <div className="flex items-end gap-2">
-                      <Button
-                        type="submit"
-                        size="sm"
-                        disabled={recordResult.isPending}
-                        icon={
-                          recordResult.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Save className="h-4 w-4" />
-                          )
-                        }
-                      >
-                        Valider
-                      </Button>
+                    <Badge variant={match.isCompleted ? 'actif' : 'expiré'}>
+                      {match.isCompleted ? 'Terminé' : 'Programmé'}
+                    </Badge>
+                    {recordingMatchId === match.id ? (
                       <Button
                         type="button"
                         size="sm"
                         variant="secondary"
-                        onClick={() => {
-                          setRecordingMatchId(null);
-                          setGameCount(1);
-                          setChampionValues({});
-                        }}
+                        onClick={resetRecording}
                       >
                         Annuler
                       </Button>
-                    </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        icon={match.isCompleted ? <Pencil className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+                        onClick={() => {
+                          setRecordingMatchId(match.id);
+                          setShowCreateForm(false);
+                          setGameStates({});
+                        }}
+                      >
+                        {match.isCompleted ? 'Modifier résultat' : 'Enregistrer résultat'}
+                      </Button>
+                    )}
                   </div>
+                </div>
 
-                  {homeRosterQuery.isLoading || awayRosterQuery.isLoading ? (
-                    <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-black/20 px-4 py-4 text-sm text-text-secondary">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Chargement des rosters pour la saisie des stats...
-                    </div>
-                  ) : homeRoster.length < SLOT_COUNT || awayRoster.length < SLOT_COUNT ? (
-                    <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-4 text-sm text-rose-100">
-                      Les deux equipes doivent disposer d&apos;au moins cinq joueurs actifs pour enregistrer des stats par game.
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {Array.from({ length: gameCount }, (_, gameIndex) => {
-                        const sides = getGameSides(gameIndex);
-                        return (
-                        <Card key={gameIndex} className="space-y-5 border-white/[0.05] bg-black/20">
-                          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                            <div>
-                              <p className="text-kicker">Game {gameIndex + 1}</p>
-                              <h4 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-                                {sides.blueTeam?.shortCode} vs {sides.redTeam?.shortCode}
-                              </h4>
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                                Riot match ID
-                              </label>
-                              <Input
-                                name={`game-${gameIndex}-riotMatchId`}
-                                placeholder="Optionnel"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                                Played at
-                              </label>
-                              <Input
-                                name={`game-${gameIndex}-playedAt`}
-                                type="datetime-local"
-                                required
-                                defaultValue={toDateTimeLocalValue(new Date())}
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                                Duree (sec)
-                              </label>
-                              <Input
-                                name={`game-${gameIndex}-durationSeconds`}
-                                type="number"
-                                min={1}
-                                required
-                                defaultValue="1800"
-                              />
-                            </div>
+                {recordingMatchId === match.id ? (
+                  <form
+                    className="border-t border-hairline bg-surface px-5 py-6"
+                    onSubmit={handleSubmit}
+                  >
+                    {homeRosterQuery.isLoading || awayRosterQuery.isLoading ? (
+                      <div className="flex items-center gap-3 text-sm text-foreground-dim">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Chargement des rosters...
+                      </div>
+                    ) : homeRoster.length < SLOT_COUNT || awayRoster.length < SLOT_COUNT ? (
+                      <div className="border-l-2 border-l-[color:var(--loss)] border-y border-r border-hairline bg-background px-5 py-4 label-mono text-[color:var(--loss)]">
+                        Les deux équipes doivent disposer d&apos;au moins cinq joueurs actifs.
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-8">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                          <div>
+                            <p className="label-mono">
+                              § Replays · {importedCount}/{maxGames} importée
+                              {importedCount > 1 ? 's' : ''}
+                            </p>
+                            <p className="mt-2 text-sm leading-6 text-foreground-dim">
+                              Importez le .rofl de chaque game. Toutes les stats sont extraites
+                              automatiquement — plus aucune saisie manuelle.
+                            </p>
                           </div>
+                          <Button
+                            type="submit"
+                            size="sm"
+                            disabled={recordResult.isPending || importedCount === 0}
+                            icon={
+                              recordResult.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )
+                            }
+                          >
+                            Valider {importedCount > 0 ? `(${importedCount})` : ''}
+                          </Button>
+                        </div>
 
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <div className="space-y-1">
-                              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                                Vainqueur game {gameIndex + 1}
-                              </label>
-                              <Select name={`game-${gameIndex}-winnerTeamId`} required defaultValue="">
-                                <option value="" disabled>
-                                  Choisir
-                                </option>
-                                <option value={match.homeTeam.id}>{match.homeTeam.name}</option>
-                                <option value={match.awayTeam.id}>{match.awayTeam.name}</option>
-                              </Select>
-                            </div>
-                            <div className="flex items-end gap-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="secondary"
-                                icon={<ArrowRightLeft className="h-4 w-4" />}
-                                onClick={() =>
-                                  setGameSides((prev) => ({
-                                    ...prev,
-                                    [gameIndex]: !(prev[gameIndex] ?? false),
-                                  }))
-                                }
-                              >
-                                Inverser sides
-                              </Button>
-                              <ReplayImportButton
+                        <div className="flex flex-col gap-px bg-hairline">
+                          {Array.from({ length: maxGames }, (_, gameIndex) => {
+                            const state = gameStates[gameIndex] ?? null;
+                            return (
+                              <GameImportSlot
+                                key={gameIndex}
                                 gameIndex={gameIndex}
+                                state={state}
+                                match={match}
+                                homeRoster={homeRoster}
+                                awayRoster={awayRoster}
                                 onImported={applyReplayToGame}
-                                onError={(message) => setFeedback({ type: 'error', message })}
+                                onError={(message) =>
+                                  setFeedback({ type: 'error', message })
+                                }
+                                onSwap={() => swapSides(gameIndex)}
+                                onOverride={(key, playerId) =>
+                                  setOverride(gameIndex, key, playerId)
+                                }
+                                onClear={() => clearGame(gameIndex)}
                               />
-                            </div>
-                          </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </form>
+                ) : null}
+              </article>
+            ))
+          ) : (
+            <div className="bg-background px-5 py-6 text-sm text-foreground-dim">
+              Aucun match enregistré.
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
 
-                          <div className="grid gap-4 xl:grid-cols-2">
-                            <div className="space-y-3 rounded-[24px] border border-sky-400/14 bg-sky-500/8 p-4">
-                              <div className="flex items-center justify-between gap-3">
-                                <div>
-                                  <p className="text-kicker">Blue side</p>
-                                  <h5 className="mt-2 font-display text-xl font-bold tracking-tight text-white">
-                                    {sides.blueTeam?.name}
-                                  </h5>
-                                </div>
-                                <Badge variant="TOP">{sides.blueTeam?.shortCode}</Badge>
-                              </div>
+interface GameImportSlotProps {
+  gameIndex: number;
+  state: GameState | null;
+  match: MatchSummary;
+  homeRoster: TeamRosterPlayer[];
+  awayRoster: TeamRosterPlayer[];
+  onImported: (gameIndex: number, parsed: ParsedReplay) => void;
+  onError: (message: string) => void;
+  onSwap: () => void;
+  onOverride: (key: string, playerId: string) => void;
+  onClear: () => void;
+}
 
-                              <div className="space-y-3">
-                                {sides.blueSlots.map((defaultPlayer, slotIndex) => (
-                                  <div
-                                    key={`blue-${gameIndex}-${slotIndex}`}
-                                    className="grid gap-3 rounded-2xl border border-white/[0.05] bg-black/20 p-3 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)]"
-                                  >
-                                    <div className="space-y-3">
-                                      <Select
-                                        name={`game-${gameIndex}-blue-slot-${slotIndex}-playerId`}
-                                        required
-                                        defaultValue={defaultPlayer?.id ?? ''}
-                                      >
-                                        <option value="" disabled>
-                                          Joueur
-                                        </option>
-                                        {sides.blueRoster.map((player) => (
-                                          <option key={player.id} value={player.id}>
-                                            {player.displayName} ({player.role})
-                                          </option>
-                                        ))}
-                                      </Select>
-                                      <ChampionSelect
-                                        champions={champions}
-                                        name={`game-${gameIndex}-blue-slot-${slotIndex}-champion`}
-                                        required
-                                        placeholder={`Champion ${slotIndex + 1}`}
-                                        value={championValues[`${gameIndex}-blue-${slotIndex}`] ?? ''}
-                                      />
-                                    </div>
+function GameImportSlot({
+  gameIndex,
+  state,
+  match,
+  homeRoster,
+  awayRoster,
+  onImported,
+  onError,
+  onSwap,
+  onOverride,
+  onClear,
+}: GameImportSlotProps) {
+  if (!state) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-background px-5 py-5">
+        <div>
+          <p className="label-mono">Game {gameIndex + 1}</p>
+          <p className="mt-2 text-sm text-foreground-dim">
+            Aucune replay importée.
+          </p>
+        </div>
+        <ReplayImportButton
+          gameIndex={gameIndex}
+          onImported={onImported}
+          onError={onError}
+        />
+      </div>
+    );
+  }
 
-                                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-                                      <Input
-                                        name={`game-${gameIndex}-blue-slot-${slotIndex}-kills`}
-                                        type="number"
-                                        min={0}
-                                        required
-                                        defaultValue="0"
-                                        placeholder="K"
-                                      />
-                                      <Input
-                                        name={`game-${gameIndex}-blue-slot-${slotIndex}-deaths`}
-                                        type="number"
-                                        min={0}
-                                        required
-                                        defaultValue="0"
-                                        placeholder="D"
-                                      />
-                                      <Input
-                                        name={`game-${gameIndex}-blue-slot-${slotIndex}-assists`}
-                                        type="number"
-                                        min={0}
-                                        required
-                                        defaultValue="0"
-                                        placeholder="A"
-                                      />
-                                      <Input
-                                        name={`game-${gameIndex}-blue-slot-${slotIndex}-cs`}
-                                        type="number"
-                                        min={0}
-                                        required
-                                        defaultValue="0"
-                                        placeholder="CS"
-                                      />
-                                      <Input
-                                        name={`game-${gameIndex}-blue-slot-${slotIndex}-gold`}
-                                        type="number"
-                                        min={0}
-                                        required
-                                        defaultValue="0"
-                                        placeholder="Gold"
-                                      />
-                                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
-                                        <Input
-                                          name={`game-${gameIndex}-blue-slot-${slotIndex}-damage`}
-                                          type="number"
-                                          min={0}
-                                          required
-                                          defaultValue="0"
-                                          placeholder="Damage"
-                                        />
-                                        <Input
-                                          name={`game-${gameIndex}-blue-slot-${slotIndex}-visionScore`}
-                                          type="number"
-                                          min={0}
-                                          required
-                                          defaultValue="0"
-                                          placeholder="Vision"
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
+  const { parsed, blueIsHome } = state;
+  const blueTeam = blueIsHome ? match.homeTeam : match.awayTeam;
+  const redTeam = blueIsHome ? match.awayTeam : match.homeTeam;
+  const blueRoster = blueIsHome ? homeRoster : awayRoster;
+  const redRoster = blueIsHome ? awayRoster : homeRoster;
+  const blueReplayTeam = parsed.teams.find((t) => t.side === 'BLUE')!;
+  const winnerTeam = blueReplayTeam.result === 'WIN' ? blueTeam : redTeam;
+  const durationMinutes = Math.floor(parsed.game.duration_seconds / 60);
+  const durationSeconds = parsed.game.duration_seconds % 60;
 
-                            <div className="space-y-3 rounded-[24px] border border-rose-400/14 bg-rose-500/8 p-4">
-                              <div className="flex items-center justify-between gap-3">
-                                <div>
-                                  <p className="text-kicker">Red side</p>
-                                  <h5 className="mt-2 font-display text-xl font-bold tracking-tight text-white">
-                                    {sides.redTeam?.name}
-                                  </h5>
-                                </div>
-                                <Badge variant="ADC">{sides.redTeam?.shortCode}</Badge>
-                              </div>
+  return (
+    <div className="bg-background px-5 py-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="label-mono">Game {gameIndex + 1} · importée</p>
+          <p className="mt-2 font-display text-xl text-foreground">
+            {blueTeam.shortCode} <span className="text-foreground-muted">vs</span>{' '}
+            {redTeam.shortCode}
+          </p>
+          <p className="mt-1 label-mono">
+            {durationMinutes}m {durationSeconds.toString().padStart(2, '0')}s · winner{' '}
+            <span className="text-accent">{winnerTeam.shortCode}</span>
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            icon={<ArrowRightLeft className="h-4 w-4" />}
+            onClick={onSwap}
+          >
+            Inverser sides
+          </Button>
+          <ReplayImportButton
+            gameIndex={gameIndex}
+            onImported={onImported}
+            onError={onError}
+          />
+          <Button type="button" size="sm" variant="secondary" onClick={onClear}>
+            Retirer
+          </Button>
+        </div>
+      </div>
 
-                              <div className="space-y-3">
-                                {sides.redSlots.map((defaultPlayer, slotIndex) => (
-                                  <div
-                                    key={`red-${gameIndex}-${slotIndex}`}
-                                    className="grid gap-3 rounded-2xl border border-white/[0.05] bg-black/20 p-3 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)]"
-                                  >
-                                    <div className="space-y-3">
-                                      <Select
-                                        name={`game-${gameIndex}-red-slot-${slotIndex}-playerId`}
-                                        required
-                                        defaultValue={defaultPlayer?.id ?? ''}
-                                      >
-                                        <option value="" disabled>
-                                          Joueur
-                                        </option>
-                                        {sides.redRoster.map((player) => (
-                                          <option key={player.id} value={player.id}>
-                                            {player.displayName} ({player.role})
-                                          </option>
-                                        ))}
-                                      </Select>
-                                      <ChampionSelect
-                                        champions={champions}
-                                        name={`game-${gameIndex}-red-slot-${slotIndex}-champion`}
-                                        required
-                                        placeholder={`Champion ${slotIndex + 1}`}
-                                        value={championValues[`${gameIndex}-red-${slotIndex}`] ?? ''}
-                                      />
-                                    </div>
+      <div className="mt-6 grid gap-px bg-hairline xl:grid-cols-2">
+        <ImportedSideBlock
+          side="BLUE"
+          team={blueTeam}
+          roster={blueRoster}
+          parsed={parsed}
+          state={state}
+          onOverride={onOverride}
+        />
+        <ImportedSideBlock
+          side="RED"
+          team={redTeam}
+          roster={redRoster}
+          parsed={parsed}
+          state={state}
+          onOverride={onOverride}
+        />
+      </div>
+    </div>
+  );
+}
 
-                                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-                                      <Input
-                                        name={`game-${gameIndex}-red-slot-${slotIndex}-kills`}
-                                        type="number"
-                                        min={0}
-                                        required
-                                        defaultValue="0"
-                                        placeholder="K"
-                                      />
-                                      <Input
-                                        name={`game-${gameIndex}-red-slot-${slotIndex}-deaths`}
-                                        type="number"
-                                        min={0}
-                                        required
-                                        defaultValue="0"
-                                        placeholder="D"
-                                      />
-                                      <Input
-                                        name={`game-${gameIndex}-red-slot-${slotIndex}-assists`}
-                                        type="number"
-                                        min={0}
-                                        required
-                                        defaultValue="0"
-                                        placeholder="A"
-                                      />
-                                      <Input
-                                        name={`game-${gameIndex}-red-slot-${slotIndex}-cs`}
-                                        type="number"
-                                        min={0}
-                                        required
-                                        defaultValue="0"
-                                        placeholder="CS"
-                                      />
-                                      <Input
-                                        name={`game-${gameIndex}-red-slot-${slotIndex}-gold`}
-                                        type="number"
-                                        min={0}
-                                        required
-                                        defaultValue="0"
-                                        placeholder="Gold"
-                                      />
-                                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
-                                        <Input
-                                          name={`game-${gameIndex}-red-slot-${slotIndex}-damage`}
-                                          type="number"
-                                          min={0}
-                                          required
-                                          defaultValue="0"
-                                          placeholder="Damage"
-                                        />
-                                        <Input
-                                          name={`game-${gameIndex}-red-slot-${slotIndex}-visionScore`}
-                                          type="number"
-                                          min={0}
-                                          required
-                                          defaultValue="0"
-                                          placeholder="Vision"
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                        );
-                      })}
-                    </div>
-                  )}
-                </form>
-              ) : null}
-            </Card>
-          ))
-        ) : (
-          <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
-            Aucun match enregistré.
-          </div>
-        )}
+interface ImportedSideBlockProps {
+  side: 'BLUE' | 'RED';
+  team: MatchSummary['homeTeam'];
+  roster: TeamRosterPlayer[];
+  parsed: ParsedReplay;
+  state: GameState;
+  onOverride: (key: string, playerId: string) => void;
+}
+
+function ImportedSideBlock({
+  side,
+  team,
+  roster,
+  parsed,
+  state,
+  onOverride,
+}: ImportedSideBlockProps) {
+  const sidePlayers = parsed.players
+    .filter((p) => p.side === side)
+    .sort((a, b) => a.position_in_team - b.position_in_team);
+
+  return (
+    <div className="bg-background p-4">
+      <div className="flex items-center justify-between gap-3 border-l-2 border-l-accent pl-3 py-1">
+        <p className="label-mono">
+          {side} side · {team.shortCode}
+        </p>
+      </div>
+      <div className="mt-4 flex flex-col gap-px bg-hairline">
+        {sidePlayers.map((player, slotIndex) => {
+          const key = `${side}-${slotIndex}`;
+          const overrideId = state.playerOverrides[key];
+          const matched = matchPlayerByRiotName(player.riot_name, roster);
+          const fallback = roster.filter((p) => p.role === player.role)[0] ?? null;
+          const selectedId = overrideId ?? matched?.id ?? fallback?.id ?? '';
+          const enriched = player.enriched;
+
+          return (
+            <div key={key} className="flex flex-col gap-3 bg-background p-3 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-3 sm:w-56">
+                <ChampionIcon championId={player.champion_internal} size="md" />
+                <div className="min-w-0">
+                  <p className="truncate font-display text-foreground">
+                    {player.champion_display ?? player.champion_internal}
+                  </p>
+                  <p className="truncate label-mono">
+                    {player.role} · {player.riot_name ?? 'inconnu'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="sm:w-56">
+                <Select
+                  name={`override-${key}`}
+                  value={selectedId}
+                  onChange={(event) => onOverride(key, event.target.value)}
+                >
+                  <option value="" disabled>
+                    Joueur
+                  </option>
+                  {roster.map((rosterPlayer) => (
+                    <option key={rosterPlayer.id} value={rosterPlayer.id}>
+                      {rosterPlayer.displayName} ({rosterPlayer.role})
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="flex flex-1 flex-wrap items-center gap-x-5 gap-y-1 label-mono tabular-nums">
+                <span>
+                  {player.prisma.kills}/{player.prisma.deaths}/{player.prisma.assists}
+                </span>
+                <span>CS {player.prisma.cs}</span>
+                <span>CS/m {enriched.cs_per_min.toFixed(1)}</span>
+                <span>GPM {Math.round(enriched.gold_per_min)}</span>
+                <span>DPM {Math.round(enriched.damage_per_min)}</span>
+                <span>KDA {enriched.kda.toFixed(2)}</span>
+                <span>KP {(enriched.kill_participation * 100).toFixed(0)}%</span>
+                <span>DS {(enriched.damage_share * 100).toFixed(0)}%</span>
+                <span>GS {(enriched.gold_share * 100).toFixed(0)}%</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

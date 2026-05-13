@@ -16,14 +16,14 @@ interface FeedbackState {
 }
 
 const ROLE_DISPLAY: Record<string, { label: string; color: string; icon: typeof Shield }> = {
-  ADMIN: { label: 'Admin', color: 'text-amber-400', icon: ShieldAlert },
-  TEAM_CAPTAIN: { label: 'Chef d\'equipe', color: 'text-accent-glow', icon: Shield },
-  USER: { label: 'Utilisateur', color: 'text-text-secondary', icon: User },
+  ADMIN: { label: 'Admin', color: 'text-accent', icon: ShieldAlert },
+  TEAM_CAPTAIN: { label: 'Chef d\'equipe', color: 'text-accent', icon: Shield },
+  USER: { label: 'Utilisateur', color: 'text-foreground-dim', icon: User },
 };
 
 const ROLE_BADGE_CLASSNAMES: Record<string, string> = {
-  ADMIN: 'bg-amber-400/14 text-amber-100 ring-1 ring-amber-300/26',
-  TEAM_CAPTAIN: 'bg-emerald-500/14 text-emerald-100 ring-1 ring-emerald-400/22',
+  ADMIN: 'bg-amber-400/14 text-accent ring-1 ring-amber-300/26',
+  TEAM_CAPTAIN: 'bg-emerald-500/14 text-[color:var(--win)] ring-1 ring-emerald-400/22',
   USER: 'bg-white/8 text-slate-200 ring-1 ring-white/[0.06]',
 };
 
@@ -35,8 +35,8 @@ function FeedbackBanner({ feedback }: { feedback: FeedbackState | null }) {
       className={cn(
         'rounded-2xl border px-4 py-3 text-sm',
         feedback.type === 'success'
-          ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-          : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+          ? 'border-emerald-400/20 bg-emerald-500/10 text-[color:var(--win)]'
+          : 'border-rose-400/20 bg-rose-500/10 text-[color:var(--loss)]',
       )}
     >
       {feedback.message}
@@ -147,7 +147,7 @@ export function AdminUsersManager() {
           </div>
 
           {usersQuery.isLoading ? (
-            <div className="flex items-center gap-3 px-6 py-8 text-sm text-text-secondary">
+            <div className="flex items-center gap-3 px-6 py-8 text-sm text-foreground-dim">
               <Loader2 className="h-4 w-4 animate-spin" />
               Chargement...
             </div>
@@ -165,7 +165,7 @@ export function AdminUsersManager() {
                     onClick={() => setSelectedUserId(user.id)}
                     className={cn(
                       'flex w-full items-center justify-between gap-4 px-6 py-4 text-left transition',
-                      active ? 'bg-accent-primary/8' : 'hover:bg-white/3',
+                      active ? 'bg-accent/8' : 'hover:bg-white/3',
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -179,7 +179,7 @@ export function AdminUsersManager() {
                       </div>
                       <div>
                         <p className="font-semibold text-white">{user.name ?? 'Sans nom'}</p>
-                        <p className="text-xs text-text-secondary">{user.email}</p>
+                        <p className="text-xs text-foreground-dim">{user.email}</p>
                       </div>
                     </div>
 
@@ -196,7 +196,7 @@ export function AdminUsersManager() {
               })}
 
               {filteredUsers.length === 0 ? (
-                <p className="px-6 py-8 text-sm text-text-secondary">
+                <p className="px-6 py-8 text-sm text-foreground-dim">
                   Aucun utilisateur pour ce filtre.
                 </p>
               ) : null}
@@ -208,21 +208,21 @@ export function AdminUsersManager() {
           <Card className="space-y-6 xl:sticky xl:top-8 xl:h-fit">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/[0.05] bg-white/[0.035]">
-                <UserCog className="h-6 w-6 text-accent-glow" />
+                <UserCog className="h-6 w-6 text-accent" />
               </div>
               <div>
                 <h3 className="font-display text-xl font-bold tracking-tight text-white">
                   {selectedUser.name ?? 'Sans nom'}
                 </h3>
-                <p className="text-sm text-text-secondary">{selectedUser.email}</p>
-                <p className="mt-1 text-xs text-text-muted">
+                <p className="text-sm text-foreground-dim">{selectedUser.email}</p>
+                <p className="mt-1 text-xs text-foreground-muted">
                   Inscrit le {formatDateTime(selectedUser.createdAt)}
                 </p>
               </div>
             </div>
 
             <div className="space-y-3">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                 Role
               </label>
               <Select
@@ -237,7 +237,7 @@ export function AdminUsersManager() {
             </div>
 
             <div className="space-y-3">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+              <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                 Equipe assignee
               </label>
 
@@ -245,7 +245,7 @@ export function AdminUsersManager() {
                 <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3">
                   <div>
                     <p className="font-semibold text-white">{selectedUser.captainOfTeam.name}</p>
-                    <p className="text-xs text-text-secondary">
+                    <p className="text-xs text-foreground-dim">
                       {selectedUser.captainOfTeam.shortCode}
                     </p>
                   </div>
@@ -285,14 +285,14 @@ export function AdminUsersManager() {
                 </Select>
               )}
 
-              <p className="text-xs text-text-secondary">
+              <p className="text-xs text-foreground-dim">
                 Assigner une equipe promouvra automatiquement un utilisateur au role chef
                 d&apos;equipe. Plusieurs capitaines par equipe sont possibles.
               </p>
             </div>
 
             {selectedUser.role === 'TEAM_CAPTAIN' && !selectedUser.captainOfTeam ? (
-              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-accent">
                 Ce chef d&apos;equipe n&apos;a pas d&apos;equipe assignee. Il ne pourra pas acceder
                 au dashboard equipe.
               </div>
@@ -301,8 +301,8 @@ export function AdminUsersManager() {
         ) : (
           <Card className="flex items-center justify-center py-16 text-center xl:sticky xl:top-8 xl:h-fit">
             <div>
-              <UserCog className="mx-auto h-8 w-8 text-text-muted" />
-              <p className="mt-3 text-sm text-text-secondary">
+              <UserCog className="mx-auto h-8 w-8 text-foreground-muted" />
+              <p className="mt-3 text-sm text-foreground-dim">
                 Selectionnez un utilisateur pour gerer son role et son equipe.
               </p>
             </div>

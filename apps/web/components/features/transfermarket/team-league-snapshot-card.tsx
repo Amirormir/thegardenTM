@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { TeamAvatar } from '@/components/ui/team-avatar';
-import { Card } from '@/components/ui/card';
+import type { CSSProperties } from 'react';
 import { useTeamTint } from '@/components/ui/team-tint';
 
 interface TeamLeagueSnapshotCardProps {
@@ -20,10 +19,6 @@ interface TeamLeagueSnapshotCardProps {
   mapLosses: number;
 }
 
-function toRgba(r: number, g: number, b: number, alpha: number) {
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 export function TeamLeagueSnapshotCard({
   team,
   place,
@@ -35,67 +30,64 @@ export function TeamLeagueSnapshotCard({
 }: TeamLeagueSnapshotCardProps) {
   const { dominantColor } = useTeamTint(team.logoUrl);
 
-  const cardStyle = {
-    background: `linear-gradient(145deg, ${toRgba(dominantColor.r, dominantColor.g, dominantColor.b, 0.34)} 0%, rgba(17, 17, 26, 0.9) 62%, rgba(255, 255, 255, 0.06) 100%)`,
-    boxShadow: `0 0 34px ${toRgba(dominantColor.r, dominantColor.g, dominantColor.b, 0.16)}`,
+  const borderStyle: CSSProperties = {
+    borderLeftColor: `rgb(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b})`,
   };
 
-  const glowStyle = {
-    background: `radial-gradient(circle at top right, ${toRgba(dominantColor.r, dominantColor.g, dominantColor.b, 0.46)} 0%, transparent 40%)`,
+  const monogramStyle: CSSProperties = {
+    backgroundColor: `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, 0.18)`,
+    color: `rgb(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b})`,
+    borderColor: `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, 0.4)`,
   };
 
   return (
-    <Card className="relative overflow-hidden border-white/[0.05]" style={cardStyle}>
-      <div className="pointer-events-none absolute inset-0 opacity-90" style={glowStyle} />
-      <div className="relative space-y-4">
-        <p className="text-kicker text-white/72">League snapshot</p>
+    <Link
+      href={`/league/teams/${team.slug}`}
+      className="group block border border-l-2 border-hairline bg-surface transition-colors duration-150 hover:bg-surface-hover"
+      style={borderStyle}
+    >
+      <div className="border-b border-hairline px-5 py-3 label-mono">League snapshot</div>
 
-        <Link
-          href={`/league/teams/${team.slug}`}
-          className="block rounded-[24px] border border-white/[0.05] bg-white/[0.04] p-4 transition hover:bg-white/10"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <TeamAvatar
-                name={team.name}
-                shortCode={team.shortCode}
-                logoUrl={team.logoUrl}
-                size="md"
-                className="h-12 w-12 rounded-2xl border border-white/[0.05] bg-white/8"
-              />
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-white">{team.name}</p>
-                <p className="text-xs uppercase tracking-[0.06em] text-white/64">
-                  {team.shortCode}
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/12 bg-white/10 px-3 py-2 text-right">
-              <p className="text-[0.62rem] uppercase tracking-[0.08em] text-white/58">Place</p>
-              <p className="font-display text-2xl font-bold tracking-tight text-white">#{place}</p>
+      <div className="px-5 py-5 space-y-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              className="inline-flex h-10 w-10 items-center justify-center border text-xs font-mono font-medium tracking-[0.08em] uppercase"
+              style={monogramStyle}
+              aria-hidden="true"
+            >
+              {team.shortCode.slice(0, 3)}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-display text-xl text-foreground">{team.name}</p>
+              <p className="mt-1 label-mono">{team.shortCode}</p>
             </div>
           </div>
 
-          <div className="mt-4 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-[0.62rem] uppercase tracking-[0.08em] text-white/58">
-                Score ligue
-              </p>
-              <p className="font-display text-2xl font-bold tracking-tight text-white">
-                {points}
-                <span className="ml-2 text-base font-semibold text-white/72">pts</span>
-              </p>
-            </div>
-
-            <p className="text-right text-xs uppercase tracking-[0.06em] text-white/62">
-              {wins}W - {losses}L
-              <br />
-              {mapWins}-{mapLosses} maps
+          <div className="text-right">
+            <p className="label-mono">Place</p>
+            <p className="mt-1 font-display text-3xl tabular-nums text-foreground">
+              {place.toString().padStart(2, '0')}
             </p>
           </div>
-        </Link>
+        </div>
+
+        <div className="border-t border-hairline pt-4 flex items-end justify-between gap-4">
+          <div>
+            <p className="label-mono">Points ligue</p>
+            <p className="mt-1 font-display text-3xl tabular-nums text-foreground">
+              {points}
+              <span className="ml-2 text-sm text-foreground-dim">pts</span>
+            </p>
+          </div>
+
+          <p className="text-right label-mono tabular-nums leading-5">
+            {wins}W · {losses}L
+            <br />
+            {mapWins}–{mapLosses} maps
+          </p>
+        </div>
       </div>
-    </Card>
+    </Link>
   );
 }

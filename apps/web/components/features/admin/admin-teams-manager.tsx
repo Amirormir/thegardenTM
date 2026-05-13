@@ -48,8 +48,8 @@ function FeedbackBanner({ feedback }: { feedback: FeedbackState | null }) {
       className={cn(
         'rounded-2xl border px-4 py-3 text-sm',
         feedback.type === 'success'
-          ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-          : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+          ? 'border-emerald-400/20 bg-emerald-500/10 text-[color:var(--win)]'
+          : 'border-rose-400/20 bg-rose-500/10 text-[color:var(--loss)]',
       )}
     >
       {feedback.message}
@@ -183,7 +183,7 @@ export function AdminTeamsManager() {
         <Card className="space-y-5 xl:sticky xl:top-8 xl:h-fit">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-kicker">Registry</p>
+              <p className="label-mono">Registry</p>
               <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Teams</h2>
             </div>
             <Button
@@ -199,7 +199,7 @@ export function AdminTeamsManager() {
 
           <div className="space-y-3">
             {teamsQuery.isLoading ? (
-              <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+              <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-foreground-dim">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading teams...
               </div>
@@ -214,15 +214,15 @@ export function AdminTeamsManager() {
                     className={cn(
                       'w-full rounded-3xl border p-4 text-left transition',
                       active
-                        ? 'border-accent-primary/40 bg-accent-primary/12 shadow-[0_0_30px_rgba(124,58,237,0.12)]'
-                        : 'border-white/[0.05] bg-white/[0.035] hover:border-accent-primary/18 hover:bg-white/7',
+                        ? 'border-accent/40 bg-accent/12 shadow-[0_0_30px_rgba(124,58,237,0.12)]'
+                        : 'border-white/[0.05] bg-white/[0.035] hover:border-accent/18 hover:bg-white/7',
                     )}
                     onClick={() => selectTeam(team.id)}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="font-semibold text-white">{team.name}</p>
-                        <p className="mt-1 text-sm text-text-secondary">
+                        <p className="mt-1 text-sm text-foreground-dim">
                           {team.shortCode} - {team._count.players} players
                         </p>
                       </div>
@@ -232,7 +232,7 @@ export function AdminTeamsManager() {
                 );
               })
             ) : (
-              <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+              <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-foreground-dim">
                 No teams registered yet.
               </div>
             )}
@@ -241,11 +241,11 @@ export function AdminTeamsManager() {
 
         <Card className="space-y-6">
           <div>
-            <p className="text-kicker">Team editor</p>
+            <p className="label-mono">Team editor</p>
             <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
               {selectedTeamId ? 'Edit team' : 'Create team'}
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-text-secondary">
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-foreground-dim">
               Assign the captain, update the live budget cap, and preview how much room is left
               against the current payroll before saving.
             </p>
@@ -254,7 +254,7 @@ export function AdminTeamsManager() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                   Name
                 </label>
                 <Input
@@ -271,7 +271,7 @@ export function AdminTeamsManager() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                   Slug
                 </label>
                 <Input
@@ -284,7 +284,7 @@ export function AdminTeamsManager() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                   Short code
                 </label>
                 <Input
@@ -301,7 +301,7 @@ export function AdminTeamsManager() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                   Budget cap
                 </label>
                 <Input
@@ -315,7 +315,7 @@ export function AdminTeamsManager() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                   Logo URL
                 </label>
                 <Input
@@ -330,7 +330,7 @@ export function AdminTeamsManager() {
 
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                <p className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                   Current payroll
                 </p>
                 <p className="mt-2 font-display tabular-nums text-2xl font-semibold text-white">
@@ -339,13 +339,13 @@ export function AdminTeamsManager() {
               </div>
 
               <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                <p className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                   Budget remaining
                 </p>
                 <p
                   className={cn(
                     'mt-2 font-display tabular-nums text-2xl font-semibold',
-                    remainingBudget >= 0 ? 'text-white' : 'text-rose-300',
+                    remainingBudget >= 0 ? 'text-white' : 'text-[color:var(--loss)]',
                   )}
                 >
                   {formatCurrency(remainingBudget)}
@@ -383,7 +383,7 @@ export function AdminTeamsManager() {
           </form>
 
           {selectedTeam ? (
-            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-text-secondary">
+            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-foreground-dim">
               <span className="font-semibold text-white">
                 {selectedTeam.captains.length > 0
                   ? `Capitaines: ${selectedTeam.captains.map((c) => c.name ?? c.email).join(', ')}`
@@ -392,7 +392,7 @@ export function AdminTeamsManager() {
               {' — '}
               {selectedTeam._count.players} players on the roster.
               {selectedTeam.captains.length === 0 ? (
-                <span className="ml-2 text-amber-300">
+                <span className="ml-2 text-accent">
                   Assignez des capitaines depuis la page Users.
                 </span>
               ) : null}

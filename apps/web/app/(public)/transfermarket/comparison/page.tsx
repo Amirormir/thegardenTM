@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { ArrowLeftRight } from 'lucide-react';
 import { PerformanceTrendsChart } from '@/components/features/charts/performance-trends-chart';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { PlayerLink } from '@/components/ui/player-link';
 import { PlayerValue } from '@/components/ui/player-value';
 import { Select } from '@/components/ui/select';
@@ -47,15 +46,15 @@ export default async function PlayerComparisonPage({
 
   if (allPlayers.length === 0) {
     return (
-      <Card className="space-y-3">
-        <p className="text-kicker">Comparison</p>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-white">
-          Aucun joueur disponible pour la comparaison
-        </h1>
-        <p className="text-sm leading-7 text-text-secondary">
-          Ajoute des joueurs au transfermarket avant d utiliser cette page.
-        </p>
-      </Card>
+      <div className="flex flex-col gap-16 md:gap-20">
+        <header className="border-b border-hairline pb-8">
+          <p className="breadcrumb-mono">§ · Transfermarket · Comparaison</p>
+          <h1 className="mt-4 display-lg text-foreground">Aucun joueur disponible.</h1>
+          <p className="mt-4 text-base leading-7 text-foreground-dim">
+            Ajoutez des joueurs au transfermarket avant d&apos;utiliser cette page.
+          </p>
+        </header>
+      </div>
     );
   }
 
@@ -130,7 +129,7 @@ export default async function PlayerComparisonPage({
       values: comparedPlayers.map((entry) => formatCurrency(Math.round(entry.stats.summary.avgDamage))),
     },
     {
-      label: 'Duree contrat',
+      label: 'Durée contrat',
       values: comparedPlayers.map((entry) =>
         entry.activeContract ? `${entry.activeContract.durationBo3} BO3` : 'N/A',
       ),
@@ -138,80 +137,76 @@ export default async function PlayerComparisonPage({
   ];
 
   return (
-    <div className="space-y-8">
-      <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div className="flex flex-col gap-16 md:gap-20">
+      <header className="flex flex-col gap-6 border-b border-hairline pb-8 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-kicker">Scouting tools</p>
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-            Comparaison de joueurs
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-text-secondary">
-            Compare les profils, la valorisation et les performances recentes cote a cote pour
-            accelerer les decisions de recrutement.
+          <p className="breadcrumb-mono">§ · Transfermarket · Comparaison</p>
+          <h1 className="mt-4 display-lg text-foreground">Comparaison de joueurs.</h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-foreground-dim">
+            Compare les profils, la valorisation et les performances récentes côte à côte pour
+            accélérer les décisions de recrutement.
           </p>
         </div>
         <Link
           href="/transfermarket"
-          className="inline-flex items-center gap-2 rounded-full border border-white/[0.05] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white transition hover:border-accent-primary/40 hover:bg-accent-primary/14"
+          className="inline-flex items-center gap-2 border border-hairline bg-surface px-4 py-2 label-mono text-foreground transition hover:border-accent hover:text-accent"
         >
           <ArrowLeftRight className="h-4 w-4" />
           Retour au transfermarket
         </Link>
-      </section>
+      </header>
 
-      <Card className="space-y-4">
-        <div>
-          <p className="text-kicker">Selection</p>
-          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Choisir les profils</h2>
-        </div>
-        <form className="grid gap-3 xl:grid-cols-[1fr_1fr_1fr_auto]" method="get">
+      <section>
+        <p className="label-mono">§ 01 Sélection</p>
+        <h2 className="mt-3 display-md text-foreground">Choisir les profils.</h2>
+        <form className="mt-8 grid gap-3 xl:grid-cols-[1fr_1fr_1fr_auto]" method="get">
           <Select name="playerA" defaultValue={selectedIds[0] ?? ''}>
             {allPlayers.map((player) => (
               <option key={player.id} value={player.id}>
-                {player.displayName} - {buildPlayerRiotId(player)} ({player.teamName})
+                {player.displayName} — {buildPlayerRiotId(player)} ({player.teamName})
               </option>
             ))}
           </Select>
           <Select name="playerB" defaultValue={selectedIds[1] ?? ''}>
             {allPlayers.map((player) => (
               <option key={player.id} value={player.id}>
-                {player.displayName} - {buildPlayerRiotId(player)} ({player.teamName})
+                {player.displayName} — {buildPlayerRiotId(player)} ({player.teamName})
               </option>
             ))}
           </Select>
           <Select name="playerC" defaultValue={selectedIds[2] ?? ''}>
-            <option value="">Pas de troisieme joueur</option>
+            <option value="">Pas de troisième joueur</option>
             {allPlayers.map((player) => (
               <option key={player.id} value={player.id}>
-                {player.displayName} - {buildPlayerRiotId(player)} ({player.teamName})
+                {player.displayName} — {buildPlayerRiotId(player)} ({player.teamName})
               </option>
             ))}
           </Select>
           <button
             type="submit"
-            className="inline-flex h-11 items-center justify-center rounded-full bg-accent-primary px-5 text-sm font-semibold text-white shadow-[0_0_28px_rgba(124,58,237,0.35)] transition hover:-translate-y-0.5 hover:bg-[#8b5cf6]"
+            className="inline-flex h-11 items-center justify-center border border-accent bg-accent px-5 label-mono text-background transition hover:bg-foreground hover:text-background"
           >
             Comparer
           </button>
         </form>
-      </Card>
+      </section>
 
       <section
-        className={`grid gap-6 ${
+        className={`grid gap-px bg-hairline ${
           comparedPlayers.length === 3 ? 'xl:grid-cols-3' : 'xl:grid-cols-2'
         }`}
       >
         {comparedPlayers.map((entry) => (
-          <Card key={entry.player.id} className="space-y-5">
+          <div key={entry.player.id} className="flex flex-col gap-6 bg-background p-6">
             <div className="flex items-start gap-4">
               {entry.player.imageUrl ? (
                 <img
                   src={entry.player.imageUrl}
                   alt={entry.player.displayName}
-                  className="h-20 w-20 rounded-[24px] object-cover ring-1 ring-white/[0.06]"
+                  className="placeholder-diag h-20 w-20 object-cover"
                 />
               ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-white/8 text-xl font-bold text-white ring-1 ring-white/[0.06]">
+                <div className="placeholder-diag flex h-20 w-20 items-center justify-center font-display text-2xl text-foreground">
                   {getPlayerInitials(entry.player.displayName)}
                 </div>
               )}
@@ -224,21 +219,21 @@ export default async function PlayerComparisonPage({
                     </Badge>
                   ))}
                 </div>
-                <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-white">
-                  <PlayerLink playerId={entry.player.id} className="font-display text-2xl font-bold tracking-tight text-white">
+                <h2 className="mt-3 font-display text-2xl tracking-tight text-foreground">
+                  <PlayerLink playerId={entry.player.id} className="font-display text-foreground">
                     {entry.player.displayName}
                   </PlayerLink>
                 </h2>
-                <div className="mt-1 flex items-center gap-2 text-sm text-text-secondary">
+                <div className="mt-2 flex items-center gap-2 label-mono text-foreground-dim">
                   <TeamAvatar
                     name={entry.player.team?.name ?? 'Free Agent'}
                     shortCode={entry.player.team?.shortCode ?? 'FA'}
                     logoUrl={entry.player.team?.logoUrl ?? null}
                     size="sm"
-                    className="h-5 w-5 rounded-md text-[0.55rem]"
+                    className="h-5 w-5 text-[0.55rem]"
                   />
                   <span>{entry.player.team?.name ?? 'Free Agent'}</span>
-                  <span>/</span>
+                  <span>·</span>
                   <span>{buildPlayerRiotId(entry.player)}</span>
                 </div>
               </div>
@@ -246,62 +241,67 @@ export default async function PlayerComparisonPage({
 
             <PlayerValue value={entry.player.marketValue} delta={entry.marketDelta} size="sm" />
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Card className="border-white/[0.05] bg-white/4">
-                <p className="text-kicker">Salary</p>
-                <p className="mt-2 text-xl font-semibold text-white">
+            <div className="grid gap-px bg-hairline sm:grid-cols-2">
+              <div className="bg-background p-4">
+                <p className="label-mono">Salary</p>
+                <p className="mt-3 font-display text-xl tabular-nums text-foreground">
                   {formatCurrency(entry.player.salary)}
                 </p>
-              </Card>
-              <Card className="border-white/[0.05] bg-white/4">
-                <p className="text-kicker">Win rate</p>
-                <p className="mt-2 text-xl font-semibold text-white">{entry.winRate}%</p>
-              </Card>
+              </div>
+              <div className="bg-background p-4">
+                <p className="label-mono">Win rate</p>
+                <p className="mt-3 font-display text-xl tabular-nums text-foreground">
+                  {entry.winRate}%
+                </p>
+              </div>
             </div>
 
             <div>
-              <p className="text-kicker">Recent trend</p>
-              <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-                Performance recente
-              </h3>
+              <p className="label-mono">Recent trend</p>
+              <h3 className="mt-3 display-md text-foreground">Performance récente.</h3>
+              <div className="mt-6">
+                <PerformanceTrendsChart stats={entry.stats.recentGames} />
+              </div>
             </div>
-            <PerformanceTrendsChart stats={entry.stats.recentGames} />
-          </Card>
+          </div>
         ))}
       </section>
 
-      <Card className="space-y-5">
-        <div>
-          <p className="text-kicker">Head to head</p>
-          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-            Grille de comparaison
-          </h2>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Metric</TableHead>
-              {comparedPlayers.map((entry) => (
-                <TableHead key={entry.player.id}>
-                  <PlayerLink playerId={entry.player.id} className="font-semibold text-white">
-                    {entry.player.displayName}
-                  </PlayerLink>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {comparisonRows.map((row) => (
-              <TableRow key={row.label}>
-                <TableCell className="font-semibold text-white">{row.label}</TableCell>
-                {row.values.map((value, index) => (
-                  <TableCell key={`${row.label}-${comparedPlayers[index]!.player.id}`}>{value}</TableCell>
+      <section>
+        <p className="label-mono">§ 02 Head to head</p>
+        <h2 className="mt-3 display-md text-foreground">Grille de comparaison.</h2>
+        <div className="mt-8 border-t border-hairline">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Metric</TableHead>
+                {comparedPlayers.map((entry) => (
+                  <TableHead key={entry.player.id}>
+                    <PlayerLink playerId={entry.player.id} className="font-display text-foreground">
+                      {entry.player.displayName}
+                    </PlayerLink>
+                  </TableHead>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+            </TableHeader>
+            <TableBody>
+              {comparisonRows.map((row) => (
+                <TableRow key={row.label}>
+                  <TableCell className="font-display text-foreground">{row.label}</TableCell>
+                  {row.values.map((value, index) => (
+                    <TableCell
+                      key={`${row.label}-${comparedPlayers[index]!.player.id}`}
+                      className="tabular-nums"
+                    >
+                      {value}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </section>
     </div>
   );
 }

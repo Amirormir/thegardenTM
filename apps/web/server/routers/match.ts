@@ -398,6 +398,13 @@ export const matchRouter = createTRPCRouter({
               visionScore: stat.visionScore,
               side: stat.side,
               result: game.winnerTeamId === teamId ? 'WIN' as const : 'LOSS' as const,
+              kda: stat.kda,
+              csPerMin: stat.csPerMin,
+              goldPerMin: stat.goldPerMin,
+              damagePerMin: stat.damagePerMin,
+              killParticipation: stat.killParticipation,
+              damageShare: stat.damageShare,
+              goldShare: stat.goldShare,
             };
           });
 

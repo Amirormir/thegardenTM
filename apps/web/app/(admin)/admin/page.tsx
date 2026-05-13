@@ -1,5 +1,4 @@
 import { AdminOverview } from '@/components/features/admin/admin-overview';
-import { Card } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -19,51 +18,56 @@ export default async function AdminDashboardPage() {
   ]);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-kicker">Admin zone</p>
-        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Dashboard admin</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
+    <div className="flex flex-col gap-16 md:gap-20">
+      <header className="border-b border-hairline pb-8">
+        <p className="breadcrumb-mono">§ · Admin · Dashboard</p>
+        <h1 className="mt-4 display-lg text-foreground">Dashboard admin.</h1>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-foreground-dim">
           {stats.currentSeason
-            ? `Saison active : ${stats.currentSeason.name}`
+            ? `Saison active · ${stats.currentSeason.name}`
             : 'Aucune saison active.'}
         </p>
-      </div>
+      </header>
+
       <AdminOverview stats={stats} />
-      <Card className="space-y-5">
-        <div>
-          <p className="text-kicker">Audit trail</p>
-          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Dernières actions</h2>
-        </div>
-        {auditLog.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Action</TableHead>
-                <TableHead>Entity</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {auditLog.map((entry) => (
-                <TableRow key={entry.id}>
-                  <TableCell className="font-semibold text-white">{entry.action}</TableCell>
-                  <TableCell>
-                    {entry.entity} <span className="text-text-muted">#{entry.entityId.slice(0, 8)}</span>
-                  </TableCell>
-                  <TableCell>{entry.user.name ?? entry.user.email}</TableCell>
-                  <TableCell className="text-text-secondary">
-                    {formatDateTime(entry.createdAt)}
-                  </TableCell>
+
+      <section>
+        <p className="label-mono">§ Audit trail</p>
+        <h2 className="mt-3 display-md text-foreground">Dernières actions.</h2>
+        <div className="mt-8 border-t border-hairline">
+          {auditLog.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Entity</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Date</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <p className="text-sm text-text-secondary">Aucun événement d'audit.</p>
-        )}
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {auditLog.map((entry) => (
+                  <TableRow key={entry.id}>
+                    <TableCell className="font-display text-foreground">{entry.action}</TableCell>
+                    <TableCell>
+                      {entry.entity}{' '}
+                      <span className="label-mono text-foreground-muted">
+                        #{entry.entityId.slice(0, 8)}
+                      </span>
+                    </TableCell>
+                    <TableCell>{entry.user.name ?? entry.user.email}</TableCell>
+                    <TableCell className="label-mono tabular-nums text-foreground-dim">
+                      {formatDateTime(entry.createdAt)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="py-6 text-sm text-foreground-dim">Aucun événement d&apos;audit.</p>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

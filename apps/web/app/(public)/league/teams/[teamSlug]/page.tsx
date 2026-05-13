@@ -1,11 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { PlayerLink } from '@/components/ui/player-link';
-import { TeamAvatar } from '@/components/ui/team-avatar';
-import { TeamTintCard, TeamTintMediaFrame } from '@/components/ui/team-tint';
 import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCompactDate, formatCurrency, formatDateTime } from '@/lib/utils/format';
 import { getServerCaller } from '@/server/caller';
@@ -29,6 +26,37 @@ function isNotFoundError(error: unknown): error is { code: string } {
 }
 
 const roleOrder = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'] as const;
+
+function KpiBlock({
+  helper,
+  label,
+  value,
+}: {
+  helper?: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="border-t border-hairline pt-5">
+      <p className="label-mono">{label}</p>
+      <div className="mt-3 display-md text-foreground tabular-nums">{value}</div>
+      {helper ? (
+        <div className="mt-2 text-sm leading-6 text-foreground-dim">{helper}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function SidebarFact({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-t border-hairline py-3 first:border-t-0 first:pt-0">
+      <span className="label-mono">{label}</span>
+      <span className="font-display text-lg tracking-tight tabular-nums text-foreground text-right">
+        {value}
+      </span>
+    </div>
+  );
+}
 
 export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
   const { teamSlug } = await params;
@@ -62,9 +90,14 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
   });
 
   const standing = standings.find((entry) => entry.id === team.id) ?? null;
+  const standingPlace = standing
+    ? standings.findIndex((entry) => entry.id === team.id) + 1
+    : null;
   const totalMarketValue = sortedPlayers.reduce((sum, player) => sum + player.marketValue, 0);
   const totalSalary = sortedPlayers.reduce((sum, player) => sum + player.salary, 0);
   const budgetRemaining = team.budget - totalSalary;
+  const budgetUsedPercent =
+    team.budget > 0 ? Math.min(100, Math.round((totalSalary / team.budget) * 100)) : 0;
   const teamMatches = schedule.filter(
     (match) => match.homeTeam.id === team.id || match.awayTeam.id === team.id,
   );
@@ -72,121 +105,138 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
   const upcomingMatches = teamMatches.filter((match) => !match.isCompleted).slice(0, 3);
 
   return (
-    <div className="space-y-8">
-      <section className="grid gap-6 xl:grid-cols-[1fr_320px]">
-        <TeamTintCard
-          elevated
-          className="min-h-full"
-          contentClassName="space-y-6"
-          logoUrl={team.logoUrl}
-        >
-          <div className="flex flex-col gap-6 md:flex-row md:items-start">
-            <TeamAvatar
-              name={team.name}
-              shortCode={team.shortCode}
-              logoUrl={team.logoUrl}
-              size="lg"
-            />
+    <div className="flex flex-col gap-20 md:gap-24">
+      <header className="border-b border-hairline pb-10">
+        <p className="breadcrumb-mono">§ · Équipes · {team.shortCode}</p>
 
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-3">
-                <Badge variant="actif">{team.shortCode}</Badge>
-                <Badge variant="A">{sortedPlayers.length} joueurs</Badge>
-                {standing ? (
-                  <Badge variant="S">
-                    #{standings.findIndex((entry) => entry.id === team.id) + 1} au classement
-                  </Badge>
-                ) : null}
+        <div className="mt-8 grid gap-10 lg:grid-cols-[auto_1fr] lg:items-end lg:gap-12">
+          <div className="placeholder-diag h-40 w-40 shrink-0 overflow-hidden lg:h-48 lg:w-48">
+            {team.logoUrl ? (
+              <img
+                src={team.logoUrl}
+                alt={team.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center font-display text-5xl tracking-tight text-foreground-dim">
+                {team.shortCode.slice(0, 3).toUpperCase()}
               </div>
+            )}
+          </div>
 
-              <p className="mt-4 text-kicker">League team profile</p>
-              <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-white">{team.name}</h1>
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-text-secondary">
-                Vue publique de l equipe avec roster complet, valorisation, budget et acces direct
-                vers chaque fiche transfermarket.
-              </p>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="actif">{team.shortCode}</Badge>
+              <Badge variant="A">
+                {sortedPlayers.length} joueur{sortedPlayers.length > 1 ? 's' : ''}
+              </Badge>
+              {standingPlace ? (
+                <Badge variant="S">#{standingPlace} ligue</Badge>
+              ) : null}
+            </div>
+
+            <h1 className="mt-4 display-xl text-foreground">{team.name}</h1>
+
+            <p className="mt-5 label-mono">
+              {team.shortCode} · {sortedPlayers.length} joueurs ·{' '}
+              {standing ? `${standing.points} pts ligue` : 'Hors compétition'}
+            </p>
+
+            <p className="mt-6 max-w-2xl text-base leading-7 text-foreground-dim">
+              Vue publique de l&apos;équipe avec roster complet, valorisation, budget et
+              accès direct vers chaque fiche transfermarket.
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <section className="grid gap-10 lg:grid-cols-[1fr_320px] lg:gap-16">
+        <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4 md:gap-12">
+          <KpiBlock
+            label="Record"
+            value={standing ? `${standing.wins}–${standing.losses}` : '0–0'}
+            helper={
+              standing
+                ? `${standing.points} pt${standing.points > 1 ? 's' : ''} en ligue.`
+                : 'Aucune rencontre disputée.'
+            }
+          />
+          <KpiBlock
+            label="Diff. maps"
+            value={standing ? `${standing.mapWins}–${standing.mapLosses}` : '0–0'}
+            helper="Bilan des cartes jouées."
+          />
+          <KpiBlock
+            label="Valeur effectif"
+            value={formatCurrency(totalMarketValue)}
+            helper={`Cumul ${sortedPlayers.length} joueur${sortedPlayers.length > 1 ? 's' : ''}.`}
+          />
+          <KpiBlock
+            label="Budget restant"
+            value={formatCurrency(budgetRemaining)}
+            helper={`${budgetUsedPercent}% de la masse engagée.`}
+          />
+        </div>
+
+        <aside className="space-y-6 lg:border-l lg:border-hairline lg:pl-10">
+          <div className="border border-hairline bg-surface p-5">
+            <p className="label-mono">Budget club</p>
+            <p className="mt-3 display-md text-foreground tabular-nums">
+              {formatCurrency(team.budget)}
+            </p>
+            <div className="mt-5 percentile-bar" style={{ '--percentile': `${budgetUsedPercent}%` } as CSSProperties} />
+            <div className="mt-4 space-y-0">
+              <SidebarFact label="Masse salariale" value={formatCurrency(totalSalary)} />
+              <SidebarFact label="Marge libre" value={formatCurrency(budgetRemaining)} />
+              <SidebarFact label="Engagé" value={`${budgetUsedPercent}%`} />
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card className="border-white/[0.05] bg-white/4">
-              <p className="text-kicker">Record</p>
-              <p className="mt-2 text-2xl font-semibold text-white">
-                {standing ? `${standing.wins}-${standing.losses}` : '0-0'}
-              </p>
-            </Card>
-            <Card className="border-white/[0.05] bg-white/4">
-              <p className="text-kicker">Map diff</p>
-              <p className="mt-2 text-2xl font-semibold text-white">
-                {standing ? `${standing.mapWins}-${standing.mapLosses}` : '0-0'}
-              </p>
-            </Card>
-            <Card className="border-white/[0.05] bg-white/4">
-              <p className="text-kicker">Market value</p>
-              <p className="mt-2 text-2xl font-semibold text-white">
-                {formatCurrency(totalMarketValue)}
-              </p>
-            </Card>
-            <Card className="border-white/[0.05] bg-white/4">
-              <p className="text-kicker">Budget restant</p>
-              <p className="mt-2 text-2xl font-semibold text-white">
-                {formatCurrency(budgetRemaining)}
-              </p>
-            </Card>
-          </div>
-        </TeamTintCard>
-
-        <div className="space-y-4">
-          <Card className="space-y-3">
-            <p className="text-kicker">Staff</p>
-            <h2 className="font-display text-2xl font-bold tracking-tight text-white">
+          <div className="border border-hairline bg-surface p-5">
+            <p className="label-mono">
               {team.captains.length > 1 ? 'Capitaines' : 'Capitaine'}
-            </h2>
-            {team.captains.length > 0 ? (
-              team.captains.map((c) => (
-                <div key={c.email} className="text-sm text-text-secondary">
-                  <span className="font-semibold text-white">{c.name ?? 'Sans nom'}</span>
-                  {' — '}
-                  {c.email}
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-text-secondary">Aucun capitaine assigne</p>
-            )}
-          </Card>
-
-          <Card className="space-y-3">
-            <p className="text-kicker">Finance</p>
-            <h2 className="font-display text-2xl font-bold tracking-tight text-white">Budget club</h2>
-            <p className="text-sm text-text-secondary">
-              Budget total: <span className="font-semibold text-white">{formatCurrency(team.budget)}</span>
             </p>
-            <p className="text-sm text-text-secondary">
-              Masse salariale: <span className="font-semibold text-white">{formatCurrency(totalSalary)}</span>
-            </p>
-          </Card>
-        </div>
+            <div className="mt-4 space-y-3">
+              {team.captains.length > 0 ? (
+                team.captains.map((captain) => (
+                  <div key={captain.email}>
+                    <p className="font-display text-lg tracking-tight text-foreground">
+                      {captain.name ?? 'Sans nom'}
+                    </p>
+                    <p className="mt-1 label-mono lowercase tracking-normal">{captain.email}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-foreground-dim">Aucun capitaine assigné.</p>
+              )}
+            </div>
+          </div>
+        </aside>
       </section>
 
-      <section className="space-y-5">
-        <div>
-          <p className="text-kicker">Roster</p>
-          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Joueurs de l equipe</h2>
-        </div>
-
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <section>
+        <p className="label-mono">§ 01 · Roster</p>
+        <h2 className="mt-3 display-md text-foreground">
+          {sortedPlayers.length.toString().padStart(2, '0')} joueur
+          {sortedPlayers.length > 1 ? 's' : ''} sous contrat.
+        </h2>
+        <div className="mt-8 grid gap-px border-t border-hairline bg-hairline md:grid-cols-2 xl:grid-cols-3">
           {sortedPlayers.map((player) => (
-            <TeamTintCard
+            <article
               key={player.id}
-              className="h-full"
-              contentClassName="space-y-4"
-              logoUrl={team.logoUrl}
+              className="flex h-full flex-col bg-background px-5 py-5 transition-colors duration-150 hover:bg-surface-hover md:px-6"
             >
-              <div className="flex items-start gap-4">
-                <TeamTintMediaFrame
-                  logoUrl={team.logoUrl}
-                  className="h-16 w-16 shrink-0 rounded-2xl"
-                >
+              <div className="flex items-center gap-2">
+                <Badge variant={player.role}>{player.role}</Badge>
+                {player.secondaryRoles.map((secondaryRole) => (
+                  <Badge key={secondaryRole} variant={secondaryRole}>
+                    {secondaryRole}
+                  </Badge>
+                ))}
+              </div>
+
+              <div className="mt-5 flex items-start gap-4">
+                <div className="placeholder-diag h-16 w-16 shrink-0 overflow-hidden">
                   {player.imageUrl ? (
                     <img
                       src={player.imageUrl}
@@ -194,130 +244,131 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-white/8 text-sm font-semibold text-white">
+                    <div className="flex h-full w-full items-center justify-center font-display text-base text-foreground-dim">
                       {getPlayerInitials(player.displayName)}
                     </div>
                   )}
-                </TeamTintMediaFrame>
-
+                </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={player.role}>{player.role}</Badge>
-                    {player.secondaryRoles.map((secondaryRole) => (
-                      <Badge key={secondaryRole} variant={secondaryRole}>
-                        {secondaryRole}
-                      </Badge>
-                    ))}
-                  </div>
-                  <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-white">
-                    <PlayerLink
-                      playerId={player.id}
-                      className="font-display text-2xl font-bold tracking-tight text-white"
-                    >
-                      {player.displayName}
-                    </PlayerLink>
-                  </h3>
-                  <p className="mt-1 text-sm text-text-secondary">{buildPlayerRiotId(player)}</p>
+                  <PlayerLink
+                    playerId={player.id}
+                    className="block truncate font-display text-2xl tracking-tight text-foreground"
+                  >
+                    {player.displayName}
+                  </PlayerLink>
+                  <p className="mt-1 truncate label-mono" title={buildPlayerRiotId(player)}>
+                    {buildPlayerRiotId(player)}
+                  </p>
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                    Market value
+              <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-hairline pt-4">
+                <div>
+                  <p className="label-mono">Valeur marchande</p>
+                  <p className="mt-1 font-display text-2xl tabular-nums tracking-tight text-foreground">
+                    {formatCurrency(player.marketValue)}
                   </p>
-                  <p className="mt-2 font-semibold text-white">{formatCurrency(player.marketValue)}</p>
                 </div>
-                <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                    Salary
+                <div>
+                  <p className="label-mono">Salaire</p>
+                  <p className="mt-1 font-display text-2xl tabular-nums tracking-tight text-foreground">
+                    {formatCurrency(player.salary)}
                   </p>
-                  <p className="mt-2 font-semibold text-white">{formatCurrency(player.salary)}</p>
                 </div>
               </div>
 
-              <p className="text-sm text-text-secondary">
+              <p className="mt-5 text-sm leading-6 text-foreground-dim">
                 {[player.nationality, player.age ? `${player.age} ans` : null]
                   .filter(Boolean)
                   .join(' / ') || 'Profil public transfermarket'}
               </p>
 
-              <Link
-                href={`/transfermarket/${player.id}`}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-accent-glow transition hover:text-white"
-              >
-                Voir la fiche transfermarket
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </TeamTintCard>
+              <div className="mt-auto pt-5 border-t border-hairline">
+                <Link
+                  href={`/transfermarket/${player.id}`}
+                  className="label-mono text-foreground-dim transition-colors duration-150 hover:text-accent"
+                >
+                  Voir la fiche transfermarket →
+                </Link>
+              </div>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-2">
-        <Card className="space-y-4">
-          <div>
-            <p className="text-kicker">Upcoming</p>
-            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Prochains matchs</h2>
-          </div>
-          {upcomingMatches.length > 0 ? (
-            <div className="space-y-3">
-              {upcomingMatches.map((match) => (
+      <section className="grid gap-12 xl:grid-cols-2 xl:gap-16">
+        <div>
+          <p className="label-mono">§ 02 · À venir</p>
+          <h2 className="mt-3 display-md text-foreground">Prochains matchs.</h2>
+          <div className="mt-8 border-t border-hairline">
+            {upcomingMatches.length > 0 ? (
+              upcomingMatches.map((match) => (
                 <div
                   key={match.id}
-                  className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4"
+                  className="border-b border-hairline px-1 py-5 flex items-center justify-between gap-4"
                 >
-                  <div className="flex items-center justify-between gap-4">
-                    <p className="font-semibold text-white">
-                      {match.homeTeam.shortCode} vs {match.awayTeam.shortCode}
+                  <div className="min-w-0">
+                    <p className="font-display text-2xl tracking-tight text-foreground">
+                      {match.homeTeam.shortCode} <span className="text-foreground-muted">·</span>{' '}
+                      {match.awayTeam.shortCode}
                     </p>
-                    <p className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                      {match.format}
+                    <p className="mt-1 label-mono tabular-nums">
+                      {formatDateTime(match.scheduledAt)}
                     </p>
                   </div>
-                  <p className="mt-2 text-sm text-text-secondary">
-                    {formatDateTime(match.scheduledAt)}
-                  </p>
+                  <span className="label-mono">{match.format}</span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-text-secondary">Aucun match a venir pour le moment.</p>
-          )}
-        </Card>
+              ))
+            ) : (
+              <p className="pt-5 text-sm text-foreground-dim">
+                Aucun match à venir pour le moment.
+              </p>
+            )}
+          </div>
+        </div>
 
-        <Card className="space-y-4">
-          <div>
-            <p className="text-kicker">Recent</p>
-            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Derniers resultats</h2>
-          </div>
-          {completedMatches.length > 0 ? (
-            <div className="space-y-3">
-              {completedMatches.map((match) => (
-                <div
-                  key={match.id}
-                  className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <p className="font-semibold text-white">
-                      {match.homeTeam.shortCode} vs {match.awayTeam.shortCode}
-                    </p>
-                    <p className="font-display text-xl font-bold tracking-tight text-white">
-                      {match.homeScore} - {match.awayScore}
+        <div>
+          <p className="label-mono">§ 03 · Derniers résultats</p>
+          <h2 className="mt-3 display-md text-foreground">À chaud.</h2>
+          <div className="mt-8 border-t border-hairline">
+            {completedMatches.length > 0 ? (
+              completedMatches.map((match) => {
+                const isHome = match.homeTeam.id === team.id;
+                const teamScore = isHome ? match.homeScore : match.awayScore;
+                const oppScore = isHome ? match.awayScore : match.homeScore;
+                const win = teamScore > oppScore;
+                return (
+                  <div
+                    key={match.id}
+                    className="border-b border-hairline px-1 py-5 flex items-center justify-between gap-4"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-display text-2xl tracking-tight text-foreground">
+                        {match.homeTeam.shortCode} <span className="text-foreground-muted">·</span>{' '}
+                        {match.awayTeam.shortCode}
+                      </p>
+                      <p className="mt-1 label-mono tabular-nums">
+                        {formatCompactDate(match.playedAt ?? match.scheduledAt)}
+                      </p>
+                    </div>
+                    <p
+                      className={
+                        'font-display text-3xl tracking-tight tabular-nums ' +
+                        (win ? 'text-accent' : 'text-foreground-muted')
+                      }
+                    >
+                      {match.homeScore}–{match.awayScore}
                     </p>
                   </div>
-                  <p className="mt-2 text-sm text-text-secondary">
-                    {formatCompactDate(match.playedAt ?? match.scheduledAt)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-text-secondary">
-              Aucun resultat enregistre pour cette equipe.
-            </p>
-          )}
-        </Card>
+                );
+              })
+            ) : (
+              <p className="pt-5 text-sm text-foreground-dim">
+                Aucun résultat enregistré pour cette équipe.
+              </p>
+            )}
+          </div>
+        </div>
       </section>
     </div>
   );

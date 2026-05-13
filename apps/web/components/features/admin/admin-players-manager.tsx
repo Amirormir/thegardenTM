@@ -128,8 +128,8 @@ function FeedbackBanner({ feedback }: { feedback: FeedbackState | null }) {
       className={cn(
         'rounded-2xl border px-4 py-3 text-sm',
         feedback.type === 'success'
-          ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-          : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+          ? 'border-emerald-400/20 bg-emerald-500/10 text-[color:var(--win)]'
+          : 'border-rose-400/20 bg-rose-500/10 text-[color:var(--loss)]',
       )}
     >
       {feedback.message}
@@ -467,7 +467,7 @@ export function AdminPlayersManager() {
         <Card className="space-y-5 xl:sticky xl:top-8 xl:h-fit">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-kicker">Registry</p>
+              <p className="label-mono">Registry</p>
               <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                 Joueurs transfermarket
               </h2>
@@ -495,7 +495,7 @@ export function AdminPlayersManager() {
 
           <div className="space-y-3">
             {registryQuery.isLoading ? (
-              <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+              <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-foreground-dim">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Chargement du registre joueurs...
               </div>
@@ -510,8 +510,8 @@ export function AdminPlayersManager() {
                     className={cn(
                       'w-full rounded-3xl border p-4 text-left transition',
                       active
-                        ? 'border-accent-primary/40 bg-accent-primary/12 shadow-[0_0_30px_rgba(124,58,237,0.12)]'
-                        : 'border-white/[0.05] bg-white/[0.035] hover:border-accent-primary/18 hover:bg-white/7',
+                        ? 'border-accent/40 bg-accent/12 shadow-[0_0_30px_rgba(124,58,237,0.12)]'
+                        : 'border-white/[0.05] bg-white/[0.035] hover:border-accent/18 hover:bg-white/7',
                     )}
                     onClick={() => {
                       setSelectedPlayerId(player.id);
@@ -536,10 +536,10 @@ export function AdminPlayersManager() {
                           <Badge variant={player.role}>{player.role}</Badge>
                           {!player.isActive ? <Badge variant="actif">Inactif</Badge> : null}
                         </div>
-                        <p className="mt-1 text-sm text-text-secondary">
+                        <p className="mt-1 text-sm text-foreground-dim">
                           {player.teamName} • {buildPlayerRiotId(player)}
                         </p>
-                        <div className="mt-3 flex items-center justify-between text-xs uppercase tracking-[0.06em] text-text-secondary">
+                        <div className="mt-3 flex items-center justify-between text-xs uppercase tracking-[0.06em] text-foreground-dim">
                           <span>{formatCurrency(player.marketValue)}</span>
                           <span>{player.secondaryRoles.join(' / ') || 'Mono role'}</span>
                         </div>
@@ -549,7 +549,7 @@ export function AdminPlayersManager() {
                 );
               })
             ) : (
-              <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+              <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-foreground-dim">
                 Aucun joueur ne correspond a la recherche.
               </div>
             )}
@@ -560,17 +560,17 @@ export function AdminPlayersManager() {
           <Card className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-kicker">Player editor</p>
+                <p className="label-mono">Player editor</p>
                 <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                   {selectedPlayerId ? 'Editer un joueur' : 'Ajouter un joueur'}
                 </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-text-secondary">
+                <p className="mt-2 max-w-2xl text-sm leading-7 text-foreground-dim">
                   Garde ici la fiche principale du joueur : photo, equipe ou free agent, role
                   principal, roles secondaires, valorisation, pseudo public et Riot ID.
                 </p>
               </div>
               {selectedPlayer ? (
-                <div className="rounded-3xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-text-secondary">
+                <div className="rounded-3xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-foreground-dim">
                   Derniere sync joueur :{' '}
                   <span className="font-semibold text-white">
                     {formatCurrency(selectedPlayer.marketValue)}
@@ -596,7 +596,7 @@ export function AdminPlayersManager() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                       Photo URL
                     </label>
                     <Input
@@ -611,7 +611,7 @@ export function AdminPlayersManager() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                       Pseudo public
                     </label>
                     <Input
@@ -624,7 +624,7 @@ export function AdminPlayersManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                       Pseudo in game
                     </label>
                     <Input
@@ -637,7 +637,7 @@ export function AdminPlayersManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                       Tag in game
                     </label>
                     <Input
@@ -650,7 +650,7 @@ export function AdminPlayersManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                       Team assignment
                     </label>
                     <Select
@@ -671,7 +671,7 @@ export function AdminPlayersManager() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                       Role principal
                     </label>
                     <Select
@@ -686,7 +686,7 @@ export function AdminPlayersManager() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                       Market value
                     </label>
                     <Input
@@ -700,7 +700,7 @@ export function AdminPlayersManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                       Salaire
                     </label>
                     <Input
@@ -713,7 +713,7 @@ export function AdminPlayersManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                       Age
                     </label>
                     <Input
@@ -726,7 +726,7 @@ export function AdminPlayersManager() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                    <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                       Nationalite
                     </label>
                     <Input
@@ -740,7 +740,7 @@ export function AdminPlayersManager() {
               </div>
 
               <div className="space-y-3">
-                <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+                <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
                   Roles secondaires
                 </label>
                 <div className="flex flex-wrap gap-3">
@@ -754,8 +754,8 @@ export function AdminPlayersManager() {
                         className={cn(
                           'flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-sm transition',
                           checked
-                            ? 'border-accent-primary/40 bg-accent-primary/12 text-white'
-                            : 'border-white/[0.05] bg-white/[0.035] text-text-secondary hover:text-white',
+                            ? 'border-accent/40 bg-accent/12 text-white'
+                            : 'border-white/[0.05] bg-white/[0.035] text-foreground-dim hover:text-white',
                           disabled && 'cursor-not-allowed opacity-50',
                         )}
                       >
@@ -771,7 +771,7 @@ export function AdminPlayersManager() {
                     );
                   })}
                 </div>
-                <label className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-text-secondary">
+                <label className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-foreground-dim">
                   <input
                     type="checkbox"
                     checked={draft.isActive}
@@ -828,12 +828,12 @@ export function AdminPlayersManager() {
               <Card className="space-y-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-kicker">Market value history</p>
+                    <p className="label-mono">Market value history</p>
                     <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                       Historique de valorisation
                     </h3>
                   </div>
-                  <div className="rounded-full border border-white/[0.05] bg-white/[0.035] px-4 py-2 text-xs uppercase tracking-[0.06em] text-text-secondary">
+                  <div className="rounded-full border border-white/[0.05] bg-white/[0.035] px-4 py-2 text-xs uppercase tracking-[0.06em] text-foreground-dim">
                     {selectedPlayer?.marketValueHistory.length ?? 0} entrees
                   </div>
                 </div>
@@ -868,7 +868,7 @@ export function AdminPlayersManager() {
 
                 <div className="space-y-3">
                   {selectedPlayerQuery.isLoading ? (
-                    <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+                    <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-foreground-dim">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Chargement de l'historique...
                     </div>
@@ -912,7 +912,7 @@ export function AdminPlayersManager() {
                         >
                           Supprimer
                         </Button>
-                        <div className="md:col-span-5 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.06em] text-text-secondary">
+                        <div className="md:col-span-5 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.06em] text-foreground-dim">
                           <span>
                             {entry.changedBy?.name ? `Par ${entry.changedBy.name}` : 'Par systeme'}
                           </span>
@@ -924,7 +924,7 @@ export function AdminPlayersManager() {
                       </form>
                     ))
                   ) : (
-                    <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+                    <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-foreground-dim">
                       Aucun historique disponible pour ce joueur.
                     </div>
                   )}
@@ -934,12 +934,12 @@ export function AdminPlayersManager() {
               <Card className="space-y-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-kicker">Palmares</p>
+                    <p className="label-mono">Palmares</p>
                     <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
                       Editer le palmares du joueur
                     </h3>
                   </div>
-                  <div className="rounded-full border border-white/[0.05] bg-white/[0.035] px-4 py-2 text-xs uppercase tracking-[0.06em] text-text-secondary">
+                  <div className="rounded-full border border-white/[0.05] bg-white/[0.035] px-4 py-2 text-xs uppercase tracking-[0.06em] text-foreground-dim">
                     {selectedPlayer?.playerTrophies.length ?? 0} distinctions
                   </div>
                 </div>
@@ -997,7 +997,7 @@ export function AdminPlayersManager() {
                     <textarea
                       name="description"
                       rows={3}
-                      className="w-full rounded-3xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-white outline-none transition placeholder:text-text-muted focus:border-accent-primary/50 focus:ring-2 focus:ring-accent-primary/24"
+                      className="w-full rounded-3xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-white outline-none transition placeholder:text-foreground-muted focus:border-accent/50 focus:ring-2 focus:ring-accent-primary/24"
                       placeholder="Description du trophee ou contexte"
                     />
                   </div>
@@ -1005,7 +1005,7 @@ export function AdminPlayersManager() {
 
                 <div className="space-y-3">
                   {selectedPlayerQuery.isLoading ? (
-                    <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+                    <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-foreground-dim">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Chargement du palmares...
                     </div>
@@ -1063,10 +1063,10 @@ export function AdminPlayersManager() {
                             name="description"
                             rows={3}
                             defaultValue={trophy.description ?? ''}
-                            className="w-full rounded-3xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-white outline-none transition placeholder:text-text-muted focus:border-accent-primary/50 focus:ring-2 focus:ring-accent-primary/24"
+                            className="w-full rounded-3xl border border-white/[0.05] bg-white/[0.035] px-4 py-3 text-sm text-white outline-none transition placeholder:text-foreground-muted focus:border-accent/50 focus:ring-2 focus:ring-accent-primary/24"
                           />
                         </div>
-                        <div className="md:col-span-2 xl:col-span-6 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.06em] text-text-secondary">
+                        <div className="md:col-span-2 xl:col-span-6 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.06em] text-foreground-dim">
                           <span>
                             {trophy.team
                               ? `${trophy.team.name} (${trophy.team.shortCode})`
@@ -1077,7 +1077,7 @@ export function AdminPlayersManager() {
                       </form>
                     ))
                   ) : (
-                    <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+                    <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-foreground-dim">
                       Aucun palmares enregistre pour ce joueur.
                     </div>
                   )}

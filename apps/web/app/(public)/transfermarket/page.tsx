@@ -3,7 +3,6 @@ import { MarketFilters } from '@/components/features/transfermarket/market-filte
 import { PlayerCard } from '@/components/features/transfermarket/player-card';
 import { TeamMarketValueRanking } from '@/components/features/transfermarket/team-market-value-ranking';
 import { TopPlayersShowcase } from '@/components/features/transfermarket/top-players-showcase';
-import { Card } from '@/components/ui/card';
 import { PlayerLink } from '@/components/ui/player-link';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format';
@@ -78,6 +77,35 @@ function buildTransfermarketHref(options: {
   return serialized ? `/transfermarket?${serialized}` : '/transfermarket';
 }
 
+function ViewTab({ active, href, label }: { active: boolean; href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        'relative pb-3 text-sm transition-colors duration-150',
+        active
+          ? 'text-foreground'
+          : 'text-foreground-dim hover:text-foreground',
+      )}
+    >
+      {label}
+      {active ? (
+        <span aria-hidden="true" className="absolute inset-x-0 -bottom-px h-px bg-accent" />
+      ) : null}
+    </Link>
+  );
+}
+
+function KpiBlock({ helper, label, value }: { helper: React.ReactNode; label: string; value: React.ReactNode }) {
+  return (
+    <div className="border-t border-hairline pt-5">
+      <p className="label-mono">{label}</p>
+      <div className="mt-3 display-md text-foreground tabular-nums">{value}</div>
+      <div className="mt-2 text-sm leading-6 text-foreground-dim">{helper}</div>
+    </div>
+  );
+}
+
 export default async function TransfermarketPage({ searchParams }: TransfermarketPageProps) {
   const params = await searchParams;
   const search = getSearchValue(params.q);
@@ -115,157 +143,154 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
   });
 
   return (
-    <div className="space-y-8">
-      <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-kicker">Transfermarket</p>
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-            {view === 'players' ? 'Liste des joueurs' : 'Classement des equipes'}
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
-            {view === 'players'
-              ? 'Premier vertical metier branche en SSR : vraies donnees Prisma via tRPC, filtres URL et cartes premium exploitables pour le scouting.'
-              : 'Lecture simple de la valeur marchande totale de chaque effectif, avec un fond de carte cale sur la couleur dominante du logo.'}
-          </p>
-        </div>
-        <div className="flex flex-col gap-3 md:items-end">
-          <div className="inline-flex rounded-full border border-white/[0.05] bg-white/[0.035] p-1">
-            <Link
-              href={playersViewHref}
-              className={cn(
-                'rounded-full px-4 py-2 text-sm font-semibold transition',
-                view === 'players'
-                  ? 'bg-white text-[#12111a]'
-                  : 'text-white/78 hover:bg-white/[0.05] hover:text-white',
-              )}
-            >
-              Joueurs
-            </Link>
-            <Link
-              href={teamsViewHref}
-              className={cn(
-                'rounded-full px-4 py-2 text-sm font-semibold transition',
-                view === 'teams'
-                  ? 'bg-white text-[#12111a]'
-                  : 'text-white/78 hover:bg-white/[0.05] hover:text-white',
-              )}
-            >
-              Equipe
-            </Link>
-          </div>
+    <div className="flex flex-col gap-20 md:gap-24">
+      <header className="border-b border-hairline pb-8">
+        <p className="breadcrumb-mono">§ 02 · Le marché</p>
+        <h1 className="mt-4 display-lg text-foreground">
+          {view === 'players' ? 'Liste des joueurs.' : 'Classement des équipes.'}
+        </h1>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-foreground-dim">
+          {view === 'players'
+            ? 'Vraies données Prisma via tRPC. Filtres en URL, tri serveur, cartes éditoriales pensées pour le scouting.'
+            : 'Lecture simple de la valeur marchande totale de chaque effectif, accentuée par la couleur dominante du logo.'}
+        </p>
+
+        <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <nav
+            aria-label="Mode de consultation"
+            className="flex items-center gap-6 border-b border-hairline"
+          >
+            <ViewTab active={view === 'players'} href={playersViewHref} label="Joueurs" />
+            <ViewTab active={view === 'teams'} href={teamsViewHref} label="Équipes" />
+          </nav>
+
           {view === 'players' ? (
-            <>
-              <Link
-                href="/transfermarket/comparison"
-                className="inline-flex items-center gap-2 rounded-full border border-white/[0.05] bg-white/[0.035] px-4 py-2 text-sm font-semibold text-white transition hover:border-accent-primary/40 hover:bg-accent-primary/14"
-              >
-                Comparer des joueurs
-              </Link>
-              <MarketFilters search={search} role={role ?? 'all'} sort={sort} />
-            </>
+            <Link
+              href="/transfermarket/comparison"
+              className="self-start label-mono text-foreground-dim transition-colors duration-150 hover:text-accent lg:self-end"
+            >
+              Comparer des joueurs →
+            </Link>
           ) : null}
         </div>
-      </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
+        {view === 'players' ? (
+          <div className="mt-6">
+            <MarketFilters search={search} role={role ?? 'all'} sort={sort} />
+          </div>
+        ) : null}
+      </header>
+
+      <section className="grid gap-10 md:grid-cols-3 md:gap-12">
         {view === 'players' ? (
           <>
-            <Card className="space-y-2">
-              <p className="text-kicker">Actifs sur le marche</p>
-              <p className="font-display text-2xl font-bold tracking-tight text-white">{players.length}</p>
-              <p className="text-sm text-text-secondary">
-                Resultat filtre{players.length > 1 ? 's' : ''} pour la recherche actuelle.
-              </p>
-            </Card>
-            <Card className="space-y-2">
-              <p className="text-kicker">Top asset</p>
-              {highestValuePlayer ? (
-                <PlayerLink
-                  playerId={highestValuePlayer.id}
-                  className="font-display text-2xl font-bold tracking-tight text-white"
-                >
-                  {highestValuePlayer.displayName}
-                </PlayerLink>
-              ) : (
-                <p className="font-display text-2xl font-bold tracking-tight text-white">N/A</p>
-              )}
-              <p className="text-sm text-text-secondary">
-                {highestValuePlayer
-                  ? `${highestValuePlayer.teamName} / ${formatCurrency(highestValuePlayer.marketValue)}`
-                  : 'Aucun joueur disponible'}
-              </p>
-            </Card>
-            <Card className="space-y-2">
-              <p className="text-kicker">Valeur moyenne</p>
-              <p className="font-display text-2xl font-bold tracking-tight text-white">
-                {formatCurrency(averagePlayerMarketValue)}
-              </p>
-              <p className="text-sm text-text-secondary">
-                Benchmark rapide pour les comparaisons de roster.
-              </p>
-            </Card>
+            <KpiBlock
+              label="Actifs filtrés"
+              value={players.length.toString().padStart(2, '0')}
+              helper={`Résultat${players.length > 1 ? 's' : ''} pour la recherche actuelle.`}
+            />
+            <KpiBlock
+              label="Top asset"
+              value={
+                highestValuePlayer ? (
+                  <PlayerLink playerId={highestValuePlayer.id} className="text-foreground">
+                    {highestValuePlayer.displayName}
+                  </PlayerLink>
+                ) : (
+                  'N/A'
+                )
+              }
+              helper={
+                highestValuePlayer
+                  ? `${highestValuePlayer.teamName} · ${formatCurrency(highestValuePlayer.marketValue)}`
+                  : 'Aucun joueur disponible.'
+              }
+            />
+            <KpiBlock
+              label="Valeur moyenne"
+              value={formatCurrency(averagePlayerMarketValue)}
+              helper="Benchmark rapide pour les comparaisons de roster."
+            />
           </>
         ) : (
           <>
-            <Card className="space-y-2">
-              <p className="text-kicker">Equipes classees</p>
-              <p className="font-display text-2xl font-bold tracking-tight text-white">{teams.length}</p>
-              <p className="text-sm text-text-secondary">
-                Clubs tries par valeur marchande totale du roster.
-              </p>
-            </Card>
-            <Card className="space-y-2">
-              <p className="text-kicker">Top collectif</p>
-              <p className="font-display text-2xl font-bold tracking-tight text-white">{topTeam?.name ?? 'N/A'}</p>
-              <p className="text-sm text-text-secondary">
-                {topTeam
-                  ? `${topTeam.shortCode} / ${formatCurrency(topTeam.totalMarketValue)}`
-                  : 'Aucune equipe disponible'}
-              </p>
-            </Card>
-            <Card className="space-y-2">
-              <p className="text-kicker">Valeur moyenne club</p>
-              <p className="font-display text-2xl font-bold tracking-tight text-white">
-                {formatCurrency(averageTeamMarketValue)}
-              </p>
-              <p className="text-sm text-text-secondary">
-                Moyenne globale sur les effectifs actifs.
-              </p>
-            </Card>
+            <KpiBlock
+              label="Équipes classées"
+              value={teams.length.toString().padStart(2, '0')}
+              helper="Clubs triés par valeur marchande totale du roster."
+            />
+            <KpiBlock
+              label="Top collectif"
+              value={topTeam?.name ?? 'N/A'}
+              helper={
+                topTeam
+                  ? `${topTeam.shortCode} · ${formatCurrency(topTeam.totalMarketValue)}`
+                  : 'Aucune équipe disponible.'
+              }
+            />
+            <KpiBlock
+              label="Valeur moyenne club"
+              value={formatCurrency(averageTeamMarketValue)}
+              helper="Moyenne globale sur les effectifs actifs."
+            />
           </>
         )}
       </section>
 
       {view === 'players' && players.length >= 3 && sort === 'marketValue-desc' ? (
-        <TopPlayersShowcase players={players} />
+        <section>
+          <p className="label-mono">Podium du marché</p>
+          <h2 className="mt-3 display-md text-foreground">Les trois plus grosses cotes.</h2>
+          <div className="mt-8">
+            <TopPlayersShowcase players={players} />
+          </div>
+        </section>
       ) : null}
 
       {view === 'players' && players.length > 0 ? (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {(players.length >= 3 && sort === 'marketValue-desc' ? players.slice(3) : players).map(
-            (player) => (
-              <PlayerCard key={player.id} player={player} />
-            ),
-          )}
-        </div>
+        <section>
+          <p className="label-mono">
+            {players.length >= 3 && sort === 'marketValue-desc' ? 'Reste du marché' : 'Marché'}
+          </p>
+          <h2 className="mt-3 display-md text-foreground">
+            {players.length.toString().padStart(2, '0')} joueur{players.length > 1 ? 's' : ''} suivi{players.length > 1 ? 's' : ''}.
+          </h2>
+          <div className="mt-8 grid gap-px border-t border-hairline bg-hairline md:grid-cols-2 xl:grid-cols-3">
+            {(players.length >= 3 && sort === 'marketValue-desc' ? players.slice(3) : players).map(
+              (player) => (
+                <PlayerCard key={player.id} player={player} />
+              ),
+            )}
+          </div>
+        </section>
       ) : null}
 
-      {view === 'teams' && teams.length > 0 ? <TeamMarketValueRanking teams={teams} /> : null}
+      {view === 'teams' && teams.length > 0 ? (
+        <section>
+          <p className="label-mono">Classement</p>
+          <h2 className="mt-3 display-md text-foreground">
+            {teams.length.toString().padStart(2, '0')} effectif{teams.length > 1 ? 's' : ''} évalué{teams.length > 1 ? 's' : ''}.
+          </h2>
+          <div className="mt-8">
+            <TeamMarketValueRanking teams={teams} />
+          </div>
+        </section>
+      ) : null}
 
       {(view === 'players' && players.length === 0) || (view === 'teams' && teams.length === 0) ? (
-        <Card className="space-y-3">
-          <p className="text-kicker">Aucun resultat</p>
-          <h2 className="font-display text-2xl font-bold tracking-tight text-white">
+        <section className="border-y border-hairline py-12">
+          <p className="label-mono">Aucun résultat</p>
+          <h2 className="mt-3 display-md text-foreground">
             {view === 'players'
-              ? 'Aucun joueur ne correspond aux filtres actuels'
-              : 'Aucune equipe disponible pour le moment'}
+              ? 'Aucun joueur ne correspond aux filtres actuels.'
+              : 'Aucune équipe disponible pour le moment.'}
           </h2>
-          <p className="max-w-2xl text-sm leading-7 text-text-secondary">
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-foreground-dim">
             {view === 'players'
-              ? 'Change la recherche, le role ou reinitialise les filtres pour revenir a la vue complete du marche.'
-              : 'Le classement des valeurs marchandes equipe apparaitra ici des que des effectifs seront disponibles.'}
+              ? 'Change la recherche, le rôle ou réinitialise les filtres pour revenir à la vue complète du marché.'
+              : "Le classement des valeurs marchandes équipe apparaîtra ici dès que des effectifs seront disponibles."}
           </p>
-        </Card>
+        </section>
       ) : null}
     </div>
   );

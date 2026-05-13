@@ -72,7 +72,7 @@ export function RosterTable({ players, teamId }: RosterTableProps) {
           return (
             <TableRow key={player.id}>
               <TableCell>
-                <PlayerLink playerId={player.id} className="font-semibold text-white">
+                <PlayerLink playerId={player.id} className="font-display text-foreground">
                   {player.displayName}
                 </PlayerLink>
               </TableCell>
@@ -92,7 +92,7 @@ export function RosterTable({ players, teamId }: RosterTableProps) {
                     ))}
                   </Select>
                   {isRoleOverridden ? (
-                    <span className="text-xs text-accent-glow">modifie</span>
+                    <span className="label-mono text-accent">modifié</span>
                   ) : null}
                 </div>
               </TableCell>

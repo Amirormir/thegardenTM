@@ -4,7 +4,6 @@ import { Clock, FileText, Loader2, Plus, RefreshCw, XCircle } from 'lucide-react
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import {
@@ -29,9 +28,9 @@ interface FeedbackState {
 const STATUS_LABEL: Record<string, string> = {
   PENDING_APPROVAL: 'En attente',
   ACTIVE: 'Actif',
-  EXPIRED: 'Expire',
+  EXPIRED: 'Expiré',
   TERMINATED: 'Rompu',
-  LOAN: 'Pret',
+  LOAN: 'Prêt',
 };
 
 function statusBadgeVariant(status: string): 'actif' | 'expiré' {
@@ -44,10 +43,10 @@ function FeedbackBanner({ feedback }: { feedback: FeedbackState | null }) {
   return (
     <div
       className={cn(
-        'rounded-2xl border px-4 py-3 text-sm',
+        'border-l-2 border-y border-r border-hairline bg-surface px-5 py-4 label-mono',
         feedback.type === 'success'
-          ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-          : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+          ? 'border-l-[color:var(--win)] text-[color:var(--win)]'
+          : 'border-l-[color:var(--loss)] text-[color:var(--loss)]',
       )}
     >
       {feedback.message}
@@ -118,10 +117,10 @@ export function ContractManager({ teamId }: ContractManagerProps) {
       ]);
       setFeedback({
         type: 'success',
-        message: 'Le contrat a ete soumis. Il sera actif apres validation par un admin.',
+        message: 'Le contrat a été soumis. Il sera actif après validation par un admin.',
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'La creation a echoue.';
+      const message = error instanceof Error ? error.message : 'La création a échoué.';
       setFeedback({ type: 'error', message });
     }
   }
@@ -145,9 +144,9 @@ export function ContractManager({ teamId }: ContractManagerProps) {
         utils.team.getById.invalidate(),
         utils.player.getAll.invalidate(),
       ]);
-      setFeedback({ type: 'success', message: 'Le contrat a ete rompu.' });
+      setFeedback({ type: 'success', message: 'Le contrat a été rompu.' });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'La rupture a echoue.';
+      const message = error instanceof Error ? error.message : 'La rupture a échoué.';
       setFeedback({ type: 'error', message });
     }
   }
@@ -183,10 +182,10 @@ export function ContractManager({ teamId }: ContractManagerProps) {
       ]);
       setFeedback({
         type: 'success',
-        message: 'Renouvellement soumis. Le nouveau contrat sera actif apres validation admin.',
+        message: 'Renouvellement soumis. Le nouveau contrat sera actif après validation admin.',
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Le renouvellement a echoue.';
+      const message = error instanceof Error ? error.message : 'Le renouvellement a échoué.';
       setFeedback({ type: 'error', message });
     }
   }
@@ -194,13 +193,13 @@ export function ContractManager({ teamId }: ContractManagerProps) {
   const mutationPending = createContract.isPending || terminateContract.isPending || renewContract.isPending;
 
   return (
-    <Card className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-col gap-10">
+      <div className="flex items-end justify-between gap-4 border-b border-hairline pb-6">
         <div>
-          <p className="text-kicker">Contract management</p>
-          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Contrats</h2>
-          <p className="mt-1 text-sm text-text-secondary">
-            Tout contrat cree sera soumis a validation admin avant activation.
+          <p className="label-mono">§ Contrats</p>
+          <h2 className="mt-3 display-md text-foreground">Gestion contractuelle.</h2>
+          <p className="mt-3 max-w-2xl text-base leading-7 text-foreground-dim">
+            Tout contrat créé sera soumis à validation admin avant activation.
           </p>
         </div>
         <Button
@@ -217,41 +216,41 @@ export function ContractManager({ teamId }: ContractManagerProps) {
       <FeedbackBanner feedback={feedback} />
 
       {showCreateForm ? (
-        <div className="rounded-3xl border border-white/[0.05] bg-white/[0.035] p-5 space-y-4">
-          <h3 className="font-display text-xl font-bold tracking-tight text-white">Proposer un contrat</h3>
-          <form className="grid gap-4 md:grid-cols-2" onSubmit={handleCreate}>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Joueur</label>
+        <div className="border-l-2 border-l-accent border-y border-r border-hairline bg-surface p-6">
+          <p className="label-mono text-accent">Proposer un contrat</p>
+          <form className="mt-5 grid gap-5 md:grid-cols-2" onSubmit={handleCreate}>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Joueur</label>
               <Select name="playerId" required defaultValue="">
                 <option value="" disabled>Choisir un joueur</option>
                 {availablePlayers.map((player) => (
-                    <option key={player.id} value={player.id}>
-                    {player.displayName} - {buildPlayerRiotId(player)} ({player.role}){player.teamId ? ' - roster actuel' : ' - free agent'}
-                    </option>
+                  <option key={player.id} value={player.id}>
+                    {player.displayName} — {buildPlayerRiotId(player)} ({player.role}){player.teamId ? ' · roster actuel' : ' · free agent'}
+                  </option>
                 ))}
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Salaire</label>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Salaire</label>
               <Input name="salary" type="number" min={0} required placeholder="Ex: 150000" />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Duree (nombre de BO3)</label>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Durée (nombre de BO3)</label>
               <Input name="durationBo3" type="number" min={1} required placeholder="Ex: 10" />
-              <p className="text-xs text-text-secondary">
-                Le contrat expire apres ce nombre de BO3 joues.
+              <p className="text-xs leading-6 text-foreground-muted">
+                Le contrat expire après ce nombre de BO3 joués.
               </p>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Clause liberatoire *</label>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Clause libératoire *</label>
               <Input name="releaseClause" type="number" min={1} required placeholder="Obligatoire" />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Frais de transfert</label>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Frais de transfert</label>
               <Input name="transferFee" type="number" min={0} placeholder="Optionnel" />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Notes</label>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Notes</label>
               <Input name="notes" placeholder="Optionnel" />
             </div>
             <div className="flex gap-3 md:col-span-2">
@@ -271,117 +270,113 @@ export function ContractManager({ teamId }: ContractManagerProps) {
       ) : null}
 
       {contractsQuery.isLoading ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
+        <div className="flex items-center gap-3 border border-hairline bg-surface px-5 py-4 label-mono text-foreground-dim">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Chargement des contrats...
+          Chargement des contrats…
         </div>
       ) : contracts.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Joueur</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead>Salaire</TableHead>
-              <TableHead>Duree</TableHead>
-              <TableHead>Clause</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {contracts.map((contract) => (
-              <TableRow key={contract.id}>
-                <TableCell>
-                  <PlayerLink playerId={contract.player.id} className="font-semibold text-white">
-                    {contract.player.displayName}
-                  </PlayerLink>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={contract.player.role}>{contract.player.role}</Badge>
-                </TableCell>
-                <TableCell>
-                  {contract.status === 'PENDING_APPROVAL' ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/14 px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.06em] text-amber-100 ring-1 ring-amber-400/24">
-                      <Clock className="h-3 w-3" />
-                      En attente
-                    </span>
-                  ) : (
-                    <Badge variant={statusBadgeVariant(contract.status)}>
-                      {STATUS_LABEL[contract.status] ?? contract.status}
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="font-display tabular-nums">{formatCurrency(contract.salary)}</TableCell>
-                <TableCell>{contract.durationBo3} BO3</TableCell>
-                <TableCell className="font-display tabular-nums">{formatCurrency(contract.releaseClause)}</TableCell>
-                <TableCell>
-                  {contract.status === 'ACTIVE' || contract.status === 'LOAN' ? (
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        icon={<RefreshCw className="h-3.5 w-3.5" />}
-                        onClick={() => {
-                          setRenewingContract({
-                            id: contract.id,
-                            playerId: contract.player.id,
-                            salary: contract.salary,
-                            durationBo3: contract.durationBo3,
-                            releaseClause: contract.releaseClause,
-                            playerName: contract.player.displayName,
-                          });
-                          setTerminatingId(null);
-                          setShowCreateForm(false);
-                        }}
-                        disabled={mutationPending}
-                      >
-                        Renouveler
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="danger"
-                        size="sm"
-                        icon={<XCircle className="h-3.5 w-3.5" />}
-                        onClick={() => { setTerminatingId(contract.id); setShowCreateForm(false); setRenewingContract(null); }}
-                        disabled={mutationPending}
-                      >
-                        Rompre
-                      </Button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-text-secondary">--</span>
-                  )}
-                </TableCell>
+        <div className="border-t border-hairline">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Joueur</TableHead>
+                <TableHead>Rôle</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Salaire</TableHead>
+                <TableHead>Durée</TableHead>
+                <TableHead>Clause</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {contracts.map((contract) => (
+                <TableRow key={contract.id}>
+                  <TableCell>
+                    <PlayerLink playerId={contract.player.id} className="font-display text-foreground">
+                      {contract.player.displayName}
+                    </PlayerLink>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={contract.player.role}>{contract.player.role}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {contract.status === 'PENDING_APPROVAL' ? (
+                      <span className="inline-flex items-center gap-1.5 label-mono text-accent">
+                        <Clock className="h-3 w-3" />
+                        En attente
+                      </span>
+                    ) : (
+                      <Badge variant={statusBadgeVariant(contract.status)}>
+                        {STATUS_LABEL[contract.status] ?? contract.status}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-display tabular-nums">{formatCurrency(contract.salary)}</TableCell>
+                  <TableCell className="label-mono tabular-nums">{contract.durationBo3} BO3</TableCell>
+                  <TableCell className="font-display tabular-nums">{formatCurrency(contract.releaseClause)}</TableCell>
+                  <TableCell>
+                    {contract.status === 'ACTIVE' || contract.status === 'LOAN' ? (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          icon={<RefreshCw className="h-3.5 w-3.5" />}
+                          onClick={() => {
+                            setRenewingContract({
+                              id: contract.id,
+                              playerId: contract.player.id,
+                              salary: contract.salary,
+                              durationBo3: contract.durationBo3,
+                              releaseClause: contract.releaseClause,
+                              playerName: contract.player.displayName,
+                            });
+                            setTerminatingId(null);
+                            setShowCreateForm(false);
+                          }}
+                          disabled={mutationPending}
+                        >
+                          Renouveler
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="danger"
+                          size="sm"
+                          icon={<XCircle className="h-3.5 w-3.5" />}
+                          onClick={() => { setTerminatingId(contract.id); setShowCreateForm(false); setRenewingContract(null); }}
+                          disabled={mutationPending}
+                        >
+                          Rompre
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="label-mono text-foreground-muted">—</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
-        <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4 text-sm text-text-secondary">
-          Aucun contrat enregistre pour cette equipe.
+        <div className="border border-hairline bg-surface px-5 py-4 label-mono text-foreground-dim">
+          Aucun contrat enregistré pour cette équipe.
         </div>
       )}
 
       {renewingContract ? (
-        <div className="rounded-3xl border border-violet-400/20 bg-violet-500/8 p-5 space-y-4">
-          <div>
-            <h3 className="font-display text-xl font-bold tracking-tight text-violet-100">
-              Renouveler le contrat
-            </h3>
-            <p className="mt-1 text-sm text-text-secondary">
-              Joueur :{' '}
-              <PlayerLink playerId={renewingContract.playerId} className="font-semibold text-white">
-                {renewingContract.playerName}
-              </PlayerLink>
-              {' '}— l'ancien contrat sera expire et le nouveau soumis a validation admin.
-            </p>
-          </div>
-          <form className="grid gap-4 md:grid-cols-2" onSubmit={handleRenew}>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                Nouveau salaire *
-              </label>
+        <div className="border-l-2 border-l-accent border-y border-r border-hairline bg-surface p-6">
+          <p className="label-mono text-accent">Renouveler le contrat</p>
+          <p className="mt-3 text-sm leading-6 text-foreground-dim">
+            Joueur ·{' '}
+            <PlayerLink playerId={renewingContract.playerId} className="font-display text-foreground">
+              {renewingContract.playerName}
+            </PlayerLink>
+            {' '}— l&apos;ancien contrat sera expiré et le nouveau soumis à validation admin.
+          </p>
+          <form className="mt-5 grid gap-5 md:grid-cols-2" onSubmit={handleRenew}>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Nouveau salaire *</label>
               <Input
                 name="salary"
                 type="number"
@@ -391,10 +386,8 @@ export function ContractManager({ teamId }: ContractManagerProps) {
                 placeholder="Ex: 150000"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                Duree (nombre de BO3) *
-              </label>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Durée (nombre de BO3) *</label>
               <Input
                 name="durationBo3"
                 type="number"
@@ -404,10 +397,8 @@ export function ContractManager({ teamId }: ContractManagerProps) {
                 placeholder="Ex: 10"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                Clause liberatoire *
-              </label>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Clause libératoire *</label>
               <Input
                 name="releaseClause"
                 type="number"
@@ -417,17 +408,13 @@ export function ContractManager({ teamId }: ContractManagerProps) {
                 placeholder="Obligatoire"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                Frais de transfert
-              </label>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Frais de transfert</label>
               <Input name="transferFee" type="number" min={0} placeholder="Optionnel" />
             </div>
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                Notes
-              </label>
-              <Input name="notes" placeholder="Ex: Prolongation suite a bonne saison..." />
+            <div className="flex flex-col gap-2 md:col-span-2">
+              <label className="label-mono">Notes</label>
+              <Input name="notes" placeholder="Ex: Prolongation suite à bonne saison…" />
             </div>
             <div className="flex gap-3 md:col-span-2">
               <Button
@@ -456,12 +443,12 @@ export function ContractManager({ teamId }: ContractManagerProps) {
       ) : null}
 
       {terminatingId ? (
-        <div className="rounded-3xl border border-rose-400/20 bg-rose-500/8 p-5 space-y-4">
-          <h3 className="font-display text-xl font-bold tracking-tight text-rose-100">Rompre le contrat</h3>
-          <form className="grid gap-4 md:grid-cols-[1fr_auto]" onSubmit={handleTerminate}>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.06em] text-text-secondary">Motif (optionnel)</label>
-              <Input name="reason" placeholder="Ex: Fin de saison, transfert..." />
+        <div className="border-l-2 border-l-[color:var(--loss)] border-y border-r border-hairline bg-surface p-6">
+          <p className="label-mono text-[color:var(--loss)]">Rompre le contrat</p>
+          <form className="mt-5 grid gap-5 md:grid-cols-[1fr_auto]" onSubmit={handleTerminate}>
+            <div className="flex flex-col gap-2">
+              <label className="label-mono">Motif (optionnel)</label>
+              <Input name="reason" placeholder="Ex: Fin de saison, transfert…" />
             </div>
             <div className="flex items-end gap-2">
               <Button
@@ -479,6 +466,6 @@ export function ContractManager({ teamId }: ContractManagerProps) {
           </form>
         </div>
       ) : null}
-    </Card>
+    </div>
   );
 }

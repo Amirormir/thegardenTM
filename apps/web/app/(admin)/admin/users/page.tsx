@@ -2,15 +2,15 @@ import { AdminUsersManager } from '@/components/features/admin/admin-users-manag
 
 export default function AdminUsersPage() {
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-kicker">Admin zone</p>
-        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Gestion utilisateurs</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
-          Attribuez les roles et associez les chefs d&apos;equipe a leurs equipes. Plusieurs
-          capitaines par equipe sont possibles.
+    <div className="flex flex-col gap-16 md:gap-20">
+      <header className="border-b border-hairline pb-8">
+        <p className="breadcrumb-mono">§ · Admin · Utilisateurs</p>
+        <h1 className="mt-4 display-lg text-foreground">Gestion utilisateurs.</h1>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-foreground-dim">
+          Attribuez les rôles et associez les chefs d&apos;équipe à leurs équipes. Plusieurs
+          capitaines par équipe sont possibles.
         </p>
-      </div>
+      </header>
       <AdminUsersManager />
     </div>
   );

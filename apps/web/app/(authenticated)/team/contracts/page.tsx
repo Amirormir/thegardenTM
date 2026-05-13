@@ -15,16 +15,14 @@ export default async function TeamContractsPage() {
   const team = await caller.team.getById({ id: teamId });
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-kicker">Protected area</p>
-        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-          Contrats - {team.name}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
-          Espace dedie pour proposer, prolonger ou rompre les contrats de l'equipe.
+    <div className="flex flex-col gap-16 md:gap-20">
+      <header className="border-b border-hairline pb-8">
+        <p className="breadcrumb-mono">§ · Équipe · Contrats</p>
+        <h1 className="mt-4 display-lg text-foreground">Contrats — {team.name}.</h1>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-foreground-dim">
+          Espace dédié pour proposer, prolonger ou rompre les contrats de l&apos;équipe.
         </p>
-      </div>
+      </header>
 
       <ContractManager teamId={teamId} />
     </div>

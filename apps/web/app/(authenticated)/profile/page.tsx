@@ -4,7 +4,6 @@ import { Camera, Loader2, Save, User } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
@@ -24,7 +23,6 @@ export default function ProfilePage() {
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
 
-  // Populate form once data is loaded
   useEffect(() => {
     if (meQuery.data) {
       setName(meQuery.data.name ?? '');
@@ -42,22 +40,20 @@ export default function ProfilePage() {
 
     const updates: { name?: string; image?: string } = {};
     if (name.trim() && name.trim() !== meQuery.data?.name) updates.name = name.trim();
-    // empty string means "remove avatar"
     if (image !== (meQuery.data?.image ?? '')) updates.image = image;
 
     if (Object.keys(updates).length === 0) {
-      setFeedback({ type: 'error', message: 'Aucun changement detecte.' });
+      setFeedback({ type: 'error', message: 'Aucun changement détecté.' });
       return;
     }
 
     try {
       await updateProfile.mutateAsync(updates);
-      // Refresh the Auth.js session token so the navbar updates
       await updateSession();
       await meQuery.refetch();
-      setFeedback({ type: 'success', message: 'Profil mis a jour.' });
+      setFeedback({ type: 'success', message: 'Profil mis à jour.' });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'La mise a jour a echoue.';
+      const message = error instanceof Error ? error.message : 'La mise à jour a échoué.';
       setFeedback({ type: 'error', message });
     }
   }
@@ -67,22 +63,21 @@ export default function ProfilePage() {
   const showAvatarImage = Boolean(avatarSrc) && !avatarLoadFailed;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
-      <div>
-        <p className="text-kicker">Compte</p>
-        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Mon profil</h1>
-      </div>
+    <div className="mx-auto flex max-w-3xl flex-col gap-16 md:gap-20">
+      <header className="border-b border-hairline pb-8">
+        <p className="breadcrumb-mono">§ · Compte · Profil</p>
+        <h1 className="mt-4 display-lg text-foreground">Mon profil.</h1>
+      </header>
 
       {meQuery.isLoading ? (
-        <div className="flex items-center justify-center gap-3 py-12 text-sm text-text-secondary">
+        <div className="flex items-center justify-center gap-3 py-12 label-mono text-foreground-dim">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Chargement...
+          Chargement…
         </div>
       ) : (
-        <Card className="space-y-6">
-          {/* Avatar preview */}
-          <div className="flex items-center gap-5">
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-white/[0.05] bg-white/[0.035]">
+        <section className="flex flex-col gap-10">
+          <div className="flex items-center gap-6 border-y border-hairline py-8">
+            <div className="placeholder-diag relative h-24 w-24 shrink-0 overflow-hidden">
               {showAvatarImage ? (
                 <img
                   src={avatarSrc ?? undefined}
@@ -93,38 +88,38 @@ export default function ProfilePage() {
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
-                  <User className="h-8 w-8 text-text-muted" />
+                  <User className="h-9 w-9 text-foreground-muted" />
                 </div>
               )}
-              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 opacity-0 transition hover:opacity-100">
-                <Camera className="h-5 w-5 text-white" />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition hover:opacity-100">
+                <Camera className="h-5 w-5 text-foreground" />
               </div>
             </div>
-            <div>
-              <p className="font-semibold text-white">{user?.name ?? 'Inconnu'}</p>
-              <p className="text-sm text-text-secondary">{user?.email}</p>
-              <span className="mt-1 inline-block rounded-full bg-accent-primary/15 px-2.5 py-0.5 text-xs font-semibold text-accent-glow">
-                {user?.role ?? 'USER'}
-              </span>
+            <div className="flex flex-col gap-2">
+              <p className="font-display text-2xl tracking-tight text-foreground">
+                {user?.name ?? 'Inconnu'}
+              </p>
+              <p className="text-sm text-foreground-dim">{user?.email}</p>
+              <p className="label-mono text-accent">{user?.role ?? 'USER'}</p>
             </div>
           </div>
 
           {feedback ? (
             <div
               className={cn(
-                'rounded-2xl border px-4 py-3 text-sm',
+                'border-l-2 border-y border-r border-hairline bg-surface px-5 py-4 label-mono',
                 feedback.type === 'success'
-                  ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-                  : 'border-rose-400/20 bg-rose-500/10 text-rose-100',
+                  ? 'border-l-[color:var(--win)] text-[color:var(--win)]'
+                  : 'border-l-[color:var(--loss)] text-[color:var(--loss)]',
               )}
             >
               {feedback.message}
             </div>
           ) : null}
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <label htmlFor="name" className="text-xs uppercase tracking-[0.06em] text-text-secondary">
+          <form className="flex flex-col gap-8" onSubmit={handleSubmit}>
+            <div className="flex flex-col gap-3">
+              <label htmlFor="name" className="label-mono">
                 Pseudo affiché
               </label>
               <Input
@@ -136,9 +131,9 @@ export default function ProfilePage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="image" className="text-xs uppercase tracking-[0.06em] text-text-secondary">
-                URL de l'avatar
+            <div className="flex flex-col gap-3">
+              <label htmlFor="image" className="label-mono">
+                URL de l&apos;avatar
               </label>
               <Input
                 id="image"
@@ -147,12 +142,12 @@ export default function ProfilePage() {
                 placeholder="https://exemple.com/avatar.png"
                 type="url"
               />
-              <p className="text-xs text-text-muted">
-                Laissez vide pour supprimer l'avatar. Utilisez une URL d'image directe (PNG, JPG, WebP).
+              <p className="text-xs leading-6 text-foreground-muted">
+                Laissez vide pour supprimer l&apos;avatar. Utilisez une URL d&apos;image directe (PNG, JPG, WebP).
               </p>
             </div>
 
-            <div className="flex items-center gap-3 pt-1">
+            <div className="flex items-center gap-4 border-t border-hairline pt-6">
               <Button
                 type="submit"
                 disabled={updateProfile.isPending}
@@ -167,14 +162,13 @@ export default function ProfilePage() {
                 Enregistrer
               </Button>
               {user?.captainOfTeam ? (
-                <p className="text-xs text-text-muted">
-                  Capitaine de{' '}
-                  <span className="text-text-secondary">{user.captainOfTeam.name}</span>
+                <p className="label-mono text-foreground-muted">
+                  Capitaine · <span className="text-foreground-dim">{user.captainOfTeam.name}</span>
                 </p>
               ) : null}
             </div>
           </form>
-        </Card>
+        </section>
       )}
     </div>
   );
