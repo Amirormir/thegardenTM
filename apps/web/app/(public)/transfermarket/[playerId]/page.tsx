@@ -149,12 +149,12 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
   const canSignFreeAgent = Boolean(isCaptain && userTeamId && !player.teamId);
 
   return (
-    <div className="flex flex-col gap-20 md:gap-24">
+    <div className="flex flex-col gap-16 md:gap-20">
       <header className="border-b border-hairline pb-10">
         <p className="breadcrumb-mono">§ · Joueurs · {teamShortCode}</p>
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-[auto_1fr] lg:items-end lg:gap-12">
-          <div className="placeholder-diag h-40 w-40 shrink-0 overflow-hidden lg:h-48 lg:w-48">
+        <div className="mt-8 grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)] lg:items-start lg:gap-10">
+          <div className="placeholder-diag h-44 w-44 shrink-0 overflow-hidden lg:h-56 lg:w-56">
             {player.imageUrl ? (
               <img
                 src={player.imageUrl}
@@ -226,8 +226,8 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         ) : null}
       </header>
 
-      <section className="grid gap-10 lg:grid-cols-[1fr_320px] lg:gap-16">
-        <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4 md:gap-12">
+      <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12">
+        <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-4 xl:gap-10">
           <KpiBlock
             label="KDA récent"
             value={recentKda}
@@ -250,7 +250,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
           />
         </div>
 
-        <aside className="space-y-6 border-l-0 border-hairline lg:border-l lg:pl-10">
+        <aside className="space-y-5 border-l-0 border-hairline lg:border-l lg:pl-8">
           <PlayerValue value={player.marketValue} delta={marketDelta} />
 
           <div className="border border-hairline bg-surface p-5">
@@ -310,7 +310,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
       <section>
         <p className="label-mono">§ 01 · Trajectoire de valeur</p>
         <h2 className="mt-3 display-md text-foreground">Évolution de la cote.</h2>
-        <div className="mt-8 border-t border-hairline pt-8">
+        <div className="mt-6 border-t border-hairline pt-6">
           <MarketValueChart history={player.marketValueHistory} />
         </div>
       </section>
@@ -318,7 +318,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
       <section>
         <p className="label-mono">§ 02 · Performances récentes</p>
         <h2 className="mt-3 display-md text-foreground">Tendances game par game.</h2>
-        <div className="mt-8 border-t border-hairline pt-8">
+        <div className="mt-6 border-t border-hairline pt-6">
           <PerformanceTrendsChart stats={recentStats} />
         </div>
       </section>
@@ -327,7 +327,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         <section>
           <p className="label-mono">§ 03 · Palmarès</p>
           <h2 className="mt-3 display-md text-foreground">Distinctions du joueur.</h2>
-          <div className="mt-8 grid gap-px border-t border-hairline bg-hairline md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-6 grid gap-px border-t border-hairline bg-hairline md:grid-cols-2 xl:grid-cols-3">
             {player.playerTrophies.map((trophy) => (
               <article key={trophy.id} className="flex flex-col bg-background px-5 py-5 md:px-6">
                 <p className="label-mono">{trophy.season.name}</p>
@@ -353,7 +353,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
           {contractHistory.length.toString().padStart(2, '0')} contrat
           {contractHistory.length > 1 ? 's' : ''} consigné{contractHistory.length > 1 ? 's' : ''}.
         </h2>
-        <div className="mt-8 border-t border-hairline pt-8">
+        <div className="mt-6 border-t border-hairline pt-6">
           {contractHistory.length > 0 ? (
             <Table>
               <TableHeader>
@@ -413,7 +413,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
           {player.playerMatchStats.length > 1 ? 's' : ''} stockée
           {player.playerMatchStats.length > 1 ? 's' : ''}.
         </h2>
-        <div className="mt-8 border-t border-hairline pt-8">
+        <div className="mt-6 border-t border-hairline pt-6">
           {player.playerMatchStats.length > 0 ? (
             <Table>
               <TableHeader>
@@ -473,7 +473,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
           {player.marketValueHistory.length > 1 ? 's' : ''} consignée
           {player.marketValueHistory.length > 1 ? 's' : ''}.
         </h2>
-        <div className="mt-8 border-t border-hairline pt-8">
+        <div className="mt-6 border-t border-hairline pt-6">
           {player.marketValueHistory.length > 0 ? (
             <Table>
               <TableHeader>
