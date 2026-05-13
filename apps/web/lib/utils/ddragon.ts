@@ -47,6 +47,12 @@ export function getChampionIconUrl(championId: string, version?: string): string
   return `${DDRAGON_BASE}/cdn/${v}/img/champion/${championId}.png`;
 }
 
+export function getItemIconUrl(itemId: number, version?: string): string | null {
+  if (!itemId) return null;
+  const v = version ?? '15.6.1';
+  return `${DDRAGON_BASE}/cdn/${v}/img/item/${itemId}.png`;
+}
+
 export function normalizeChampionId(input: string): string | null {
   const normalized = input.replace(/[^a-zA-Z]/g, '').toLowerCase();
   return normalized || null;

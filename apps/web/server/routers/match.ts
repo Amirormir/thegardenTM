@@ -107,6 +107,7 @@ export const matchRouter = createTRPCRouter({
                 visionScore: true,
                 side: true,
                 result: true,
+                items: true,
                 player: {
                   select: {
                     id: true,
@@ -405,6 +406,7 @@ export const matchRouter = createTRPCRouter({
               killParticipation: stat.killParticipation,
               damageShare: stat.damageShare,
               goldShare: stat.goldShare,
+              items: stat.items,
             };
           });
 

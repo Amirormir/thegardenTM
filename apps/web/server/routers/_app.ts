@@ -1,6 +1,7 @@
 import { createTRPCRouter } from '@/server/trpc';
 import { adminRouter } from './admin';
 import { contractRouter } from './contract';
+import { customRouter } from './custom';
 import { leagueRouter } from './league';
 import { matchRouter } from './match';
 import { notificationRouter } from './notification';
@@ -13,6 +14,7 @@ import { userRouter } from './user';
 export const appRouter = createTRPCRouter({
   admin: adminRouter,
   contract: contractRouter,
+  custom: customRouter,
   league: leagueRouter,
   match: matchRouter,
   notification: notificationRouter,

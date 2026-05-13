@@ -1,0 +1,82 @@
+export interface CustomSeasonLeaderboardEntry {
+  userId: string;
+  username: string;
+  elo: number;
+  wins: number;
+  losses: number;
+  totalGames: number;
+  lastUpdated: string;
+}
+
+export const seasonOneLeaderboardSnapshot = [
+  { userId: '562972809610002434', username: 's.clem', elo: 1123, wins: 23, losses: 12, totalGames: 35, lastUpdated: '2026-05-13T12:29:34.225Z' },
+  { userId: '1329920616999944234', username: 'ahmseyy', elo: 1089, wins: 66, losses: 46, totalGames: 112, lastUpdated: '2026-05-13T12:28:31.695Z' },
+  { userId: '374853015296933890', username: 'ofi1', elo: 1083, wins: 7, losses: 5, totalGames: 12, lastUpdated: '2026-05-03T17:31:05.993Z' },
+  { userId: '594556383689703454', username: 'armttack', elo: 1080, wins: 22, losses: 13, totalGames: 35, lastUpdated: '2026-05-11T16:46:47.285Z' },
+  { userId: '285367800464146432', username: 'frozenlaloli', elo: 1068, wins: 25, losses: 14, totalGames: 39, lastUpdated: '2026-05-13T12:28:49.240Z' },
+  { userId: '313032938184769536', username: 'thaliawrt', elo: 1061, wins: 4, losses: 2, totalGames: 6, lastUpdated: '2026-05-03T18:20:52.915Z' },
+  { userId: '782558028305006653', username: '.shiqe', elo: 1058, wins: 6, losses: 0, totalGames: 6, lastUpdated: '2026-05-12T20:31:57.556Z' },
+  { userId: '277825453580877824', username: 'sssssss', elo: 1057, wins: 61, losses: 43, totalGames: 104, lastUpdated: '2026-05-11T19:57:44.395Z' },
+  { userId: '475020567666229269', username: 'raiikoz', elo: 1053, wins: 4, losses: 2, totalGames: 6, lastUpdated: '2026-05-02T19:24:10.704Z' },
+  { userId: '324201004176375808', username: 'tonmeilleurami', elo: 1047, wins: 45, losses: 44, totalGames: 89, lastUpdated: '2026-05-13T12:30:18.901Z' },
+  { userId: '734100391846871142', username: 'voluspa.', elo: 1042, wins: 20, losses: 22, totalGames: 42, lastUpdated: '2026-05-11T19:57:44.421Z' },
+  { userId: '493515176507867137', username: 'semktr', elo: 1041, wins: 52, losses: 52, totalGames: 104, lastUpdated: '2026-05-04T01:07:11.605Z' },
+  { userId: '212480426550231040', username: 'luxasproduction', elo: 1041, wins: 31, losses: 24, totalGames: 55, lastUpdated: '2026-05-04T01:07:11.668Z' },
+  { userId: '290262546659934208', username: 'idirsiuuu', elo: 1040, wins: 2, losses: 0, totalGames: 2, lastUpdated: '2026-04-12T20:31:47.023Z' },
+  { userId: '692718824411365387', username: '04brawly', elo: 1039, wins: 9, losses: 6, totalGames: 15, lastUpdated: '2026-05-04T01:07:11.554Z' },
+  { userId: '780426943504973835', username: '.orioz', elo: 1039, wins: 2, losses: 0, totalGames: 2, lastUpdated: '2026-04-13T22:21:32.450Z' },
+  { userId: '700037350788431963', username: 'alby_40', elo: 1035, wins: 39, losses: 39, totalGames: 78, lastUpdated: '2026-05-12T20:31:57.582Z' },
+  { userId: '453274321578754050', username: 'zinee.', elo: 1033, wins: 2, losses: 1, totalGames: 3, lastUpdated: '2026-04-21T23:42:45.815Z' },
+  { userId: '308322583781310466', username: 'crista.', elo: 1032, wins: 10, losses: 11, totalGames: 21, lastUpdated: '2026-05-13T12:27:31.494Z' },
+  { userId: '216761565012164608', username: 'michmich952', elo: 1024, wins: 4, losses: 2, totalGames: 6, lastUpdated: '2026-05-01T00:49:07.962Z' },
+  { userId: '1077286549672165426', username: 'vxfaast', elo: 1024, wins: 4, losses: 2, totalGames: 6, lastUpdated: '2026-05-12T19:37:23.519Z' },
+  { userId: '506284368243851286', username: '_skys_.', elo: 1022, wins: 4, losses: 2, totalGames: 6, lastUpdated: '2026-04-21T23:48:57.731Z' },
+  { userId: '166609660089073664', username: 'justbatcat', elo: 1022, wins: 1, losses: 0, totalGames: 1, lastUpdated: '2026-04-15T20:49:23.642Z' },
+  { userId: '415504058854539264', username: '_stevennnn', elo: 1021, wins: 4, losses: 3, totalGames: 7, lastUpdated: '2026-05-12T20:31:57.635Z' },
+  { userId: '285146725512118273', username: 'neaylis', elo: 1017, wins: 9, losses: 6, totalGames: 15, lastUpdated: '2026-05-13T12:27:13.395Z' },
+  { userId: '1299627049736212561', username: 'promised.nebula', elo: 1015, wins: 17, losses: 17, totalGames: 34, lastUpdated: '2026-05-11T16:46:47.265Z' },
+  { userId: '1170381430677844062', username: 'winter.exee', elo: 1014, wins: 50, losses: 44, totalGames: 94, lastUpdated: '2026-05-13T12:29:12.055Z' },
+  { userId: '1100103645229482065', username: 'dvalin1662', elo: 1007, wins: 6, losses: 6, totalGames: 12, lastUpdated: '2026-05-12T20:31:57.614Z' },
+  { userId: '1283531554764619883', username: 'dekoratio__', elo: 1005, wins: 2, losses: 3, totalGames: 5, lastUpdated: '2026-04-30T18:27:37.463Z' },
+  { userId: '328198890824138752', username: 'sofarsofakee_', elo: 1003, wins: 7, losses: 6, totalGames: 13, lastUpdated: '2026-04-14T23:16:09.567Z' },
+  { userId: '756559741177823303', username: 'deeplovers', elo: 1003, wins: 2, losses: 2, totalGames: 4, lastUpdated: '2026-05-02T16:55:39.112Z' },
+  { userId: '127134194009636864', username: 'poche', elo: 1001, wins: 1, losses: 1, totalGames: 2, lastUpdated: '2026-04-13T22:21:32.472Z' },
+  { userId: '417333850516226058', username: 'sprako_', elo: 1000, wins: 29, losses: 33, totalGames: 62, lastUpdated: '2026-05-13T12:26:26.681Z' },
+  { userId: '231784659426607104', username: 'grimmston', elo: 999, wins: 1, losses: 1, totalGames: 2, lastUpdated: '2026-04-12T01:43:06.983Z' },
+  { userId: '623078065198596126', username: 'alone555', elo: 998, wins: 2, losses: 4, totalGames: 6, lastUpdated: '2026-05-02T22:28:43.464Z' },
+  { userId: '306316295182352395', username: 'hamtarojr', elo: 996, wins: 3, losses: 5, totalGames: 8, lastUpdated: '2026-05-13T12:27:53.956Z' },
+  { userId: '383301657464799232', username: 'shuralt', elo: 991, wins: 4, losses: 9, totalGames: 13, lastUpdated: '2026-05-04T01:07:11.576Z' },
+  { userId: '682734330233094206', username: 'ayumii__.', elo: 988, wins: 2, losses: 4, totalGames: 6, lastUpdated: '2026-05-01T00:49:08.050Z' },
+  { userId: '984121395514601532', username: 'yoriouuuu', elo: 987, wins: 2, losses: 4, totalGames: 6, lastUpdated: '2026-04-23T23:58:43.300Z' },
+  { userId: '216912145135173633', username: 'sheeeeps', elo: 983, wins: 0, losses: 2, totalGames: 2, lastUpdated: '2026-04-26T19:34:54.230Z' },
+  { userId: '346690752190873611', username: 'valdragon', elo: 982, wins: 12, losses: 18, totalGames: 30, lastUpdated: '2026-05-03T17:31:06.013Z' },
+  { userId: '900763502904500254', username: 'akizilla', elo: 982, wins: 0, losses: 2, totalGames: 2, lastUpdated: '2026-04-23T23:58:43.387Z' },
+  { userId: '410894634139516931', username: 'otpxerath', elo: 982, wins: 0, losses: 2, totalGames: 2, lastUpdated: '2026-05-04T01:07:11.689Z' },
+  { userId: '701199904646889512', username: 'peyrou.', elo: 982, wins: 0, losses: 2, totalGames: 2, lastUpdated: '2026-05-04T01:07:11.650Z' },
+  { userId: '564204516761927700', username: 'yunogasai_irl', elo: 982, wins: 0, losses: 2, totalGames: 2, lastUpdated: '2026-04-23T22:18:11.018Z' },
+  { userId: '202367103943049217', username: 'hayasakakanefan', elo: 981, wins: 0, losses: 2, totalGames: 2, lastUpdated: '2026-05-12T18:53:52.272Z' },
+  { userId: '437343314828591114', username: 'missfoufolle', elo: 981, wins: 0, losses: 2, totalGames: 2, lastUpdated: '2026-05-12T20:31:57.736Z' },
+  { userId: '619579478259138561', username: 'wouaz', elo: 981, wins: 0, losses: 2, totalGames: 2, lastUpdated: '2026-05-12T20:31:57.758Z' },
+  { userId: '700466241265205368', username: 'pea.chette', elo: 980, wins: 8, losses: 13, totalGames: 21, lastUpdated: '2026-05-01T23:01:14.242Z' },
+  { userId: '209073130805657601', username: 'hilkary', elo: 970, wins: 2, losses: 6, totalGames: 8, lastUpdated: '2026-05-02T15:55:58.474Z' },
+  { userId: '688452165190418506', username: 'stephane103_', elo: 968, wins: 1, losses: 2, totalGames: 3, lastUpdated: '2026-04-21T23:49:46.129Z' },
+  { userId: '389099495146782723', username: 'velkozlovers', elo: 963, wins: 1, losses: 4, totalGames: 5, lastUpdated: '2026-05-11T19:09:54.483Z' },
+  { userId: '331551632405954561', username: 'mugiyuno', elo: 962, wins: 0, losses: 4, totalGames: 4, lastUpdated: '2026-04-30T21:14:23.816Z' },
+  { userId: '379746190922612737', username: 'yawa_ban', elo: 962, wins: 0, losses: 2, totalGames: 2, lastUpdated: '2026-04-13T22:21:32.307Z' },
+  { userId: '270256430320189440', username: 'uwudiabolofraise', elo: 960, wins: 5, losses: 12, totalGames: 17, lastUpdated: '2026-05-01T19:05:01.495Z' },
+  { userId: '387270690195111950', username: 'swaugue', elo: 954, wins: 31, losses: 39, totalGames: 70, lastUpdated: '2026-05-13T12:29:19.408Z' },
+  { userId: '202055611779776512', username: 'xenogun', elo: 946, wins: 2, losses: 6, totalGames: 8, lastUpdated: '2026-04-25T20:42:16.157Z' },
+  { userId: '302052235607539712', username: 'sopot', elo: 942, wins: 8, losses: 19, totalGames: 27, lastUpdated: '2026-05-04T00:07:36.936Z' },
+  { userId: '812069447346814976', username: 'spiwaa_', elo: 938, wins: 2, losses: 10, totalGames: 12, lastUpdated: '2026-05-04T00:07:36.917Z' },
+  { userId: '902655676352987187', username: 'robn_bretn', elo: 935, wins: 0, losses: 6, totalGames: 6, lastUpdated: '2026-05-12T19:37:23.558Z' },
+  { userId: '329275937235533824', username: 'atemlos', elo: 912, wins: 4, losses: 9, totalGames: 13, lastUpdated: '2026-05-11T19:09:54.575Z' },
+] satisfies CustomSeasonLeaderboardEntry[];
+
+export const seasonOneLeaderboardSnapshotMeta = {
+  capturedAt: '2026-05-13T12:55:18.730Z',
+  source: 'MongoDB test.playerstats',
+  totalPlayers: 61,
+  totalGames: 1316,
+  highestElo: 1123,
+  freshestUpdate: '2026-05-13T12:30:18.901Z',
+} as const;

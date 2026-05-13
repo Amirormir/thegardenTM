@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChampionIcon } from '@/components/ui/champion-icon';
 import { Input } from '@/components/ui/input';
+import { ItemRow } from '@/components/ui/item-icon';
 import { Select } from '@/components/ui/select';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
@@ -334,6 +335,7 @@ export function AdminMatchesManager() {
               killParticipation: replayPlayer.enriched.kill_participation,
               damageShare: replayPlayer.enriched.damage_share,
               goldShare: replayPlayer.enriched.gold_share,
+              items: replayPlayer.items,
             };
           });
         }
@@ -371,6 +373,7 @@ export function AdminMatchesManager() {
             killParticipation: s.killParticipation,
             damageShare: s.damageShare,
             goldShare: s.goldShare,
+            items: s.items,
           })),
         };
       });
@@ -842,18 +845,21 @@ function ImportedSideBlock({
                 </Select>
               </div>
 
-              <div className="flex flex-1 flex-wrap items-center gap-x-5 gap-y-1 label-mono tabular-nums">
-                <span>
-                  {player.prisma.kills}/{player.prisma.deaths}/{player.prisma.assists}
-                </span>
-                <span>CS {player.prisma.cs}</span>
-                <span>CS/m {enriched.cs_per_min.toFixed(1)}</span>
-                <span>GPM {Math.round(enriched.gold_per_min)}</span>
-                <span>DPM {Math.round(enriched.damage_per_min)}</span>
-                <span>KDA {enriched.kda.toFixed(2)}</span>
-                <span>KP {(enriched.kill_participation * 100).toFixed(0)}%</span>
-                <span>DS {(enriched.damage_share * 100).toFixed(0)}%</span>
-                <span>GS {(enriched.gold_share * 100).toFixed(0)}%</span>
+              <div className="flex flex-1 flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 label-mono tabular-nums">
+                  <span>
+                    {player.prisma.kills}/{player.prisma.deaths}/{player.prisma.assists}
+                  </span>
+                  <span>CS {player.prisma.cs}</span>
+                  <span>CS/m {enriched.cs_per_min.toFixed(1)}</span>
+                  <span>GPM {Math.round(enriched.gold_per_min)}</span>
+                  <span>DPM {Math.round(enriched.damage_per_min)}</span>
+                  <span>KDA {enriched.kda.toFixed(2)}</span>
+                  <span>KP {(enriched.kill_participation * 100).toFixed(0)}%</span>
+                  <span>DS {(enriched.damage_share * 100).toFixed(0)}%</span>
+                  <span>GS {(enriched.gold_share * 100).toFixed(0)}%</span>
+                </div>
+                <ItemRow items={player.items} size="sm" />
               </div>
             </div>
           );

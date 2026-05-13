@@ -241,6 +241,7 @@ model PlayerMatchStats {
   killParticipation Float       @default(0)
   damageShare       Float       @default(0)
   goldShare         Float       @default(0)
+  items             Int[]       @default([])
   player            Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
   matchGame         MatchGame   @relation(fields: [matchGameId], references: [id], onDelete: Cascade)
   team              Team        @relation(fields: [teamId], references: [id], onDelete: Restrict)

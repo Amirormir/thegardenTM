@@ -13,6 +13,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useState } from 'react';
+import { GardenLogo } from '@/components/ui/garden-logo';
 import { cn } from '@/lib/utils/cn';
 
 const items = [
@@ -43,9 +44,9 @@ export function Sidebar() {
         )}
       >
         {!collapsed ? (
-          <div className="flex flex-col">
-            <p className="font-display text-xl tracking-tight text-foreground">Nexus</p>
-            <p className="label-mono text-foreground-muted">Admin · Operations</p>
+          <div className="flex flex-col gap-2">
+            <GardenLogo imageClassName="h-10 w-10" />
+            <p className="label-mono text-foreground-muted">Admin Operations</p>
           </div>
         ) : null}
         <button
@@ -81,9 +82,7 @@ export function Sidebar() {
                   active ? 'text-accent' : 'text-foreground-muted group-hover:text-foreground-dim',
                 )}
               />
-              {!collapsed ? (
-                <span className="text-sm tracking-tight">{label}</span>
-              ) : null}
+              {!collapsed ? <span className="text-sm tracking-tight">{label}</span> : null}
             </Link>
           );
         })}

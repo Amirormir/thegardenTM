@@ -47,6 +47,7 @@ const recordedPlayerStatSchema = z.object({
   killParticipation: z.number().min(0).max(1),
   damageShare: z.number().min(0).max(1),
   goldShare: z.number().min(0).max(1),
+  items: z.array(z.number().int().nonnegative()).length(7),
 });
 
 const recordedGameSchema = z

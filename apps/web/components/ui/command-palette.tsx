@@ -127,6 +127,14 @@ export function CommandPalette() {
         section: 'Navigation',
         keywords: ['standings', 'matches', 'schedule', 'classement'],
       },
+      {
+        id: 'custom',
+        label: 'Custom',
+        description: 'Archive custom et saisons dediees',
+        href: '/custom',
+        section: 'Navigation',
+        keywords: ['custom', 'leaderboard', 'elo', 'discord'],
+      },
     ];
 
     if (session?.user?.teamId) {

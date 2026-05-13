@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { ChampionIcon } from '@/components/ui/champion-icon';
+import { ItemRow } from '@/components/ui/item-icon';
 import {
   Table,
   TableBody,
@@ -228,6 +229,7 @@ export default async function MatchDetailPage({
                           <TableRow>
                             <TableHead>Joueur</TableHead>
                             <TableHead>Champion</TableHead>
+                            <TableHead>Items</TableHead>
                             <TableHead>K / D / A</TableHead>
                             <TableHead>CS</TableHead>
                             <TableHead>Gold</TableHead>
@@ -255,6 +257,9 @@ export default async function MatchDetailPage({
                                   <ChampionIcon championId={stat.champion} size="sm" />
                                   {stat.champion}
                                 </span>
+                              </TableCell>
+                              <TableCell>
+                                <ItemRow items={stat.items} size="sm" />
                               </TableCell>
                               <TableCell className="tabular-nums">
                                 {stat.kills} / {stat.deaths} / {stat.assists}

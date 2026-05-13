@@ -25,14 +25,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Nexus League',
+  title: 'Garden',
   description:
-    'Magazine éditorial dédié à la ligue amateur League of Legends : classements, profils joueurs, transferts et résultats.',
+    'Garden : ligue amateur League of Legends, customs, profils joueurs et resultats.',
   metadataBase: new URL('http://localhost:3004'),
   openGraph: {
-    title: 'Nexus League',
-    description:
-      'Magazine éditorial : transfermarket, gestion d’équipe, classements et statistiques.',
+    title: 'Garden',
+    description: 'Garden : transfermarket, customs, gestion d equipe, classements et statistiques.',
     images: ['/og.svg'],
     type: 'website',
   },

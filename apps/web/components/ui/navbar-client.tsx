@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
-import { Diamond, Menu, Search, UserRound, X } from 'lucide-react';
+import { Menu, Search, UserRound, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { GardenLogo } from './garden-logo';
 import { NotificationBell } from './notification-bell';
 import { cn } from '@/lib/utils/cn';
 
@@ -62,6 +63,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
     } else {
       document.body.style.overflow = '';
     }
+
     return () => {
       document.body.style.overflow = '';
     };
@@ -81,7 +83,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
       }
     : user;
 
-  const userName = currentUser?.name ?? 'Invité';
+  const userName = currentUser?.name ?? 'Invite';
   const userRole = currentUser?.role ?? 'USER';
   const showAvatar = Boolean(currentUser?.image) && !avatarLoadFailed;
 
@@ -90,11 +92,12 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
       { href: '/', label: 'Accueil' },
       { href: '/league', label: 'Classements' },
       { href: '/league/matches', label: 'Matchs' },
-      { href: '/transfermarket', label: 'Marché' },
+      { href: '/custom', label: 'Custom' },
+      { href: '/transfermarket', label: 'Marche' },
     ];
 
     if (currentUser?.teamId) {
-      items.push({ href: '/team', label: 'Équipe' });
+      items.push({ href: '/team', label: 'Equipe' });
     }
 
     return items;
@@ -104,6 +107,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
     if (!pathname) {
       return '/api/auth/signin';
     }
+
     const params = new URLSearchParams({ callbackUrl: pathname });
     return `/api/auth/signin?${params.toString()}`;
   }, [pathname]);
@@ -111,11 +115,10 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
   return (
     <header className="sticky top-0 z-40 hairline-b bg-background">
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-6 px-6 py-4 md:px-10">
-        {/* Brand */}
         <Link href="/" className="flex items-center gap-3">
-          <Diamond className="h-3.5 w-3.5 text-accent" strokeWidth={2.5} />
+          <GardenLogo showLabel={false} imageClassName="h-10 w-10" />
           <div className="flex items-center gap-3">
-            <span className="label-mono-strong text-foreground">Nexus · League</span>
+            <span className="label-mono-strong text-foreground">Garden</span>
             {seasonLabel ? (
               <span className="hidden h-3 w-px bg-hairline md:block" aria-hidden />
             ) : null}
@@ -125,7 +128,6 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
           </div>
         </Link>
 
-        {/* Center nav */}
         <nav className="hidden flex-1 items-center justify-center gap-6 lg:flex">
           {navItems.map((item) => {
             const active = isNavItemActive(pathname, item.href);
@@ -135,21 +137,16 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
                 href={item.href}
                 className={cn(
                   'relative pb-1 text-sm transition-colors duration-150',
-                  active
-                    ? 'text-foreground'
-                    : 'text-foreground-dim hover:text-foreground',
+                  active ? 'text-foreground' : 'text-foreground-dim hover:text-foreground',
                 )}
               >
                 {item.label}
-                {active ? (
-                  <span className="absolute inset-x-0 -bottom-px h-px bg-accent" />
-                ) : null}
+                {active ? <span className="absolute inset-x-0 -bottom-px h-px bg-accent" /> : null}
               </Link>
             );
           })}
         </nav>
 
-        {/* Right cluster */}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -158,9 +155,9 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
             aria-label="Ouvrir la recherche"
           >
             <Search className="h-3.5 w-3.5" />
-            <span className="hidden xl:inline">Rechercher joueur, équipe…</span>
+            <span className="hidden xl:inline">Rechercher joueur, equipe...</span>
             <span className="label-mono ml-2 hidden border border-hairline px-1.5 py-0.5 md:inline">
-              ⌘ K
+              CMD K
             </span>
           </button>
 
@@ -211,12 +208,9 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
                   {currentUser.teamId ? (
                     <>
                       <UserMenuLink href="/team" onClick={() => setUserMenuOpen(false)}>
-                        Espace équipe
+                        Espace equipe
                       </UserMenuLink>
-                      <UserMenuLink
-                        href="/team/contracts"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
+                      <UserMenuLink href="/team/contracts" onClick={() => setUserMenuOpen(false)}>
                         Contrats
                       </UserMenuLink>
                     </>
@@ -231,7 +225,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
                     className="mt-1 w-full border-t border-hairline px-3 py-3 text-left text-sm text-[color:var(--loss)] transition-colors duration-150 hover:bg-surface-hover"
                     onClick={() => void signOut({ callbackUrl: '/' })}
                   >
-                    Déconnexion
+                    Deconnexion
                   </button>
                 </div>
               ) : null}
@@ -255,7 +249,6 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
         </div>
       </div>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {mobileOpen ? (
           <>
@@ -276,8 +269,8 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
             >
               <div className="flex items-center justify-between border-b border-hairline px-6 py-5">
                 <div className="flex items-center gap-3">
-                  <Diamond className="h-3.5 w-3.5 text-accent" strokeWidth={2.5} />
-                  <span className="label-mono-strong text-foreground">Nexus · League</span>
+                  <GardenLogo showLabel={false} imageClassName="h-10 w-10" />
+                  <span className="label-mono-strong text-foreground">Garden</span>
                 </div>
                 <button
                   type="button"
@@ -353,10 +346,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
                       Notifications
                     </UserMenuLink>
                     {currentUser.teamId ? (
-                      <UserMenuLink
-                        href="/team/contracts"
-                        onClick={() => setMobileOpen(false)}
-                      >
+                      <UserMenuLink href="/team/contracts" onClick={() => setMobileOpen(false)}>
                         Contrats
                       </UserMenuLink>
                     ) : null}
@@ -365,7 +355,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
                       className="mt-1 w-full px-4 py-3 text-left text-sm text-[color:var(--loss)] transition-colors duration-150 hover:bg-surface-hover"
                       onClick={() => void signOut({ callbackUrl: '/' })}
                     >
-                      Déconnexion
+                      Deconnexion
                     </button>
                   </div>
                 ) : (
