@@ -226,8 +226,8 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         ) : null}
       </header>
 
-      <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12">
-        <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-4 xl:gap-10">
+      <div className="grid gap-16 md:gap-20 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-x-12 lg:gap-y-16">
+        <section className="grid gap-8 sm:grid-cols-2 xl:grid-cols-4 xl:gap-10 lg:col-start-1">
           <KpiBlock
             label="KDA récent"
             value={recentKda}
@@ -248,9 +248,9 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
             value={formatCurrency(averageDamage)}
             helper="Dégâts moyens par game récente."
           />
-        </div>
+        </section>
 
-        <aside className="space-y-5 border-l-0 border-hairline lg:border-l lg:pl-8">
+        <aside className="space-y-5 border-t border-hairline pt-8 lg:col-start-2 lg:row-start-1 lg:row-span-6 lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0">
           <PlayerValue value={player.marketValue} delta={marketDelta} />
 
           <div className="border border-hairline bg-surface p-5">
@@ -305,9 +305,8 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
             />
           ) : null}
         </aside>
-      </section>
 
-      <section>
+      <section className="lg:col-start-1">
         <p className="label-mono">§ 01 · Trajectoire de valeur</p>
         <h2 className="mt-3 display-md text-foreground">Évolution de la cote.</h2>
         <div className="mt-6 border-t border-hairline pt-6">
@@ -315,7 +314,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         </div>
       </section>
 
-      <section>
+      <section className="lg:col-start-1">
         <p className="label-mono">§ 02 · Performances récentes</p>
         <h2 className="mt-3 display-md text-foreground">Tendances game par game.</h2>
         <div className="mt-6 border-t border-hairline pt-6">
@@ -324,7 +323,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
       </section>
 
       {player.playerTrophies.length > 0 ? (
-        <section>
+        <section className="lg:col-start-1">
           <p className="label-mono">§ 03 · Palmarès</p>
           <h2 className="mt-3 display-md text-foreground">Distinctions du joueur.</h2>
           <div className="mt-6 grid gap-px border-t border-hairline bg-hairline md:grid-cols-2 xl:grid-cols-3">
@@ -347,7 +346,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         </section>
       ) : null}
 
-      <section>
+      <section className="lg:col-start-1">
         <p className="label-mono">§ 04 · Historique contractuel</p>
         <h2 className="mt-3 display-md text-foreground">
           {contractHistory.length.toString().padStart(2, '0')} contrat
@@ -406,7 +405,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         </div>
       </section>
 
-      <section>
+      <section className="lg:col-start-1">
         <p className="label-mono">§ 05 · Dernières stats</p>
         <h2 className="mt-3 display-md text-foreground">
           {player.playerMatchStats.length.toString().padStart(2, '0')} game
@@ -466,7 +465,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         </div>
       </section>
 
-      <section>
+      <section className="lg:col-start-1">
         <p className="label-mono">§ 06 · Historique de valorisation</p>
         <h2 className="mt-3 display-md text-foreground">
           {player.marketValueHistory.length.toString().padStart(2, '0')} entrée
@@ -523,6 +522,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
           )}
         </div>
       </section>
+      </div>
     </div>
   );
 }
