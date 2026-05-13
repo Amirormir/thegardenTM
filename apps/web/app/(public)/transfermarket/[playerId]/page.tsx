@@ -157,8 +157,8 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
       <header className="border-b border-hairline pb-10">
         <p className="breadcrumb-mono">§ · Joueurs · {teamShortCode}</p>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)] lg:items-start lg:gap-10">
-          <div className="placeholder-diag h-44 w-44 shrink-0 overflow-hidden lg:h-56 lg:w-56">
+        <div className="mt-8 grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-10">
+          <div className="placeholder-diag relative aspect-[4/5] w-full max-w-[15rem] shrink-0 overflow-hidden border border-hairline bg-surface lg:max-w-[17rem]">
             {player.imageUrl ? (
               <img
                 src={player.imageUrl}
@@ -170,6 +170,13 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                 {getPlayerInitials(player.displayName)}
               </div>
             )}
+
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background via-background/55 to-transparent" />
+            <div className="pointer-events-none absolute bottom-4 left-4">
+              <span className="font-display text-4xl tracking-tight text-foreground md:text-5xl">
+                {teamShortCode}
+              </span>
+            </div>
           </div>
 
           <div className="min-w-0">
