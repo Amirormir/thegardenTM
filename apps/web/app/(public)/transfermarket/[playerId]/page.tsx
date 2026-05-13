@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MarketValueChart } from '@/components/features/charts/market-value-chart';
-import { PerformanceTrendsChart } from '@/components/features/charts/performance-trends-chart';
+import { ChampionPoolGrid } from '@/components/features/transfermarket/champion-pool-grid';
 import { RiotFetchButton } from '@/components/features/transfermarket/riot-fetch-button';
 import { TeamLeagueSnapshotCard } from '@/components/features/transfermarket/team-league-snapshot-card';
 import { FreeAgentSignButton } from '@/components/features/transfermarket/free-agent-sign-button';
@@ -86,7 +86,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
   const userTeamId = session?.user?.teamId ?? null;
   const caller = await getServerCaller();
 
-  const [player, contractHistory, standings] = await Promise.all([
+  const [player, contractHistory, standings, playerStats] = await Promise.all([
     caller.player.getById({ id: playerId }).catch((error: unknown) => {
       if (isNotFoundError(error)) {
         notFound();
@@ -96,6 +96,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
     }),
     caller.contract.getByPlayer({ playerId }),
     caller.league.getStandings(),
+    caller.stats.getPlayerStats({ playerId }),
   ]);
 
   if (!player) {
@@ -142,6 +143,8 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
   const averageCs = recentGamesCount > 0 ? Math.round(recentTotals.cs / recentGamesCount) : 0;
   const averageDamage =
     recentGamesCount > 0 ? Math.round(recentTotals.damage / recentGamesCount) : 0;
+  const championPool = playerStats.championPool;
+  const championPoolCount = championPool.length;
   const riotId = buildPlayerRiotId(player);
 
   const canOfferTransfer = Boolean(
@@ -325,10 +328,18 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
       </section>
 
       <section>
-        <p className="label-mono">§ 02 · Performances récentes</p>
-        <h2 className="mt-3 display-md text-foreground">Tendances game par game.</h2>
-        <div className="mt-6 border-t border-hairline pt-6">
-          <PerformanceTrendsChart stats={recentStats} />
+        <p className="label-mono">§ 02 · Pool de champions</p>
+        <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:items-baseline lg:justify-between">
+          <h2 className="display-md text-foreground">Pool de champions.</h2>
+          <p className="label-mono text-foreground-muted">
+            {championPoolCount.toString().padStart(2, '0')} champion
+            {championPoolCount > 1 ? 's' : ''} joué{championPoolCount > 1 ? 's' : ''} ·{' '}
+            {playerStats.summary.games} game{playerStats.summary.games > 1 ? 's' : ''} stockée
+            {playerStats.summary.games > 1 ? 's' : ''}
+          </p>
+        </div>
+        <div className="mt-6">
+          <ChampionPoolGrid champions={championPool} />
         </div>
       </section>
 

@@ -74,6 +74,56 @@ export const statsRouter = createTRPCRouter({
     );
 
     const divisor = games || 1;
+    const championMap = stats.reduce(
+      (accumulator, stat) => {
+        const current = accumulator.get(stat.champion) ?? {
+          champion: stat.champion,
+          games: 0,
+          wins: 0,
+          kills: 0,
+          deaths: 0,
+          assists: 0,
+          damage: 0,
+        };
+
+        current.games += 1;
+        current.wins += stat.result === 'WIN' ? 1 : 0;
+        current.kills += stat.kills;
+        current.deaths += stat.deaths;
+        current.assists += stat.assists;
+        current.damage += stat.damage;
+        accumulator.set(stat.champion, current);
+        return accumulator;
+      },
+      new Map<
+        string,
+        {
+          champion: string;
+          games: number;
+          wins: number;
+          kills: number;
+          deaths: number;
+          assists: number;
+          damage: number;
+        }
+      >(),
+    );
+    const championPool = [...championMap.values()]
+      .map((entry) => ({
+        champion: entry.champion,
+        games: entry.games,
+        wins: entry.wins,
+        winRate: entry.games > 0 ? entry.wins / entry.games : 0,
+        kda: (entry.kills + entry.assists) / Math.max(entry.deaths, 1),
+        avgDamage: entry.damage / Math.max(entry.games, 1),
+        poolShare: games > 0 ? entry.games / games : 0,
+        damageShare: totals.damage > 0 ? entry.damage / totals.damage : 0,
+      }))
+      .sort((left, right) => {
+        if (right.games !== left.games) return right.games - left.games;
+        if (right.winRate !== left.winRate) return right.winRate - left.winRate;
+        return left.champion.localeCompare(right.champion);
+      });
 
     return {
       player: {
@@ -91,6 +141,7 @@ export const statsRouter = createTRPCRouter({
         avgDamage: totals.damage / divisor,
         avgVisionScore: totals.visionScore / divisor,
       },
+      championPool,
       recentGames: stats.slice(0, 10),
     };
   }),
