@@ -2,6 +2,7 @@ import type { PlayerListItem } from '@nexus/types';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { PlayerLink } from '@/components/ui/player-link';
+import { TeamInline } from '@/components/ui/team-inline';
 import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCurrency } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
@@ -59,9 +60,17 @@ export function PlayerCard({ player }: PlayerCardProps) {
           <p className="mt-1 truncate label-mono" title={riotId}>
             {riotId}
           </p>
-          <p className="mt-2 truncate text-sm text-foreground-dim" title={player.teamName}>
-            {player.teamName}
-          </p>
+          <div className="mt-2" title={player.teamName}>
+            <TeamInline
+              name={player.teamName}
+              shortCode={player.teamShortCode ?? 'FA'}
+              logoUrl={player.teamLogoUrl}
+              size="xs"
+              className="max-w-full"
+              text={`${player.teamShortCode ?? 'FA'} · ${player.teamName}`}
+              textClassName="text-sm text-foreground-dim"
+            />
+          </div>
         </div>
       </div>
 

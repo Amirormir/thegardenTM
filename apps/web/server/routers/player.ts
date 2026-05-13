@@ -325,12 +325,14 @@ export const playerRouter = createTRPCRouter({
                       select: {
                         name: true,
                         shortCode: true,
+                        logoUrl: true,
                       },
                     },
                     awayTeam: {
                       select: {
                         name: true,
                         shortCode: true,
+                        logoUrl: true,
                       },
                     },
                   },
@@ -358,6 +360,7 @@ export const playerRouter = createTRPCRouter({
                 id: true,
                 name: true,
                 shortCode: true,
+                logoUrl: true,
               },
             },
           },

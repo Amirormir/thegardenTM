@@ -51,6 +51,7 @@ export const contractRouter = createTRPCRouter({
             id: true,
             name: true,
             shortCode: true,
+            logoUrl: true,
           },
         },
       },

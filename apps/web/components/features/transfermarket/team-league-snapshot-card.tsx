@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
+import { TeamAvatar } from '@/components/ui/team-avatar';
 import { useTeamTint } from '@/components/ui/team-tint';
 
 interface TeamLeagueSnapshotCardProps {
@@ -34,12 +35,6 @@ export function TeamLeagueSnapshotCard({
     borderLeftColor: `rgb(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b})`,
   };
 
-  const monogramStyle: CSSProperties = {
-    backgroundColor: `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, 0.18)`,
-    color: `rgb(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b})`,
-    borderColor: `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, 0.4)`,
-  };
-
   return (
     <Link
       href={`/league/teams/${team.slug}`}
@@ -51,13 +46,12 @@ export function TeamLeagueSnapshotCard({
       <div className="px-5 py-5 space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span
-              className="inline-flex h-10 w-10 items-center justify-center border text-xs font-mono font-medium tracking-[0.08em] uppercase"
-              style={monogramStyle}
-              aria-hidden="true"
-            >
-              {team.shortCode.slice(0, 3)}
-            </span>
+            <TeamAvatar
+              name={team.name}
+              shortCode={team.shortCode}
+              logoUrl={team.logoUrl}
+              size="md"
+            />
             <div className="min-w-0">
               <p className="truncate font-display text-xl text-foreground">{team.name}</p>
               <p className="mt-1 label-mono">{team.shortCode}</p>

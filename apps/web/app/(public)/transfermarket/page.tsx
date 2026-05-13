@@ -4,6 +4,7 @@ import { PlayerCard } from '@/components/features/transfermarket/player-card';
 import { TeamMarketValueRanking } from '@/components/features/transfermarket/team-market-value-ranking';
 import { TopPlayersShowcase } from '@/components/features/transfermarket/top-players-showcase';
 import { PlayerLink } from '@/components/ui/player-link';
+import { TeamInline } from '@/components/ui/team-inline';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format';
 import { getServerCaller } from '@/server/caller';
@@ -202,7 +203,15 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
               }
               helper={
                 highestValuePlayer
-                  ? `${highestValuePlayer.teamName} · ${formatCurrency(highestValuePlayer.marketValue)}`
+                  ? (
+                      <TeamInline
+                        name={highestValuePlayer.teamName}
+                        shortCode={highestValuePlayer.teamShortCode}
+                        logoUrl={highestValuePlayer.teamLogoUrl}
+                        size="xs"
+                        text={`${highestValuePlayer.teamShortCode} · ${formatCurrency(highestValuePlayer.marketValue)}`}
+                      />
+                    )
                   : 'Aucun joueur disponible.'
               }
             />
@@ -224,7 +233,15 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
               value={topTeam?.name ?? 'N/A'}
               helper={
                 topTeam
-                  ? `${topTeam.shortCode} · ${formatCurrency(topTeam.totalMarketValue)}`
+                  ? (
+                      <TeamInline
+                        name={topTeam.name}
+                        shortCode={topTeam.shortCode}
+                        logoUrl={topTeam.logoUrl}
+                        size="xs"
+                        text={`${topTeam.shortCode} · ${formatCurrency(topTeam.totalMarketValue)}`}
+                      />
+                    )
                   : 'Aucune équipe disponible.'
               }
             />

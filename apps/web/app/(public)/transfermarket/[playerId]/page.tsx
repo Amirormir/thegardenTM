@@ -8,6 +8,7 @@ import { FreeAgentSignButton } from '@/components/features/transfermarket/free-a
 import { TransferOfferButton } from '@/components/features/transfermarket/transfer-offer-button';
 import { Badge } from '@/components/ui/badge';
 import { PlayerValue } from '@/components/ui/player-value';
+import { TeamInline } from '@/components/ui/team-inline';
 import {
   Table,
   TableBody,
@@ -183,9 +184,18 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
 
             <h1 className="mt-4 display-xl text-foreground">{player.displayName}</h1>
 
-            <p className="mt-5 label-mono">
-              {teamName} · {teamShortCode} · {riotId}
-            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-2 label-mono text-foreground-dim">
+              <TeamInline
+                name={teamName}
+                shortCode={teamShortCode}
+                logoUrl={player.team?.logoUrl ?? null}
+                size="xs"
+                text={`${teamName} · ${teamShortCode}`}
+                textClassName="text-foreground-dim"
+              />
+              <span>·</span>
+              <span>{riotId}</span>
+            </div>
 
             <p className="mt-6 max-w-2xl text-base leading-7 text-foreground-dim">
               Profil public alimente par Prisma via tRPC avec historique contractuel,
@@ -338,8 +348,19 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                 <p className="mt-3 text-sm leading-6 text-foreground-dim">
                   {trophy.description ?? 'Distinction officielle enregistrée dans Garden.'}
                 </p>
-                <div className="mt-auto pt-6 border-t border-hairline flex flex-wrap items-center justify-between gap-3 label-mono">
-                  <span>{trophy.team ? `${trophy.team.shortCode}` : 'Individuel'}</span>
+                <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-6 label-mono">
+                  {trophy.team ? (
+                    <TeamInline
+                      name={trophy.team.name}
+                      shortCode={trophy.team.shortCode}
+                      logoUrl={trophy.team.logoUrl ?? null}
+                      size="xs"
+                      text={trophy.team.shortCode}
+                      textClassName="label-mono"
+                    />
+                  ) : (
+                    <span>Individuel</span>
+                  )}
                   <span className="tabular-nums">{formatCompactDate(trophy.awardedAt)}</span>
                 </div>
               </article>
@@ -371,8 +392,17 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                 {contractHistory.map((contract) => (
                   <TableRow key={contract.id}>
                     <TableCell className="font-display text-foreground">
-                      {contract.team.name}{' '}
-                      <span className="label-mono ml-1">{contract.team.shortCode}</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>{contract.team.name}</span>
+                        <TeamInline
+                          name={contract.team.name}
+                          shortCode={contract.team.shortCode}
+                          logoUrl={contract.team.logoUrl ?? null}
+                          size="xs"
+                          text={contract.team.shortCode}
+                          textClassName="label-mono"
+                        />
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -431,9 +461,24 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                 {player.playerMatchStats.map((stat) => (
                   <TableRow key={stat.id}>
                     <TableCell>
-                      <div className="font-display text-foreground">
-                        {stat.matchGame.match.homeTeam.shortCode} ·{' '}
-                        {stat.matchGame.match.awayTeam.shortCode}
+                      <div className="flex flex-wrap items-center gap-2 font-display text-foreground">
+                        <TeamInline
+                          name={stat.matchGame.match.homeTeam.name}
+                          shortCode={stat.matchGame.match.homeTeam.shortCode}
+                          logoUrl={stat.matchGame.match.homeTeam.logoUrl ?? null}
+                          size="xs"
+                          text={stat.matchGame.match.homeTeam.shortCode}
+                          textClassName="label-mono text-foreground"
+                        />
+                        <span className="text-foreground-muted">·</span>
+                        <TeamInline
+                          name={stat.matchGame.match.awayTeam.name}
+                          shortCode={stat.matchGame.match.awayTeam.shortCode}
+                          logoUrl={stat.matchGame.match.awayTeam.logoUrl ?? null}
+                          size="xs"
+                          text={stat.matchGame.match.awayTeam.shortCode}
+                          textClassName="label-mono text-foreground"
+                        />
                       </div>
                       <div className="mt-1 label-mono tabular-nums">
                         Game {stat.matchGame.gameNumber} ·{' '}

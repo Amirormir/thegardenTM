@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import type { CSSProperties } from 'react';
 import type { TeamStanding } from '@nexus/types';
-import { useTeamTint } from '@/components/ui/team-tint';
+import { TeamAvatar } from '@/components/ui/team-avatar';
 import { cn } from '@/lib/utils/cn';
 
 function FormDots({ form }: { form: ('W' | 'L')[] }) {
@@ -31,14 +30,6 @@ interface StandingRowProps {
 }
 
 function StandingRow({ team, rank, isLeader, form }: StandingRowProps) {
-  const { dominantColor } = useTeamTint(team.logoUrl);
-
-  const monogramStyle: CSSProperties = {
-    backgroundColor: `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, 0.18)`,
-    color: `rgb(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b})`,
-    borderColor: `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, 0.4)`,
-  };
-
   return (
     <Link
       href={`/league/teams/${team.slug}`}
@@ -62,13 +53,13 @@ function StandingRow({ team, rank, isLeader, form }: StandingRowProps) {
           {rank.toString().padStart(2, '0')}
         </span>
 
-        <span
-          className="inline-flex h-9 w-9 items-center justify-center border text-[0.6875rem] font-mono font-medium tracking-[0.08em] uppercase md:h-11 md:w-11 md:text-xs"
-          style={monogramStyle}
-          aria-hidden="true"
-        >
-          {team.shortCode.slice(0, 3)}
-        </span>
+        <TeamAvatar
+          name={team.name}
+          shortCode={team.shortCode}
+          logoUrl={team.logoUrl}
+          size="md"
+          className="md:h-11 md:w-11"
+        />
 
         <div className="min-w-0">
           <p

@@ -1,6 +1,7 @@
 import type { PlayerListItem } from '@nexus/types';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { TeamInline } from '@/components/ui/team-inline';
 import { getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCurrency } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
@@ -65,9 +66,18 @@ export function TopPlayersShowcase({ players }: TopPlayersShowcaseProps) {
                 >
                   {player.displayName}
                 </p>
-                <p className="mt-1 truncate label-mono">
-                  {player.teamShortCode ?? 'FA'} · {player.role}
-                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-2 label-mono text-foreground-dim">
+                  <TeamInline
+                    name={player.teamName}
+                    shortCode={player.teamShortCode ?? 'FA'}
+                    logoUrl={player.teamLogoUrl}
+                    size="xs"
+                    text={player.teamShortCode ?? 'FA'}
+                    textClassName="text-foreground-dim"
+                  />
+                  <span>·</span>
+                  <span>{player.role}</span>
+                </div>
               </div>
             </div>
 

@@ -2,8 +2,7 @@
 
 import type { TeamMarketValueEntry } from '@nexus/types';
 import Link from 'next/link';
-import type { CSSProperties } from 'react';
-import { useTeamTint } from '@/components/ui/team-tint';
+import { TeamAvatar } from '@/components/ui/team-avatar';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format';
 
@@ -17,14 +16,7 @@ interface TeamRowProps {
 }
 
 function TeamRow({ team, rank }: TeamRowProps) {
-  const { dominantColor } = useTeamTint(team.logoUrl);
   const isLeader = rank === 1;
-
-  const monogramStyle: CSSProperties = {
-    backgroundColor: `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, 0.18)`,
-    color: `rgb(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b})`,
-    borderColor: `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, 0.4)`,
-  };
 
   return (
     <Link
@@ -44,13 +36,13 @@ function TeamRow({ team, rank }: TeamRowProps) {
           {rank.toString().padStart(2, '0')}
         </span>
 
-        <span
-          className="hidden h-11 w-11 items-center justify-center border text-xs font-mono font-medium tracking-[0.08em] uppercase md:inline-flex"
-          style={monogramStyle}
-          aria-hidden="true"
-        >
-          {team.shortCode.slice(0, 3)}
-        </span>
+        <TeamAvatar
+          name={team.name}
+          shortCode={team.shortCode}
+          logoUrl={team.logoUrl}
+          size="md"
+          className="hidden md:inline-flex md:h-11 md:w-11"
+        />
 
         <div className="min-w-0">
           <p

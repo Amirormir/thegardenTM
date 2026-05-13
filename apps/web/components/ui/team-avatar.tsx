@@ -3,12 +3,13 @@ import { cn } from '@/lib/utils/cn';
 interface TeamAvatarProps {
   name: string;
   shortCode: string;
-  logoUrl?: string | null;
-  size?: 'sm' | 'md' | 'lg';
+  logoUrl?: string | null | undefined;
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
 }
 
 const sizeStyles = {
+  xs: 'h-5 w-5 text-[0.45rem]',
   sm: 'h-7 w-7 text-[0.55rem]',
   md: 'h-10 w-10 text-[0.65rem]',
   lg: 'h-14 w-14 text-xs',

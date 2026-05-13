@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowDown } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { PlayerLink } from '@/components/ui/player-link';
+import { TeamInline } from '@/components/ui/team-inline';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format';
 
@@ -21,11 +22,19 @@ interface HeroProps {
   seasonName: string | null;
   teamCount: number;
   topPlayers: HeroTopPlayer[];
-  topTeam: { name: string; points: number; shortCode: string } | null;
+  topTeam: { name: string; points: number; shortCode: string; logoUrl: string | null } | null;
   totalMarketValue: number;
 }
 
-function HeroKpi({ helper, label, value }: { helper: string; label: string; value: string }) {
+function HeroKpi({
+  helper,
+  label,
+  value,
+}: {
+  helper: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="border-t border-hairline pt-5">
       <p className="label-mono">{label}</p>
@@ -80,7 +89,17 @@ export function Hero({
             label="Équipes"
             value={teamCount.toString().padStart(2, '0')}
             helper={
-              topTeam ? `${topTeam.shortCode} mène le split.` : 'Classement en attente.'
+              topTeam ? (
+                <TeamInline
+                  name={topTeam.name}
+                  shortCode={topTeam.shortCode}
+                  logoUrl={topTeam.logoUrl}
+                  size="xs"
+                  text={`${topTeam.shortCode} mène le split.`}
+                />
+              ) : (
+                'Classement en attente.'
+              )
             }
           />
           <HeroKpi
@@ -120,9 +139,18 @@ export function Hero({
                   >
                     {player.displayName}
                   </PlayerLink>
-                  <p className="mt-1 truncate label-mono text-foreground-muted">
-                    {player.teamShortCode} · {player.role}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 label-mono text-foreground-muted">
+                    <TeamInline
+                      name={player.teamName}
+                      shortCode={player.teamShortCode}
+                      logoUrl={player.teamLogoUrl}
+                      size="xs"
+                      text={player.teamShortCode}
+                      textClassName="text-foreground-muted"
+                    />
+                    <span>·</span>
+                    <span>{player.role}</span>
+                  </div>
                 </div>
                 <p className="font-display text-xl tracking-tight text-foreground tabular-nums">
                   {formatCurrency(player.marketValue)}

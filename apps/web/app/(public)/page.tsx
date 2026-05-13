@@ -49,6 +49,7 @@ export default async function HomePage() {
   const topTeam = standings[0]
     ? {
         name: standings[0].name,
+        logoUrl: standings[0].logoUrl,
         shortCode: standings[0].shortCode,
         points: standings[0].points,
       }

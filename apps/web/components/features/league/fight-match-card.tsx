@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import type { CSSProperties } from 'react';
 import { useEffect, useState } from 'react';
-import { useTeamTint } from '@/components/ui/team-tint';
+import { TeamAvatar } from '@/components/ui/team-avatar';
 import { cn } from '@/lib/utils/cn';
 import { formatCompactDate } from '@/lib/utils/format';
 
@@ -31,14 +30,6 @@ interface SideProps {
 }
 
 function MatchSide({ team, score, isWinner, isCompleted, align }: SideProps) {
-  const { dominantColor } = useTeamTint(team.logoUrl);
-
-  const monogramStyle: CSSProperties = {
-    backgroundColor: `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, 0.18)`,
-    color: `rgb(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b})`,
-    borderColor: `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, 0.4)`,
-  };
-
   const dim = isCompleted && !isWinner;
 
   return (
@@ -48,13 +39,13 @@ function MatchSide({ team, score, isWinner, isCompleted, align }: SideProps) {
         align === 'right' && 'flex-row-reverse text-right',
       )}
     >
-      <span
-        className="inline-flex h-10 w-10 shrink-0 items-center justify-center border text-[0.6875rem] font-mono font-medium tracking-[0.08em] uppercase md:h-12 md:w-12"
-        style={monogramStyle}
-        aria-hidden="true"
-      >
-        {team.shortCode.slice(0, 3)}
-      </span>
+      <TeamAvatar
+        name={team.name}
+        shortCode={team.shortCode}
+        logoUrl={team.logoUrl}
+        size="md"
+        className="shrink-0 md:h-12 md:w-12"
+      />
 
       <div className="min-w-0 flex-1">
         <p
