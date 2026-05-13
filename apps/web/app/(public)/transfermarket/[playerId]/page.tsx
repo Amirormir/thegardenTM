@@ -306,7 +306,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
           ) : null}
         </aside>
 
-      <section className="lg:col-start-1">
+      <section>
         <p className="label-mono">§ 01 · Trajectoire de valeur</p>
         <h2 className="mt-3 display-md text-foreground">Évolution de la cote.</h2>
         <div className="mt-6 border-t border-hairline pt-6">
@@ -314,7 +314,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         </div>
       </section>
 
-      <section className="lg:col-start-1">
+      <section>
         <p className="label-mono">§ 02 · Performances récentes</p>
         <h2 className="mt-3 display-md text-foreground">Tendances game par game.</h2>
         <div className="mt-6 border-t border-hairline pt-6">
@@ -322,8 +322,10 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         </div>
       </section>
 
+      </div>
+
       {player.playerTrophies.length > 0 ? (
-        <section className="lg:col-start-1">
+        <section>
           <p className="label-mono">§ 03 · Palmarès</p>
           <h2 className="mt-3 display-md text-foreground">Distinctions du joueur.</h2>
           <div className="mt-6 grid gap-px border-t border-hairline bg-hairline md:grid-cols-2 xl:grid-cols-3">
@@ -346,7 +348,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         </section>
       ) : null}
 
-      <section className="lg:col-start-1">
+      <section>
         <p className="label-mono">§ 04 · Historique contractuel</p>
         <h2 className="mt-3 display-md text-foreground">
           {contractHistory.length.toString().padStart(2, '0')} contrat
@@ -405,7 +407,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         </div>
       </section>
 
-      <section className="lg:col-start-1">
+      <section>
         <p className="label-mono">§ 05 · Dernières stats</p>
         <h2 className="mt-3 display-md text-foreground">
           {player.playerMatchStats.length.toString().padStart(2, '0')} game
@@ -465,7 +467,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         </div>
       </section>
 
-      <section className="lg:col-start-1">
+      <section>
         <p className="label-mono">§ 06 · Historique de valorisation</p>
         <h2 className="mt-3 display-md text-foreground">
           {player.marketValueHistory.length.toString().padStart(2, '0')} entrée
@@ -522,7 +524,6 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
           )}
         </div>
       </section>
-      </div>
     </div>
   );
 }
