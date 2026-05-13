@@ -4,6 +4,11 @@ const teamSideSchema = z.enum(['BLUE', 'RED']);
 const matchResultSchema = z.enum(['WIN', 'LOSS']);
 const playerRoleSchema = z.enum(['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']);
 const roflVersionSchema = z.enum(['ROFL', 'ROFL2']);
+const itemSlotsSchema = z
+  .array(z.number().int().nonnegative())
+  .max(7)
+  .default([])
+  .transform((items) => Array.from({ length: 7 }, (_, index) => items[index] ?? 0));
 
 const prismaPlayerStatsSchema = z.object({
   champion: z.string(),
@@ -41,6 +46,7 @@ const playerStatsSchema = z.object({
   champion_display: z.string().nullable(),
   prisma: prismaPlayerStatsSchema,
   enriched: enrichedPlayerStatsSchema,
+  items: itemSlotsSchema,
   raw_damage_taken: z.number().int().nonnegative(),
   raw_self_mitigated: z.number().int().nonnegative(),
 });
