@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { PrismaPlugin } from '@prisma/nextjs-monorepo-workaround-plugin';
 
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -26,6 +27,13 @@ const nextConfig: NextConfig = {
         headers: securityHeaders,
       },
     ];
+  },
+  webpack(config, { isServer }) {
+    if (isServer) {
+      config.plugins = [...config.plugins, new PrismaPlugin()];
+    }
+
+    return config;
   },
 };
 

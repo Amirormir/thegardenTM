@@ -105,6 +105,9 @@ importers:
       '@nexus/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@prisma/nextjs-monorepo-workaround-plugin':
+        specifier: ^7.8.0
+        version: 7.8.0
       '@tailwindcss/postcss':
         specifier: 4.2.2
         version: 4.2.2
@@ -753,6 +756,9 @@ packages:
 
   '@prisma/get-platform@6.19.2':
     resolution: {integrity: sha512-PGLr06JUSTqIvztJtAzIxOwtWKtJm5WwOG6xpsgD37Rc84FpfUBGLKz65YpJBGtkRQGXTYEFie7pYALocC3MtA==}
+
+  '@prisma/nextjs-monorepo-workaround-plugin@7.8.0':
+    resolution: {integrity: sha512-9KR2LKoyh0fXjLCUQSU/QAq2XD0xlKb66iQDhaaC9eMhBaPNB02f4RHPlMtOuei2z5sxoKRx5+d8Hs0julQh2g==}
 
   '@rolldown/binding-android-arm64@1.0.0-rc.12':
     resolution: {integrity: sha512-pv1y2Fv0JybcykuiiD3qBOBdz6RteYojRFY1d+b95WVuzx211CRh+ytI/+9iVyWQ6koTh5dawe4S/yRfOFjgaA==}
@@ -3458,6 +3464,8 @@ snapshots:
   '@prisma/get-platform@6.19.2':
     dependencies:
       '@prisma/debug': 6.19.2
+
+  '@prisma/nextjs-monorepo-workaround-plugin@7.8.0': {}
 
   '@rolldown/binding-android-arm64@1.0.0-rc.12':
     optional: true
