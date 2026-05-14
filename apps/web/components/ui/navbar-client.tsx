@@ -94,6 +94,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
       { href: '/league/matches', label: 'Matchs' },
       { href: '/custom', label: 'Custom' },
       { href: '/transfermarket', label: 'Marche' },
+      { href: '/news', label: 'News' },
     ];
 
     if (currentUser?.teamId) {

@@ -28,11 +28,12 @@ export const revalidate = 60;
 
 export default async function HomePage() {
   const caller = await getServerCaller();
-  const [standings, allMatches, season, players] = await Promise.all([
+  const [standings, allMatches, season, players, featuredArticle] = await Promise.all([
     caller.league.getStandings(),
     caller.match.getAll(),
     caller.league.getCurrentSeason(),
     caller.player.getAll({ sort: 'marketValue-desc' }),
+    caller.article.getFeatured(),
   ]);
 
   const topPlayers = players.slice(0, 3);
@@ -65,6 +66,18 @@ export default async function HomePage() {
         topPlayers={topPlayers}
         topTeam={topTeam}
         totalMarketValue={totalMarketValue}
+        featuredArticle={
+          featuredArticle
+            ? {
+                slug: featuredArticle.slug,
+                title: featuredArticle.title,
+                excerpt: featuredArticle.excerpt,
+                coverImageUrl: featuredArticle.coverImageUrl,
+                authorName: featuredArticle.author.name,
+                publishedAt: featuredArticle.publishedAt,
+              }
+            : null
+        }
       />
 
       <section id="home-overview" className="scroll-mt-28">

@@ -7,6 +7,7 @@ import {
   FileText,
   LayoutDashboard,
   Menu,
+  Newspaper,
   Shield,
   Swords,
   UserCog,
@@ -24,6 +25,7 @@ const items = [
   { href: '/admin/matches', label: 'Matches', icon: Swords },
   { href: '/admin/contracts', label: 'Contracts', icon: FileText },
   { href: '/admin/league', label: 'League', icon: CalendarRange },
+  { href: '/admin/news', label: 'News', icon: Newspaper },
 ];
 
 export function Sidebar() {

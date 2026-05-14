@@ -16,6 +16,15 @@ interface HeroTopPlayer {
   teamLogoUrl: string | null;
 }
 
+export interface HeroFeaturedArticle {
+  slug: string;
+  title: string;
+  excerpt: string;
+  coverImageUrl: string | null;
+  authorName: string | null;
+  publishedAt: Date | string | null;
+}
+
 interface HeroProps {
   completedMatchCount: number;
   playerCount: number;
@@ -24,6 +33,7 @@ interface HeroProps {
   topPlayers: HeroTopPlayer[];
   topTeam: { name: string; points: number; shortCode: string; logoUrl: string | null } | null;
   totalMarketValue: number;
+  featuredArticle?: HeroFeaturedArticle | null;
 }
 
 function HeroKpi({
@@ -39,7 +49,7 @@ function HeroKpi({
     <div className="border-t border-hairline pt-5">
       <p className="label-mono">{label}</p>
       <p className="mt-3 display-md text-foreground tabular-nums">{value}</p>
-      <p className="mt-2 text-sm leading-6 text-foreground-dim">{helper}</p>
+      <div className="mt-2 text-sm leading-6 text-foreground-dim">{helper}</div>
     </div>
   );
 }
@@ -52,6 +62,7 @@ export function Hero({
   topPlayers,
   topTeam,
   totalMarketValue,
+  featuredArticle = null,
 }: HeroProps) {
   return (
     <section className="grid gap-12 border-b border-hairline pb-14 lg:grid-cols-[1.2fr_0.8fr] lg:gap-16">
@@ -61,20 +72,59 @@ export function Hero({
           {topTeam ? ` / ${topTeam.shortCode} en tête` : ''}
         </p>
 
-        <h1 className="mt-6 display-xl text-foreground">
-          La ligue et le marché,<br />
-          racontés à hauteur d&apos;équipe.
-        </h1>
+        {featuredArticle ? (
+          <Link
+            href={`/news/${featuredArticle.slug}`}
+            className="group mt-6 block"
+            aria-label={`Lire l'article: ${featuredArticle.title}`}
+          >
+            {featuredArticle.coverImageUrl ? (
+              <div className="relative aspect-[16/9] w-full overflow-hidden border border-hairline bg-surface">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={featuredArticle.coverImageUrl}
+                  alt={featuredArticle.title}
+                  loading="eager"
+                  decoding="async"
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                />
+              </div>
+            ) : null}
+            <p className="mt-6 label-mono text-foreground-muted">À la une</p>
+            <h1 className="mt-3 display-xl text-foreground transition-colors duration-150 group-hover:text-accent">
+              {featuredArticle.title}
+            </h1>
+            <p className="mt-5 max-w-xl text-base leading-7 text-foreground-dim md:text-lg md:leading-8">
+              {featuredArticle.excerpt}
+            </p>
+          </Link>
+        ) : (
+          <>
+            <h1 className="mt-6 display-xl text-foreground">
+              La ligue et le marché,<br />
+              racontés à hauteur d&apos;équipe.
+            </h1>
 
-        <p className="mt-7 max-w-xl text-base leading-7 text-foreground-dim md:text-lg md:leading-8">
-          En haut, les plus grosses valeurs du marché. Plus bas, le classement et les derniers
-          résultats donnent le vrai rythme du split — sans détour.
-        </p>
+            <p className="mt-7 max-w-xl text-base leading-7 text-foreground-dim md:text-lg md:leading-8">
+              En haut, les plus grosses valeurs du marché. Plus bas, le classement et les derniers
+              résultats donnent le vrai rythme du split — sans détour.
+            </p>
+          </>
+        )}
 
         <div className="mt-10 flex flex-wrap gap-3">
-          <Link href="/transfermarket" className={buttonVariants({ size: 'lg' })}>
-            Explorer le marché
-          </Link>
+          {featuredArticle ? (
+            <Link
+              href={`/news/${featuredArticle.slug}`}
+              className={buttonVariants({ size: 'lg' })}
+            >
+              Lire l&apos;article
+            </Link>
+          ) : (
+            <Link href="/transfermarket" className={buttonVariants({ size: 'lg' })}>
+              Explorer le marché
+            </Link>
+          )}
           <Link
             href="#home-overview"
             className={cn(buttonVariants({ variant: 'ghost', size: 'lg' }), 'gap-2')}

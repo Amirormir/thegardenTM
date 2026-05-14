@@ -49,9 +49,9 @@ export function TeamAvatar({
   const hue = teamHue(name);
 
   return (
-    <div
+    <span
       className={cn(
-        'flex items-center justify-center rounded-sm font-mono font-semibold uppercase tracking-[0.04em]',
+        'inline-flex items-center justify-center rounded-sm font-mono font-semibold uppercase tracking-[0.04em]',
         sizeStyles[size],
         className,
       )}
@@ -59,8 +59,9 @@ export function TeamAvatar({
         background: `oklch(0.32 0.06 ${hue})`,
         color: `oklch(0.92 0.04 ${hue})`,
       }}
+      aria-label={name}
     >
       {shortCode.slice(0, 3).toUpperCase()}
-    </div>
+    </span>
   );
 }
