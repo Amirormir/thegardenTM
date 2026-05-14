@@ -1,15 +1,32 @@
 'use client';
 
 import type { inferRouterOutputs } from '@trpc/server';
-import { Loader2, Newspaper, Plus, Save, Star, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  Bold,
+  Eye,
+  EyeOff,
+  Heading1,
+  Heading2,
+  Italic,
+  Loader2,
+  Minus,
+  Newspaper,
+  Plus,
+  Save,
+  Star,
+  Trash2,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/trpc/react';
+import { renderArticleBody } from '@/lib/utils/article-format';
 import { cn } from '@/lib/utils/cn';
 import { formatDateTime } from '@/lib/utils/format';
 import type { AppRouter } from '@/server/routers/_app';
+
+type FormatAction = 'h1' | 'h2' | 'bold' | 'italic' | 'divider';
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 type AdminArticle = RouterOutputs['article']['getAdminList'][number];
@@ -94,6 +111,18 @@ export function AdminNewsManager() {
     action: () => Promise<void>;
   } | null>(null);
   const [confirmPending, setConfirmPending] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const pendingSelectionRef = useRef<{ start: number; end: number } | null>(null);
+
+  useEffect(() => {
+    const pending = pendingSelectionRef.current;
+    const textarea = bodyTextareaRef.current;
+    if (!pending || !textarea) return;
+    textarea.focus();
+    textarea.setSelectionRange(pending.start, pending.end);
+    pendingSelectionRef.current = null;
+  }, [draft.body]);
 
   const detailsQuery = api.article.getAdminById.useQuery(
     { id: selectedId ?? '' },
@@ -153,6 +182,55 @@ export function AdminNewsManager() {
     setDraft(createEmptyDraft());
     setSlugDirty(false);
     setFeedback(null);
+  }
+
+  function applyFormat(action: FormatAction) {
+    const textarea = bodyTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    const before = value.slice(0, start);
+    const selected = value.slice(start, end);
+    const after = value.slice(end);
+
+    let insertion = '';
+    let cursorStart = before.length;
+    let cursorEnd = before.length;
+
+    if (action === 'h1' || action === 'h2') {
+      const marker = action === 'h1' ? '# ' : '## ';
+      const placeholder = action === 'h1' ? 'Grand titre' : 'Sous-titre';
+      const text = selected.length > 0 ? selected : placeholder;
+      const needsBreakBefore = before.length > 0 && !before.endsWith('\n');
+      const prefix = needsBreakBefore ? '\n' : '';
+      insertion = `${prefix}${marker}${text}`;
+      cursorStart = before.length + prefix.length + marker.length;
+      cursorEnd = cursorStart + text.length;
+      if (!after.startsWith('\n')) insertion += '\n';
+    } else if (action === 'bold' || action === 'italic') {
+      const marker = action === 'bold' ? '**' : '*';
+      const placeholder = action === 'bold' ? 'texte en gras' : 'texte en italique';
+      const text = selected.length > 0 ? selected : placeholder;
+      insertion = `${marker}${text}${marker}`;
+      cursorStart = before.length + marker.length;
+      cursorEnd = cursorStart + text.length;
+    } else if (action === 'divider') {
+      const prefix = before.length === 0
+        ? ''
+        : before.endsWith('\n')
+          ? '\n'
+          : '\n\n';
+      const suffix = after.startsWith('\n\n') ? '' : after.startsWith('\n') ? '\n' : '\n\n';
+      insertion = `${prefix}---${suffix}`;
+      cursorStart = before.length + insertion.length;
+      cursorEnd = cursorStart;
+    }
+
+    const newValue = `${before}${insertion}${after}`;
+    pendingSelectionRef.current = { start: cursorStart, end: cursorEnd };
+    setDraft((current) => ({ ...current, body: newValue }));
   }
 
   function handleTitleChange(value: string) {
@@ -404,8 +482,55 @@ export function AdminNewsManager() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <label className="label-mono">Corps de l&apos;article</label>
+            <div className="flex items-center justify-between gap-3">
+              <label className="label-mono">Corps de l&apos;article</label>
+              <button
+                type="button"
+                onClick={() => setShowPreview((value) => !value)}
+                className="flex items-center gap-2 border border-hairline bg-surface px-3 py-1.5 text-xs uppercase tracking-wide text-foreground-dim transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
+              >
+                {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                {showPreview ? 'Masquer aperçu' : 'Afficher aperçu'}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1 border border-b-0 border-hairline bg-surface px-2 py-1.5">
+              <FormatButton
+                label="Grand titre"
+                shortcut="# Titre"
+                onClick={() => applyFormat('h1')}
+                icon={<Heading1 className="h-4 w-4" />}
+              />
+              <FormatButton
+                label="Sous-titre"
+                shortcut="## Sous-titre"
+                onClick={() => applyFormat('h2')}
+                icon={<Heading2 className="h-4 w-4" />}
+              />
+              <span className="mx-1 h-5 w-px bg-hairline" aria-hidden />
+              <FormatButton
+                label="Gras"
+                shortcut="**texte**"
+                onClick={() => applyFormat('bold')}
+                icon={<Bold className="h-4 w-4" />}
+              />
+              <FormatButton
+                label="Italique"
+                shortcut="*texte*"
+                onClick={() => applyFormat('italic')}
+                icon={<Italic className="h-4 w-4" />}
+              />
+              <span className="mx-1 h-5 w-px bg-hairline" aria-hidden />
+              <FormatButton
+                label="Séparateur"
+                shortcut="---"
+                onClick={() => applyFormat('divider')}
+                icon={<Minus className="h-4 w-4" />}
+              />
+            </div>
+
             <textarea
+              ref={bodyTextareaRef}
               required
               value={draft.body}
               minLength={20}
@@ -414,12 +539,25 @@ export function AdminNewsManager() {
                 setDraft((current) => ({ ...current, body: event.target.value }))
               }
               rows={16}
-              className="w-full border border-hairline bg-surface p-3 text-sm leading-7 text-foreground placeholder:text-foreground-muted outline-none transition-colors duration-150 focus:border-accent"
-              placeholder="Séparez vos paragraphes par une ligne vide."
+              className="w-full border border-hairline bg-surface p-3 font-mono text-sm leading-7 text-foreground placeholder:text-foreground-muted outline-none transition-colors duration-150 focus:border-accent"
+              placeholder={`# Grand titre\n\nUn paragraphe d'introduction. Mettez du **texte en gras** ou en *italique*.\n\n## Sous-titre\n\nUn second paragraphe.\n\n---\n\nEt une nouvelle section après le séparateur.`}
             />
             <p className="label-mono text-foreground-muted">
-              {draft.body.length}/20000 caractères · les paragraphes sont séparés par une ligne vide
+              {draft.body.length}/20000 caractères · ligne vide = nouveau paragraphe · # Titre, ## Sous-titre, **gras**, *italique*, --- pour un séparateur
             </p>
+
+            {showPreview ? (
+              <div className="mt-2 border border-hairline bg-background p-5">
+                <p className="label-mono mb-4 text-foreground-muted">Aperçu</p>
+                <div className="flex flex-col gap-6 text-base leading-8 text-foreground-dim">
+                  {draft.body.trim().length > 0 ? (
+                    renderArticleBody(draft.body)
+                  ) : (
+                    <p className="text-foreground-muted">L&apos;aperçu apparaît ici dès que le corps n&apos;est pas vide.</p>
+                  )}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <label className="flex items-center gap-3 border border-hairline bg-surface px-4 py-3 text-sm text-foreground">
@@ -532,5 +670,26 @@ export function AdminNewsManager() {
         }}
       />
     </div>
+  );
+}
+
+interface FormatButtonProps {
+  label: string;
+  shortcut: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}
+
+function FormatButton({ label, shortcut, icon, onClick }: FormatButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={`${label} — ${shortcut}`}
+      aria-label={label}
+      className="flex h-8 w-8 items-center justify-center text-foreground-dim transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
+    >
+      {icon}
+    </button>
   );
 }

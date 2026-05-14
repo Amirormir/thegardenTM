@@ -2,6 +2,7 @@ import { TRPCError } from '@trpc/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getServerCaller } from '@/server/caller';
+import { renderArticleBody } from '@/lib/utils/article-format';
 import { formatDateTime } from '@/lib/utils/format';
 
 export const revalidate = 60;
@@ -31,13 +32,6 @@ export async function generateMetadata({ params }: PageProps) {
   }
 }
 
-function splitParagraphs(body: string) {
-  return body
-    .split(/\n\s*\n+/)
-    .map((paragraph) => paragraph.trim())
-    .filter((paragraph) => paragraph.length > 0);
-}
-
 export default async function NewsArticlePage({ params }: PageProps) {
   const { slug } = await params;
   const caller = await getServerCaller();
@@ -52,7 +46,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
     throw error;
   }
 
-  const paragraphs = splitParagraphs(article.body);
+  const blocks = renderArticleBody(article.body);
 
   return (
     <article className="flex flex-col gap-12 md:gap-16">
@@ -92,11 +86,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
 
       <div className="mx-auto w-full max-w-3xl">
         <div className="flex flex-col gap-6 text-base leading-8 text-foreground-dim md:text-lg md:leading-9">
-          {paragraphs.length > 0 ? (
-            paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)
-          ) : (
-            <p>{article.body}</p>
-          )}
+          {blocks.length > 0 ? blocks : <p>{article.body}</p>}
         </div>
       </div>
 
