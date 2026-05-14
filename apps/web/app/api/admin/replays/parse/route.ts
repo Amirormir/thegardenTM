@@ -1,6 +1,7 @@
 import { UserRole } from '@nexus/db';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { buildRateLimitHeaders, checkRateLimit } from '@/lib/rate-limit';
 import { parsedReplaySchema } from '@/lib/validators/replay';
 
 export const runtime = 'nodejs';
@@ -8,6 +9,8 @@ export const dynamic = 'force-dynamic';
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const DEFAULT_REPLAY_SERVICE_URL = 'http://127.0.0.1:8000';
+const UPSTREAM_TIMEOUT_MS = 20_000;
+const RATE_LIMIT_PER_HOUR = 12;
 
 function log(...args: unknown[]) {
   console.log('[replay-parse]', ...args);
@@ -50,6 +53,21 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: `Forbidden (role=${session.user.role}).` },
       { status: 403 },
+    );
+  }
+
+  const rate = await checkRateLimit({
+    identifier: session.user.id,
+    scope: 'replays:parse',
+    limit: RATE_LIMIT_PER_HOUR,
+    windowSeconds: 3600,
+  });
+
+  if (!rate.allowed) {
+    log('rate-limited', { userId: session.user.id, resetAt: rate.resetAt });
+    return NextResponse.json(
+      { error: 'Too many replay uploads. Try again later.' },
+      { status: 429, headers: buildRateLimitHeaders(rate) },
     );
   }
 
@@ -99,7 +117,7 @@ export async function POST(request: Request) {
     upstream = await fetch(upstreamUrl, {
       method: 'POST',
       body: upstreamForm,
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
   } catch (error) {
     log('upstream fetch threw', error);
@@ -142,5 +160,5 @@ export async function POST(request: Request) {
   }
 
   log('success', { elapsedMs: Date.now() - startedAt });
-  return NextResponse.json(parsed.data);
+  return NextResponse.json(parsed.data, { headers: buildRateLimitHeaders(rate) });
 }

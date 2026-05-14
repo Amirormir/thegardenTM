@@ -42,12 +42,17 @@ export const playerByTeamSchema = z.object({
   teamId: z.string().min(1),
 });
 
+export const PLAYER_LIST_MAX_LIMIT = 200;
+export const PLAYER_LIST_DEFAULT_LIMIT = 100;
+
 export const playerListQuerySchema = z.object({
   search: z.string().trim().min(1).max(50).optional(),
   role: playerRoleSchema.optional(),
   sort: z
     .enum(['marketValue-desc', 'marketValue-asc', 'salary-desc', 'salary-asc', 'name-asc'])
     .optional(),
+  limit: z.number().int().positive().max(PLAYER_LIST_MAX_LIMIT).optional(),
+  cursor: z.string().min(1).optional(),
 });
 
 const playerBaseInputSchema = z.object({

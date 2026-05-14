@@ -1,8 +1,53 @@
 import { TRPCError } from '@trpc/server';
-import { getAccountByRiotId, getMatchDetail, getMatchHistory, getMatchTimeline, getRankedInfo } from '@/lib/riot';
+import {
+  getAccountByRiotId,
+  getMatchDetail,
+  getMatchHistory,
+  getMatchTimeline,
+  getRankedInfo,
+  RiotApiError,
+} from '@/lib/riot';
 import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
 import { fetchFromRiotSchema, leagueStatsSchema, playerStatsSchema } from '@/lib/validators/stats';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/trpc';
+
+function mapRiotErrorToTRPC(error: unknown): never {
+  if (error instanceof RiotApiError) {
+    if (error.status === 403) {
+      throw new TRPCError({
+        code: 'SERVICE_UNAVAILABLE',
+        message: 'Riot API key expired or revoked. Please regenerate it.',
+        cause: error,
+      });
+    }
+    if (error.status === 429) {
+      throw new TRPCError({
+        code: 'TOO_MANY_REQUESTS',
+        message: 'Riot API rate limit reached. Retry shortly.',
+        cause: error,
+      });
+    }
+    if (error.status === 404) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'Riot resource not found.',
+        cause: error,
+      });
+    }
+    if (error.status >= 500) {
+      throw new TRPCError({
+        code: 'BAD_GATEWAY',
+        message: 'Riot API is unavailable. Try again later.',
+        cause: error,
+      });
+    }
+  }
+  throw new TRPCError({
+    code: 'INTERNAL_SERVER_ERROR',
+    message: 'Unexpected error while contacting Riot API.',
+    cause: error,
+  });
+}
 
 export const statsRouter = createTRPCRouter({
   getPlayerStats: publicProcedure.input(playerStatsSchema).query(async ({ ctx, input }) => {
@@ -147,86 +192,75 @@ export const statsRouter = createTRPCRouter({
   }),
 
   getLeagueLeaders: publicProcedure.query(async ({ ctx }) => {
-    const stats = await ctx.prisma.playerMatchStats.findMany({
-      select: {
-        playerId: true,
+    const aggregates = await ctx.prisma.playerMatchStats.groupBy({
+      by: ['playerId'],
+      _count: { _all: true },
+      _sum: {
         kills: true,
         deaths: true,
         assists: true,
         cs: true,
         damage: true,
-        player: {
+      },
+    });
+
+    if (aggregates.length === 0) {
+      return { kdaLeader: [], csLeader: [], damageLeader: [] };
+    }
+
+    const players = await ctx.prisma.player.findMany({
+      where: { id: { in: aggregates.map((entry) => entry.playerId) } },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        gameName: true,
+        role: true,
+        team: {
           select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            gameName: true,
-            role: true,
-            team: {
-              select: {
-                name: true,
-                shortCode: true,
-              },
-            },
+            name: true,
+            shortCode: true,
           },
         },
       },
     });
 
-    const leaderboard = new Map<
-      string,
-      {
-        playerId: string;
-        displayName: string;
-        gameName: string;
-        role: string;
-        teamName: string;
-        shortCode: string;
-        games: number;
-        kills: number;
-        deaths: number;
-        assists: number;
-        cs: number;
-        damage: number;
-      }
-    >();
+    const playerById = new Map(players.map((player) => [player.id, player]));
 
-    for (const stat of stats) {
-      const current = leaderboard.get(stat.playerId) ?? {
-        playerId: stat.player.id,
-        displayName: resolveStoredPlayerDisplayName(stat.player),
-        gameName: stat.player.gameName,
-        role: stat.player.role,
-        teamName: stat.player.team?.name ?? 'Free Agent',
-        shortCode: stat.player.team?.shortCode ?? 'FA',
-        games: 0,
-        kills: 0,
-        deaths: 0,
-        assists: 0,
-        cs: 0,
-        damage: 0,
-      };
-
-      current.games += 1;
-      current.kills += stat.kills;
-      current.deaths += stat.deaths;
-      current.assists += stat.assists;
-      current.cs += stat.cs;
-      current.damage += stat.damage;
-      leaderboard.set(stat.playerId, current);
-    }
-
-    const rows = [...leaderboard.values()].map((entry) => ({
-      ...entry,
-      kda: (entry.kills + entry.assists) / Math.max(entry.deaths, 1),
-      avgCs: entry.cs / Math.max(entry.games, 1),
-      avgDamage: entry.damage / Math.max(entry.games, 1),
-    }));
+    const rows = aggregates.flatMap((entry) => {
+      const player = playerById.get(entry.playerId);
+      if (!player) return [];
+      const games = entry._count._all;
+      const kills = entry._sum.kills ?? 0;
+      const deaths = entry._sum.deaths ?? 0;
+      const assists = entry._sum.assists ?? 0;
+      const cs = entry._sum.cs ?? 0;
+      const damage = entry._sum.damage ?? 0;
+      return [
+        {
+          playerId: player.id,
+          displayName: resolveStoredPlayerDisplayName(player),
+          gameName: player.gameName,
+          role: player.role,
+          teamName: player.team?.name ?? 'Free Agent',
+          shortCode: player.team?.shortCode ?? 'FA',
+          games,
+          kills,
+          deaths,
+          assists,
+          cs,
+          damage,
+          kda: (kills + assists) / Math.max(deaths, 1),
+          avgCs: cs / Math.max(games, 1),
+          avgDamage: damage / Math.max(games, 1),
+        },
+      ];
+    });
 
     return {
-      kdaLeader: rows.sort((left, right) => right.kda - left.kda).slice(0, 5),
-      csLeader: rows.sort((left, right) => right.avgCs - left.avgCs).slice(0, 5),
-      damageLeader: rows.sort((left, right) => right.avgDamage - left.avgDamage).slice(0, 5),
+      kdaLeader: [...rows].sort((left, right) => right.kda - left.kda).slice(0, 5),
+      csLeader: [...rows].sort((left, right) => right.avgCs - left.avgCs).slice(0, 5),
+      damageLeader: [...rows].sort((left, right) => right.avgDamage - left.avgDamage).slice(0, 5),
     };
   }),
 
@@ -534,18 +568,22 @@ export const statsRouter = createTRPCRouter({
         | null = null;
 
       if (!puuid) {
-        const account = await getAccountByRiotId(player.gameName, player.tagLine);
-        puuid = account.data;
-        accountMeta = {
-          cached: account.cached,
-          stale: account.stale,
-          updatedAt: account.updatedAt,
-        };
+        try {
+          const account = await getAccountByRiotId(player.gameName, player.tagLine);
+          puuid = account.data;
+          accountMeta = {
+            cached: account.cached,
+            stale: account.stale,
+            updatedAt: account.updatedAt,
+          };
 
-        await ctx.prisma.player.update({
-          where: { id: player.id },
-          data: { puuid },
-        });
+          await ctx.prisma.player.update({
+            where: { id: player.id },
+            data: { puuid },
+          });
+        } catch (error) {
+          mapRiotErrorToTRPC(error);
+        }
       }
 
       if (!puuid) {
@@ -555,57 +593,64 @@ export const statsRouter = createTRPCRouter({
         });
       }
 
-      const history = await getMatchHistory(puuid, input.count);
-      const matchResults = await Promise.all(
-        history.data.map(async (matchId) => {
-          const [detail, timeline] = await Promise.all([
-            getMatchDetail(matchId),
-            getMatchTimeline(matchId),
-          ]);
+      try {
+        const history = await getMatchHistory(puuid, input.count);
+        const matchResults = await Promise.all(
+          history.data.map(async (matchId) => {
+            const [detail, timeline] = await Promise.all([
+              getMatchDetail(matchId),
+              getMatchTimeline(matchId),
+            ]);
 
-          return {
-            matchId,
-            detail,
-            timeline,
-          };
-        }),
-      );
+            return {
+              matchId,
+              detail,
+              timeline,
+            };
+          }),
+        );
 
-      const ranked = player.summonerId ? await getRankedInfo(player.summonerId) : null;
+        const ranked = player.summonerId ? await getRankedInfo(player.summonerId) : null;
 
-      return {
-        playerId: player.id,
-        puuid,
-        accountMeta,
-        history: {
-          matchIds: history.data,
-          cached: history.cached,
-          stale: history.stale,
-          updatedAt: history.updatedAt,
-        },
-        matches: matchResults.map((result) => ({
-          matchId: result.matchId,
-          detail: result.detail.data,
-          detailMeta: {
-            cached: result.detail.cached,
-            stale: result.detail.stale,
-            updatedAt: result.detail.updatedAt,
+        return {
+          playerId: player.id,
+          puuid,
+          accountMeta,
+          history: {
+            matchIds: history.data,
+            cached: history.cached,
+            stale: history.stale,
+            updatedAt: history.updatedAt,
           },
-          timeline: result.timeline.data,
-          timelineMeta: {
-            cached: result.timeline.cached,
-            stale: result.timeline.stale,
-            updatedAt: result.timeline.updatedAt,
-          },
-        })),
-        ranked: ranked
-          ? {
-              data: ranked.data,
-              cached: ranked.cached,
-              stale: ranked.stale,
-              updatedAt: ranked.updatedAt,
-            }
-          : null,
-      };
+          matches: matchResults.map((result) => ({
+            matchId: result.matchId,
+            detail: result.detail.data,
+            detailMeta: {
+              cached: result.detail.cached,
+              stale: result.detail.stale,
+              updatedAt: result.detail.updatedAt,
+            },
+            timeline: result.timeline.data,
+            timelineMeta: {
+              cached: result.timeline.cached,
+              stale: result.timeline.stale,
+              updatedAt: result.timeline.updatedAt,
+            },
+          })),
+          ranked: ranked
+            ? {
+                data: ranked.data,
+                cached: ranked.cached,
+                stale: ranked.stale,
+                updatedAt: ranked.updatedAt,
+              }
+            : null,
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        mapRiotErrorToTRPC(error);
+      }
     }),
 });

@@ -5,6 +5,7 @@ import {
   marketValueHistoryCreateSchema,
   marketValueHistoryDeleteSchema,
   marketValueHistoryUpdateSchema,
+  PLAYER_LIST_DEFAULT_LIMIT,
   playerByTeamSchema,
   playerCreateSchema,
   playerDeleteSchema,
@@ -179,9 +180,14 @@ export const playerRouter = createTRPCRouter({
               ? [{ firstName: 'asc' as const }, { gameName: 'asc' as const }]
               : [{ marketValue: 'desc' as const }];
 
+    const limit = input?.limit ?? PLAYER_LIST_DEFAULT_LIMIT;
+    const cursor = input?.cursor;
+
     const players = await ctx.prisma.player.findMany({
       where,
-      orderBy,
+      orderBy: [...orderBy, { id: 'asc' as const }],
+      take: limit,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       select: {
         id: true,
         firstName: true,

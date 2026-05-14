@@ -60,7 +60,8 @@ export async function setCachedRiotValue<T>(key: string, data: T, freshTtlSecond
     return;
   }
 
-  const extendedTtl = Math.max(freshTtlSeconds * 24, freshTtlSeconds + 3600);
+  const STALE_GRACE_SECONDS = 1800;
+  const extendedTtl = Math.min(freshTtlSeconds + STALE_GRACE_SECONDS, 24 * 3600);
 
   await client.set(
     key,
