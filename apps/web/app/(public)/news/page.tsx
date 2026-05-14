@@ -33,7 +33,6 @@ export default async function NewsIndexPage() {
         >
           <div className="relative aspect-[16/10] overflow-hidden border border-hairline bg-surface">
             {featured.coverImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={featured.coverImageUrl}
                 alt={featured.title}
@@ -79,7 +78,6 @@ export default async function NewsIndexPage() {
                 <Link href={`/news/${article.slug}`} className="group flex flex-col gap-4">
                   <div className="relative aspect-[16/10] overflow-hidden border border-hairline bg-surface">
                     {article.coverImageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={article.coverImageUrl}
                         alt={article.title}

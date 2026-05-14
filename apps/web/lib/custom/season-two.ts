@@ -286,7 +286,7 @@ export async function getSeasonTwoData(): Promise<SeasonTwoData> {
   const queuePlayers = queueDoc
     ? await db.collection<RawQueuePlayer>('players').find({ queueId: queueDoc._id }).toArray()
     : [];
-  const replayMatchIds =
+  const replayMatchIds: Array<{ matchId: string }> =
     recentMatchDocs.length > 0
       ? await db
           .collection<{ matchId: string }>(CUSTOM_MATCH_REPLAYS_COLLECTION)
@@ -295,7 +295,7 @@ export async function getSeasonTwoData(): Promise<SeasonTwoData> {
               $in: recentMatchDocs.map((match) => match.matchId),
             },
           })
-          .project({ matchId: 1 })
+          .project<{ matchId: string }>({ _id: 0, matchId: 1 })
           .toArray()
       : [];
   const replayMatchIdSet = new Set(replayMatchIds.map((replay) => replay.matchId));

@@ -16,7 +16,7 @@ function log(...args: unknown[]) {
   console.log('[replay-parse]', ...args);
 }
 
-export async function GET() {
+export function GET() {
   log('GET probe hit');
   return NextResponse.json({
     ok: true,

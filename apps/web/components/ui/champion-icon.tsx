@@ -29,8 +29,11 @@ function championInitials(id: string) {
   const cleaned = id.replace(/[^a-zA-Z]/g, '');
   if (cleaned.length === 0) return '??';
   const upperRuns = cleaned.match(/[A-Z][a-z]*/g);
-  if (upperRuns && upperRuns.length >= 2) {
-    return (upperRuns[0]![0]! + upperRuns[1]![0]!).toUpperCase();
+  if (upperRuns) {
+    const [firstRun, secondRun] = upperRuns;
+    if (firstRun && secondRun) {
+      return `${firstRun.charAt(0)}${secondRun.charAt(0)}`.toUpperCase();
+    }
   }
   return cleaned.slice(0, 2).toUpperCase();
 }

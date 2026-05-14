@@ -23,12 +23,14 @@ describe('transferOfferCreateSchema', () => {
   });
 
   it('rejects missing playerId', () => {
-    const { playerId: _, ...rest } = valid;
+    const { playerId: omittedPlayerId, ...rest } = valid;
+    void omittedPlayerId;
     expect(() => transferOfferCreateSchema.parse(rest)).toThrow();
   });
 
   it('rejects missing fromTeamId', () => {
-    const { fromTeamId: _, ...rest } = valid;
+    const { fromTeamId: omittedFromTeamId, ...rest } = valid;
+    void omittedFromTeamId;
     expect(() => transferOfferCreateSchema.parse(rest)).toThrow();
   });
 

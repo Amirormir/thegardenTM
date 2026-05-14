@@ -373,7 +373,6 @@ export function AdminNewsManager() {
             />
             {draft.coverImageUrl ? (
               <div className="relative h-48 w-full overflow-hidden border border-hairline bg-surface">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={draft.coverImageUrl}
                   alt="Aperçu"

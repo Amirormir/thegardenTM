@@ -168,7 +168,7 @@ export function useTeamTint(logoUrl: string | null | undefined) {
       };
     }
 
-    extractDominantColor(proxiedLogoUrl).then((color) => {
+    void extractDominantColor(proxiedLogoUrl).then((color) => {
       if (!cancelled) {
         setDominantColor(color);
       }

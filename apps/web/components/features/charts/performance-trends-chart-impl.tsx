@@ -24,17 +24,19 @@ interface PerformanceTrendsChartProps {
   stats: MatchStat[];
 }
 
+const DEFAULT_THEME_COLORS = {
+  accent: '#c9b8e8',
+  win: '#7bb38a',
+  loss: '#c87468',
+  text: '#eee5d6',
+  textMuted: '#8d8470',
+  textDim: '#a8a08e',
+  border: '#3a352b',
+  bgElev: '#23211c',
+};
+
 function useThemeColors() {
-  const [colors, setColors] = useState({
-    accent: '#c9b8e8',
-    win: '#7bb38a',
-    loss: '#c87468',
-    text: '#eee5d6',
-    textMuted: '#8d8470',
-    textDim: '#a8a08e',
-    border: '#3a352b',
-    bgElev: '#23211c',
-  });
+  const [colors, setColors] = useState(DEFAULT_THEME_COLORS);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -44,16 +46,15 @@ function useThemeColors() {
       return raw ? raw : fallback;
     };
     setColors({
-      accent: resolve('--accent', colors.accent),
-      win: resolve('--win', colors.win),
-      loss: resolve('--loss', colors.loss),
-      text: resolve('--text', colors.text),
-      textMuted: resolve('--text-muted', colors.textMuted),
-      textDim: resolve('--text-dim', colors.textDim),
-      border: resolve('--border', colors.border),
-      bgElev: resolve('--bg-elev', colors.bgElev),
+      accent: resolve('--accent', DEFAULT_THEME_COLORS.accent),
+      win: resolve('--win', DEFAULT_THEME_COLORS.win),
+      loss: resolve('--loss', DEFAULT_THEME_COLORS.loss),
+      text: resolve('--text', DEFAULT_THEME_COLORS.text),
+      textMuted: resolve('--text-muted', DEFAULT_THEME_COLORS.textMuted),
+      textDim: resolve('--text-dim', DEFAULT_THEME_COLORS.textDim),
+      border: resolve('--border', DEFAULT_THEME_COLORS.border),
+      bgElev: resolve('--bg-elev', DEFAULT_THEME_COLORS.bgElev),
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return colors;

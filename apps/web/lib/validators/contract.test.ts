@@ -41,12 +41,14 @@ describe('contractCreateSchema', () => {
   });
 
   it('rejects missing playerId', () => {
-    const { playerId: _, ...rest } = valid;
+    const { playerId: omittedPlayerId, ...rest } = valid;
+    void omittedPlayerId;
     expect(() => contractCreateSchema.parse(rest)).toThrow();
   });
 
   it('rejects missing teamId', () => {
-    const { teamId: _, ...rest } = valid;
+    const { teamId: omittedTeamId, ...rest } = valid;
+    void omittedTeamId;
     expect(() => contractCreateSchema.parse(rest)).toThrow();
   });
 

@@ -80,7 +80,6 @@ export default async function NewsArticlePage({ params }: PageProps) {
 
       {article.coverImageUrl ? (
         <figure className="relative aspect-[16/9] w-full overflow-hidden border border-hairline bg-surface">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={article.coverImageUrl}
             alt={article.title}

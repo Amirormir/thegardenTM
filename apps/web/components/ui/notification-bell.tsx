@@ -59,9 +59,11 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (open && unreadCount > 0) {
-      autoReadTimer.current = setTimeout(async () => {
-        await markAllRead.mutateAsync({});
-        await Promise.all([countQuery.refetch(), allQuery.refetch()]);
+      autoReadTimer.current = setTimeout(() => {
+        void (async () => {
+          await markAllRead.mutateAsync({});
+          await Promise.all([countQuery.refetch(), allQuery.refetch()]);
+        })();
       }, 2000);
     }
     return () => {
@@ -70,13 +72,15 @@ export function NotificationBell() {
   }, [open, unreadCount]);
 
   function handleToggle() {
-    if (!open) allQuery.refetch();
+    if (!open) {
+      void allQuery.refetch();
+    }
     setOpen((prev) => !prev);
   }
 
-  async function handleLinkClick() {
+  function handleLinkClick() {
     setOpen(false);
-    await utils.notification.getUnreadCount.invalidate();
+    void utils.notification.getUnreadCount.invalidate();
   }
 
   return (

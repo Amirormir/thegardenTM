@@ -80,7 +80,6 @@ export function Hero({
           >
             {featuredArticle.coverImageUrl ? (
               <div className="relative aspect-[16/9] w-full overflow-hidden border border-hairline bg-surface">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={featuredArticle.coverImageUrl}
                   alt={featuredArticle.title}
