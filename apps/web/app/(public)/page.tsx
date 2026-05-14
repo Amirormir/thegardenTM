@@ -36,7 +36,7 @@ export default async function HomePage() {
     caller.article.getFeatured(),
   ]);
 
-  const topPlayers = players.slice(0, 3);
+  const topPlayers = players.slice(0, 10);
   const completedMatches = [...allMatches]
     .filter((match) => match.isCompleted)
     .sort(

@@ -100,13 +100,14 @@ export function Hero({
         ) : (
           <>
             <h1 className="mt-6 display-xl text-foreground">
-              La ligue et le marché,<br />
+              La ligue et le marché,
+              <br />
               racontés à hauteur d&apos;équipe.
             </h1>
 
             <p className="mt-7 max-w-xl text-base leading-7 text-foreground-dim md:text-lg md:leading-8">
               En haut, les plus grosses valeurs du marché. Plus bas, le classement et les derniers
-              résultats donnent le vrai rythme du split — sans détour.
+              résultats donnent le vrai rythme du split, sans détour.
             </p>
           </>
         )}
@@ -165,15 +166,15 @@ export function Hero({
       </div>
 
       <aside className="border-l border-hairline pl-8 lg:pl-10">
-        <p className="label-mono">Top 3 valeurs</p>
+        <p className="label-mono">Top 10 valeurs</p>
         <h2 className="mt-3 display-md text-foreground">Les gros noms du moment.</h2>
         <p className="mt-3 max-w-sm text-sm leading-6 text-foreground-dim">
-          Les trois plus grosses valeurs marchandes, telles que cotées en ce début de fenêtre.
+          Les dix plus grosses valeurs marchandes, telles que cotées au début de la fenêtre.
         </p>
 
         <ol className="mt-8 flex flex-col">
           {topPlayers.length > 0 ? (
-            topPlayers.slice(0, 3).map((player, index) => (
+            topPlayers.slice(0, 10).map((player, index) => (
               <li
                 key={player.id}
                 className="grid grid-cols-[auto_1fr_auto] items-baseline gap-5 border-t border-hairline py-5"

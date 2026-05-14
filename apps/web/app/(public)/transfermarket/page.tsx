@@ -84,9 +84,7 @@ function ViewTab({ active, href, label }: { active: boolean; href: string; label
       href={href}
       className={cn(
         'relative pb-3 text-sm transition-colors duration-150',
-        active
-          ? 'text-foreground'
-          : 'text-foreground-dim hover:text-foreground',
+        active ? 'text-foreground' : 'text-foreground-dim hover:text-foreground',
       )}
     >
       {label}
@@ -97,7 +95,15 @@ function ViewTab({ active, href, label }: { active: boolean; href: string; label
   );
 }
 
-function KpiBlock({ helper, label, value }: { helper: React.ReactNode; label: string; value: React.ReactNode }) {
+function KpiBlock({
+  helper,
+  label,
+  value,
+}: {
+  helper: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
     <div className="border-t border-hairline pt-5">
       <p className="label-mono">{label}</p>
@@ -152,7 +158,7 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-foreground-dim">
           {view === 'players'
-            ? 'Vraies données Prisma via tRPC. Filtres en URL, tri serveur, cartes éditoriales pensées pour le scouting.'
+            ? 'Les meilleures valeurs du marché, les profils à suivre et les comparaisons utiles pour lire la fenêtre en un coup d’œil.'
             : 'Lecture simple de la valeur marchande totale de chaque effectif, accentuée par la couleur dominante du logo.'}
         </p>
 
@@ -202,17 +208,17 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
                 )
               }
               helper={
-                highestValuePlayer
-                  ? (
-                      <TeamInline
-                        name={highestValuePlayer.teamName}
-                        shortCode={highestValuePlayer.teamShortCode}
-                        logoUrl={highestValuePlayer.teamLogoUrl}
-                        size="xs"
-                        text={`${highestValuePlayer.teamShortCode} · ${formatCurrency(highestValuePlayer.marketValue)}`}
-                      />
-                    )
-                  : 'Aucun joueur disponible.'
+                highestValuePlayer ? (
+                  <TeamInline
+                    name={highestValuePlayer.teamName}
+                    shortCode={highestValuePlayer.teamShortCode}
+                    logoUrl={highestValuePlayer.teamLogoUrl}
+                    size="xs"
+                    text={`${highestValuePlayer.teamShortCode} · ${formatCurrency(highestValuePlayer.marketValue)}`}
+                  />
+                ) : (
+                  'Aucun joueur disponible.'
+                )
               }
             />
             <KpiBlock
@@ -232,17 +238,17 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
               label="Top collectif"
               value={topTeam?.name ?? 'N/A'}
               helper={
-                topTeam
-                  ? (
-                      <TeamInline
-                        name={topTeam.name}
-                        shortCode={topTeam.shortCode}
-                        logoUrl={topTeam.logoUrl}
-                        size="xs"
-                        text={`${topTeam.shortCode} · ${formatCurrency(topTeam.totalMarketValue)}`}
-                      />
-                    )
-                  : 'Aucune équipe disponible.'
+                topTeam ? (
+                  <TeamInline
+                    name={topTeam.name}
+                    shortCode={topTeam.shortCode}
+                    logoUrl={topTeam.logoUrl}
+                    size="xs"
+                    text={`${topTeam.shortCode} · ${formatCurrency(topTeam.totalMarketValue)}`}
+                  />
+                ) : (
+                  'Aucune équipe disponible.'
+                )
               }
             />
             <KpiBlock
@@ -270,7 +276,8 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
             {players.length >= 3 && sort === 'marketValue-desc' ? 'Reste du marché' : 'Marché'}
           </p>
           <h2 className="mt-3 display-md text-foreground">
-            {players.length.toString().padStart(2, '0')} joueur{players.length > 1 ? 's' : ''} suivi{players.length > 1 ? 's' : ''}.
+            {players.length.toString().padStart(2, '0')} joueur{players.length > 1 ? 's' : ''}{' '}
+            suivi{players.length > 1 ? 's' : ''}.
           </h2>
           <div className="mt-8 grid gap-px border-t border-hairline bg-hairline md:grid-cols-2 xl:grid-cols-3">
             {(players.length >= 3 && sort === 'marketValue-desc' ? players.slice(3) : players).map(
@@ -286,7 +293,8 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
         <section>
           <p className="label-mono">Classement</p>
           <h2 className="mt-3 display-md text-foreground">
-            {teams.length.toString().padStart(2, '0')} effectif{teams.length > 1 ? 's' : ''} évalué{teams.length > 1 ? 's' : ''}.
+            {teams.length.toString().padStart(2, '0')} effectif{teams.length > 1 ? 's' : ''}{' '}
+            évalué{teams.length > 1 ? 's' : ''}.
           </h2>
           <div className="mt-8">
             <TeamMarketValueRanking teams={teams} />
@@ -305,7 +313,7 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
           <p className="mt-4 max-w-2xl text-sm leading-6 text-foreground-dim">
             {view === 'players'
               ? 'Change la recherche, le rôle ou réinitialise les filtres pour revenir à la vue complète du marché.'
-              : "Le classement des valeurs marchandes équipe apparaîtra ici dès que des effectifs seront disponibles."}
+              : 'Le classement des valeurs marchandes équipe apparaîtra ici dès que des effectifs seront disponibles.'}
           </p>
         </section>
       ) : null}

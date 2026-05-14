@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { Navbar } from '@/components/layouts/navbar';
 import { GardenLogo } from '@/components/ui/garden-logo';
 
@@ -17,7 +18,14 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             <GardenLogo showLabel={false} imageClassName="h-8 w-8" />
             <span className="label-mono">Garden · Magazine editorial</span>
           </span>
-          <span className="label-mono">Next.js 15 · tRPC 11 · Auth.js v5 · Prisma 6</span>
+          <Link
+            href="https://discord.gg/tbdX73KSzt"
+            target="_blank"
+            rel="noreferrer"
+            className="label-mono transition-colors duration-150 hover:text-accent"
+          >
+            Rejoindre le Discord
+          </Link>
         </div>
       </footer>
     </div>
