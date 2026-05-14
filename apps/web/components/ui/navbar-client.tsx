@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { GardenLogo } from './garden-logo';
 import { NotificationBell } from './notification-bell';
 import { cn } from '@/lib/utils/cn';
+import { isPublicRegistrationEnabled } from '@/lib/runtime-flags';
 
 interface NavbarUser {
   id: string;
@@ -82,6 +83,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
         teamId: session.user.teamId,
       }
     : user;
+  const showRegistrationLink = isPublicRegistrationEnabled;
 
   const userName = currentUser?.name ?? 'Invite';
   const userRole = currentUser?.role ?? 'USER';
@@ -106,11 +108,11 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
 
   const signInHref = useMemo(() => {
     if (!pathname) {
-      return '/api/auth/signin';
+      return '/login';
     }
 
     const params = new URLSearchParams({ callbackUrl: pathname });
-    return `/api/auth/signin?${params.toString()}`;
+    return `/login?${params.toString()}`;
   }, [pathname]);
 
   return (
@@ -241,12 +243,14 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
               >
                 Connexion
               </Link>
-              <Link
-                href="/register"
-                className="bg-accent px-4 py-2 text-sm font-medium text-background transition-colors duration-150 hover:bg-accent-dim"
-              >
-                S'inscrire
-              </Link>
+              {showRegistrationLink ? (
+                <Link
+                  href="/register"
+                  className="bg-accent px-4 py-2 text-sm font-medium text-background transition-colors duration-150 hover:bg-accent-dim"
+                >
+                  S'inscrire
+                </Link>
+              ) : null}
             </div>
           )}
         </div>
@@ -372,13 +376,15 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
                     >
                       Connexion
                     </Link>
-                    <Link
-                      href="/register"
-                      className="block bg-accent px-4 py-3 text-center text-sm font-medium text-background transition-colors duration-150 hover:bg-accent-dim"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      S'inscrire
-                    </Link>
+                    {showRegistrationLink ? (
+                      <Link
+                        href="/register"
+                        className="block bg-accent px-4 py-3 text-center text-sm font-medium text-background transition-colors duration-150 hover:bg-accent-dim"
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        S'inscrire
+                      </Link>
+                    ) : null}
                   </div>
                 )}
               </div>

@@ -8,6 +8,7 @@ import {
   userUpdateProfileSchema,
   userUpdateRoleSchema,
 } from '@/lib/validators/user';
+import { isPublicRegistrationEnabled } from '@/lib/runtime-flags';
 import { buildAuditLogInput } from '@/server/utils/audit';
 import { adminProcedure, createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/trpc';
 
@@ -15,6 +16,13 @@ export const userRouter = createTRPCRouter({
   register: publicProcedure
     .input(userRegisterSchema)
     .mutation(async ({ ctx, input }) => {
+      if (!isPublicRegistrationEnabled) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Les inscriptions publiques sont fermées pour le moment.',
+        });
+      }
+
       const existing = await ctx.prisma.user.findUnique({
         where: { email: input.email },
         select: { id: true },

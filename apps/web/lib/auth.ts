@@ -7,6 +7,7 @@ import Credentials from 'next-auth/providers/credentials';
 import Discord from 'next-auth/providers/discord';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { isPublicRegistrationEnabled } from '@/lib/runtime-flags';
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -49,6 +50,9 @@ function resolveTeamId(value: unknown) {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma) as Adapter,
   trustHost: true,
+  pages: {
+    signIn: '/login',
+  },
   session: {
     strategy: 'jwt',
     maxAge: 60 * 60 * 24 * 7,
@@ -112,6 +116,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    signIn: async ({ user, account }) => {
+      if (isPublicRegistrationEnabled || account?.provider === 'credentials') {
+        return true;
+      }
+
+      if (!user.email) {
+        return false;
+      }
+
+      const existingUser = await prisma.user.findUnique({
+        where: { email: user.email },
+        select: { id: true },
+      });
+
+      return Boolean(existingUser);
+    },
     jwt: async ({ token, user, trigger }) => {
       const ACCESS_REFRESH_MS = 5 * 60 * 1000;
       const now = Date.now();

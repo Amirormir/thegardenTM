@@ -1,17 +1,30 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Loader2, UserPlus } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { GardenLogo } from '@/components/ui/garden-logo';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils/cn';
+import { isPublicRegistrationEnabled } from '@/lib/runtime-flags';
 import { api } from '@/lib/trpc/react';
 
+function resolvePostLoginTarget(resultUrl: string | null | undefined, fallbackUrl: string) {
+  if (!resultUrl) {
+    return fallbackUrl;
+  }
+
+  try {
+    const resolved = new URL(resultUrl, window.location.origin);
+    return `${resolved.pathname}${resolved.search}${resolved.hash}` || fallbackUrl;
+  } catch {
+    return fallbackUrl;
+  }
+}
+
 export default function RegisterPage() {
-  const router = useRouter();
   const register = api.user.register.useMutation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -41,23 +54,68 @@ export default function RegisterPage() {
         email,
         password,
         redirect: false,
+        callbackUrl: '/',
       });
 
-      if (result?.ok) {
-        router.push('/');
-        router.refresh();
-      } else {
+      if (result?.error) {
         setFeedback({
           type: 'success',
-          message: 'Compte créé. Vous pouvez maintenant vous connecter.',
+          message: 'Compte créé. Tu peux maintenant te connecter.',
         });
         setSigningIn(false);
+        return;
       }
+
+      window.location.assign(resolvePostLoginTarget(result?.url, '/'));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "L'inscription a échoué.";
+      const message =
+        error instanceof Error ? error.message : "L'inscription a échoué.";
       setFeedback({ type: 'error', message });
       setSigningIn(false);
     }
+  }
+
+  if (!isPublicRegistrationEnabled) {
+    return (
+      <div className="mx-auto grid max-w-5xl gap-10 py-12 lg:grid-cols-[1fr_0.9fr]">
+        <section className="border-b border-hairline pb-10 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-12">
+          <p className="breadcrumb-mono">§ · Compte · Accès</p>
+          <div className="mt-6 flex items-center gap-4">
+            <GardenLogo showLabel={false} imageClassName="h-14 w-14" />
+            <div>
+              <h1 className="display-lg text-foreground">Inscriptions fermées.</h1>
+              <p className="mt-3 max-w-xl text-base leading-7 text-foreground-dim">
+                En production, les nouveaux comptes ne se créent pas publiquement. L’accès est
+                validé au cas par cas.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="border border-hairline bg-surface p-6 md:p-8">
+          <p className="label-mono">Accès validé</p>
+          <h2 className="mt-4 display-md text-foreground">Passe par le canal officiel.</h2>
+          <p className="mt-3 text-sm leading-6 text-foreground-dim">
+            Si tu as déjà un compte, connecte-toi. Sinon, rejoins le Discord pour demander un
+            accès.
+          </p>
+
+          <div className="mt-8 flex flex-col gap-3">
+            <Link href="/login" className={buttonVariants({ size: 'lg' })}>
+              Aller à la connexion
+            </Link>
+            <Link
+              href="https://discord.gg/tbdX73KSzt"
+              target="_blank"
+              rel="noreferrer"
+              className={buttonVariants({ variant: 'secondary', size: 'lg' })}
+            >
+              Rejoindre le Discord
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (
@@ -66,7 +124,7 @@ export default function RegisterPage() {
         <p className="breadcrumb-mono">§ · Compte · Inscription</p>
         <h1 className="mt-4 display-lg text-foreground">Créer un compte.</h1>
         <p className="mt-4 text-base leading-7 text-foreground-dim">
-          Rejoignez la ligue et commencez à suivre le transfermarket.
+          Rejoins la ligue et commence à suivre le transfermarket.
         </p>
       </header>
 
@@ -86,47 +144,62 @@ export default function RegisterPage() {
 
         <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-2">
-            <label className="label-mono">Nom</label>
+            <label className="label-mono" htmlFor="register-name">
+              Nom
+            </label>
             <Input
+              id="register-name"
               required
               placeholder="Votre nom"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(event) => setName(event.target.value)}
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="label-mono">Email</label>
+            <label className="label-mono" htmlFor="register-email">
+              Email
+            </label>
             <Input
+              id="register-email"
               required
               type="email"
+              autoComplete="email"
               placeholder="you@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="label-mono">Mot de passe</label>
+            <label className="label-mono" htmlFor="register-password">
+              Mot de passe
+            </label>
             <Input
+              id="register-password"
               required
               type="password"
+              autoComplete="new-password"
               placeholder="8 caractères minimum"
               minLength={8}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="label-mono">Confirmer le mot de passe</label>
+            <label className="label-mono" htmlFor="register-password-confirmation">
+              Confirmer le mot de passe
+            </label>
             <Input
+              id="register-password-confirmation"
               required
               type="password"
+              autoComplete="new-password"
               placeholder="Répétez le mot de passe"
               minLength={8}
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(event) => setConfirmPassword(event.target.value)}
             />
           </div>
 
@@ -146,11 +219,18 @@ export default function RegisterPage() {
           </Button>
         </form>
 
-        <div className="border-t border-hairline pt-6 label-mono text-foreground-dim">
+        <div className="border-t border-hairline pt-6 text-sm text-foreground-dim">
           Déjà un compte ?{' '}
-          <Link href="/api/auth/signin" className="text-accent transition hover:text-foreground">
+          <Link href="/login" className="text-accent transition hover:text-foreground">
             Se connecter
           </Link>
+        </div>
+
+        <div className="border-t border-hairline pt-6 text-sm leading-6 text-foreground-dim">
+          <span className="label-mono">Accès privé</span>
+          <p className="mt-3">
+            Certains accès sensibles, comme le back-office, restent réservés aux comptes validés.
+          </p>
         </div>
       </section>
     </div>
