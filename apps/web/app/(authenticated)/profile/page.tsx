@@ -82,6 +82,8 @@ export default function ProfilePage() {
                 <img
                   src={avatarSrc ?? undefined}
                   alt="Avatar"
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover"
                   referrerPolicy="no-referrer"
                   onError={() => setAvatarLoadFailed(true)}

@@ -184,6 +184,8 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
                   <img
                     src={currentUser.image ?? undefined}
                     alt={userName}
+                    loading="lazy"
+                    decoding="async"
                     className="h-full w-full object-cover"
                     referrerPolicy="no-referrer"
                     onError={() => setAvatarLoadFailed(true)}
@@ -326,6 +328,8 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
                           <img
                             src={currentUser.image ?? undefined}
                             alt={userName}
+                            loading="lazy"
+                            decoding="async"
                             className="h-full w-full object-cover"
                             referrerPolicy="no-referrer"
                             onError={() => setAvatarLoadFailed(true)}

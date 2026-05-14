@@ -51,6 +51,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   session: {
     strategy: 'jwt',
+    maxAge: 60 * 60 * 24 * 7,
+    updateAge: 60 * 60 * 24,
   },
   ...(process.env.NEXTAUTH_SECRET
     ? {
@@ -110,7 +112,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt: async ({ token, user }) => {
+    jwt: async ({ token, user, trigger }) => {
+      const ACCESS_REFRESH_MS = 5 * 60 * 1000;
+      const now = Date.now();
+
       if (user?.id) {
         const accessData = await getAccessData(user.id);
         token.sub = accessData.id;
@@ -118,16 +123,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.picture = accessData.image;
         token.role = accessData.role;
         token.teamId = accessData.teamId;
+        token.accessRefreshedAt = now;
         return token;
       }
 
       if (token?.sub) {
-        const accessData = await getAccessData(token.sub);
-        token.sub = accessData.id;
-        token.name = accessData.name;
-        token.picture = accessData.image;
-        token.role = accessData.role;
-        token.teamId = accessData.teamId;
+        const lastRefresh =
+          typeof token.accessRefreshedAt === 'number' ? token.accessRefreshedAt : 0;
+        const isStale = now - lastRefresh > ACCESS_REFRESH_MS;
+
+        if (trigger === 'update' || isStale) {
+          const accessData = await getAccessData(token.sub);
+          token.sub = accessData.id;
+          token.name = accessData.name;
+          token.picture = accessData.image;
+          token.role = accessData.role;
+          token.teamId = accessData.teamId;
+          token.accessRefreshedAt = now;
+          return token;
+        }
+
+        token.role = resolveUserRole(token.role);
+        token.teamId = resolveTeamId(token.teamId);
         return token;
       }
 

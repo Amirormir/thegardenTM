@@ -42,6 +42,8 @@ export function PlayerCard({ player }: PlayerCardProps) {
             <img
               src={player.imageUrl}
               alt={player.displayName}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover"
             />
           ) : (

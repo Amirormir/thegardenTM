@@ -1,5 +1,36 @@
+import { unstable_cache } from 'next/cache';
+import { prisma } from '@/lib/prisma';
 import { adminProcedure, createTRPCRouter } from '@/server/trpc';
 import { auditLogSchema } from '@/lib/validators/stats';
+
+const DASHBOARD_STATS_TTL_SECONDS = 60;
+
+const getCachedDashboardStats = unstable_cache(
+  async () => {
+    const [players, teams, contracts, matches, auditLogs, currentSeason] = await Promise.all([
+      prisma.player.count(),
+      prisma.team.count(),
+      prisma.contract.count({ where: { status: 'ACTIVE' } }),
+      prisma.match.count(),
+      prisma.auditLog.count(),
+      prisma.season.findFirst({
+        where: { isCurrent: true },
+        select: { id: true, name: true },
+      }),
+    ]);
+
+    return {
+      players,
+      teams,
+      activeContracts: contracts,
+      matches,
+      auditLogs,
+      currentSeason,
+    };
+  },
+  ['admin-dashboard-stats'],
+  { revalidate: DASHBOARD_STATS_TTL_SECONDS, tags: ['admin-dashboard-stats'] },
+);
 
 export const adminRouter = createTRPCRouter({
   getAuditLog: adminProcedure.input(auditLogSchema).query(({ ctx, input }) =>
@@ -24,31 +55,5 @@ export const adminRouter = createTRPCRouter({
     }),
   ),
 
-  getDashboardStats: adminProcedure.query(async ({ ctx }) => {
-    const [players, teams, contracts, matches, auditLogs, currentSeason] = await Promise.all([
-      ctx.prisma.player.count(),
-      ctx.prisma.team.count(),
-      ctx.prisma.contract.count({
-        where: { status: 'ACTIVE' },
-      }),
-      ctx.prisma.match.count(),
-      ctx.prisma.auditLog.count(),
-      ctx.prisma.season.findFirst({
-        where: { isCurrent: true },
-        select: {
-          id: true,
-          name: true,
-        },
-      }),
-    ]);
-
-    return {
-      players,
-      teams,
-      activeContracts: contracts,
-      matches,
-      auditLogs,
-      currentSeason,
-    };
-  }),
+  getDashboardStats: adminProcedure.query(() => getCachedDashboardStats()),
 });

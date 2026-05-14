@@ -163,6 +163,8 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
               <img
                 src={player.imageUrl}
                 alt={player.displayName}
+                loading="lazy"
+                decoding="async"
                 className="h-full w-full object-cover"
               />
             ) : (

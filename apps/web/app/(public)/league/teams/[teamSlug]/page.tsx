@@ -115,6 +115,8 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
               <img
                 src={team.logoUrl}
                 alt={team.name}
+                loading="lazy"
+                decoding="async"
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -241,6 +243,8 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                     <img
                       src={player.imageUrl}
                       alt={player.displayName}
+                      loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover"
                     />
                   ) : (

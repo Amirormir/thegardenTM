@@ -203,6 +203,8 @@ export default async function PlayerComparisonPage({
                 <img
                   src={entry.player.imageUrl}
                   alt={entry.player.displayName}
+                  loading="lazy"
+                  decoding="async"
                   className="placeholder-diag h-20 w-20 object-cover"
                 />
               ) : (

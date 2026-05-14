@@ -327,11 +327,49 @@ export const teamRouter = createTRPCRouter({
       select: {
         id: true,
         name: true,
+        _count: {
+          select: {
+            homeMatches: true,
+            awayMatches: true,
+            wonMatches: true,
+            blueSideGames: true,
+            redSideGames: true,
+            wonGames: true,
+            playerMatchStats: true,
+            contracts: true,
+            players: true,
+          },
+        },
       },
     });
 
     if (!existing) {
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Team not found.' });
+    }
+
+    const matchHistoryCount =
+      existing._count.homeMatches +
+      existing._count.awayMatches +
+      existing._count.wonMatches +
+      existing._count.blueSideGames +
+      existing._count.redSideGames +
+      existing._count.wonGames +
+      existing._count.playerMatchStats;
+
+    if (matchHistoryCount > 0) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message:
+          'Cette équipe a un historique de matchs liés. Archivez-la depuis la saison concernée ou détachez les matchs avant suppression.',
+      });
+    }
+
+    if (existing._count.contracts > 0 || existing._count.players > 0) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message:
+          'Cette équipe a encore des contrats ou des joueurs liés. Résiliez les contrats et retirez les joueurs avant suppression.',
+      });
     }
 
     await ctx.prisma.$transaction(async (tx) => {

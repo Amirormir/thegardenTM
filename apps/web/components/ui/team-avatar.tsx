@@ -35,6 +35,8 @@ export function TeamAvatar({
       <img
         src={logoUrl}
         alt={name}
+        loading="lazy"
+        decoding="async"
         className={cn(
           'rounded-sm border border-hairline object-cover',
           sizeStyles[size],

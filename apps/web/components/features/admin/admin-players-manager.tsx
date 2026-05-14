@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { api } from '@/lib/trpc/react';
@@ -145,6 +146,25 @@ export function AdminPlayersManager() {
   const [playerSearch, setPlayerSearch] = useState('');
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [draft, setDraft] = useState<PlayerDraftState>(createEmptyPlayerDraft);
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    requireText?: string;
+    action: () => Promise<void>;
+  } | null>(null);
+  const [confirmPending, setConfirmPending] = useState(false);
+
+  async function runConfirm() {
+    if (!confirmState) return;
+    setConfirmPending(true);
+    try {
+      await confirmState.action();
+      setConfirmState(null);
+    } finally {
+      setConfirmPending(false);
+    }
+  }
   const selectedPlayerQuery = api.player.getAdminDetails.useQuery(
     { id: selectedPlayerId ?? '' },
     {
@@ -190,15 +210,10 @@ export function AdminPlayersManager() {
     await Promise.all([
       utils.player.getAdminRegistry.invalidate(),
       utils.player.getAdminOptions.invalidate(),
-      utils.player.getAll.invalidate(),
-      utils.player.getById.invalidate(),
+      playerId
+        ? utils.player.getAdminDetails.invalidate({ id: playerId })
+        : utils.player.getAdminDetails.invalidate(),
     ]);
-
-    if (playerId) {
-      await utils.player.getAdminDetails.invalidate({ id: playerId });
-    } else {
-      await utils.player.getAdminDetails.invalidate();
-    }
   }
 
   async function handlePlayerSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -243,27 +258,34 @@ export function AdminPlayersManager() {
     }
   }
 
-  async function handleDeletePlayer() {
+  function handleDeletePlayer() {
     if (!selectedPlayerId) {
       return;
     }
 
-    if (!window.confirm('Supprimer ce joueur et toutes ses donnees associees ?')) {
-      return;
-    }
+    const playerLabel = selectedPlayer?.gameName ?? 'SUPPRIMER';
 
-    setFeedback(null);
-
-    try {
-      await deletePlayer.mutateAsync({ id: selectedPlayerId });
-      setSelectedPlayerId(null);
-      setDraft(createEmptyPlayerDraft());
-      await refreshAdminPlayerData();
-      setFeedback({ type: 'success', message: 'Le joueur a bien ete supprime.' });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'La suppression du joueur a echoue.';
-      setFeedback({ type: 'error', message });
-    }
+    setConfirmState({
+      title: 'Supprimer ce joueur ?',
+      description:
+        'Cette action est irréversible et supprime toutes les données associées (contrats, historique, statistiques).',
+      confirmLabel: 'Supprimer définitivement',
+      requireText: playerLabel,
+      action: async () => {
+        setFeedback(null);
+        try {
+          await deletePlayer.mutateAsync({ id: selectedPlayerId });
+          setSelectedPlayerId(null);
+          setDraft(createEmptyPlayerDraft());
+          await refreshAdminPlayerData();
+          setFeedback({ type: 'success', message: 'Le joueur a bien ete supprime.' });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'La suppression du joueur a echoue.';
+          setFeedback({ type: 'error', message });
+        }
+      },
+    });
   }
 
   function handlePrimaryRoleChange(role: SharedPlayerRole) {
@@ -354,26 +376,28 @@ export function AdminPlayersManager() {
     }
   }
 
-  async function handleDeleteHistoryEntry(entryId: string) {
+  function handleDeleteHistoryEntry(entryId: string) {
     if (!selectedPlayerId) {
       return;
     }
 
-    if (!window.confirm("Supprimer cette entree d'historique ?")) {
-      return;
-    }
-
-    setFeedback(null);
-
-    try {
-      await deleteHistoryEntry.mutateAsync({ id: entryId });
-      await refreshAdminPlayerData(selectedPlayerId);
-      setFeedback({ type: 'success', message: "L'entree d'historique a ete supprimee." });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "La suppression de l'historique a echoue.";
-      setFeedback({ type: 'error', message });
-    }
+    setConfirmState({
+      title: "Supprimer cette entrée d'historique ?",
+      description: "L'entrée sera retirée de l'historique de valeur marchande du joueur.",
+      confirmLabel: 'Supprimer',
+      action: async () => {
+        setFeedback(null);
+        try {
+          await deleteHistoryEntry.mutateAsync({ id: entryId });
+          await refreshAdminPlayerData(selectedPlayerId);
+          setFeedback({ type: 'success', message: "L'entree d'historique a ete supprimee." });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "La suppression de l'historique a echoue.";
+          setFeedback({ type: 'error', message });
+        }
+      },
+    });
   }
 
   async function handleCreateTrophy(event: React.FormEvent<HTMLFormElement>) {
@@ -434,26 +458,28 @@ export function AdminPlayersManager() {
     }
   }
 
-  async function handleDeleteTrophy(trophyId: string) {
+  function handleDeleteTrophy(trophyId: string) {
     if (!selectedPlayerId) {
       return;
     }
 
-    if (!window.confirm('Supprimer cette ligne de palmares ?')) {
-      return;
-    }
-
-    setFeedback(null);
-
-    try {
-      await deleteTrophy.mutateAsync({ id: trophyId });
-      await refreshAdminPlayerData(selectedPlayerId);
-      setFeedback({ type: 'success', message: 'La ligne de palmares a ete supprimee.' });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'La suppression du palmares a echoue.';
-      setFeedback({ type: 'error', message });
-    }
+    setConfirmState({
+      title: 'Supprimer cette ligne de palmarès ?',
+      description: 'Le palmarès du joueur sera mis à jour immédiatement.',
+      confirmLabel: 'Supprimer',
+      action: async () => {
+        setFeedback(null);
+        try {
+          await deleteTrophy.mutateAsync({ id: trophyId });
+          await refreshAdminPlayerData(selectedPlayerId);
+          setFeedback({ type: 'success', message: 'La ligne de palmares a ete supprimee.' });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'La suppression du palmares a echoue.';
+          setFeedback({ type: 'error', message });
+        }
+      },
+    });
   }
 
   const playerMutationPending =
@@ -461,6 +487,19 @@ export function AdminPlayersManager() {
 
   return (
     <div className="space-y-8">
+      <ConfirmDialog
+        open={confirmState !== null}
+        title={confirmState?.title ?? ''}
+        {...(confirmState?.description ? { description: confirmState.description } : {})}
+        {...(confirmState?.confirmLabel ? { confirmLabel: confirmState.confirmLabel } : {})}
+        {...(confirmState?.requireText ? { requireText: confirmState.requireText } : {})}
+        destructive
+        pending={confirmPending}
+        onConfirm={runConfirm}
+        onCancel={() => {
+          if (!confirmPending) setConfirmState(null);
+        }}
+      />
       <FeedbackBanner feedback={feedback} />
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
@@ -523,6 +562,8 @@ export function AdminPlayersManager() {
                         <img
                           src={player.imageUrl}
                           alt={player.displayName}
+                          loading="lazy"
+                          decoding="async"
                           className="h-14 w-14 rounded-2xl object-cover ring-1 ring-white/[0.06]"
                         />
                       ) : (
@@ -587,6 +628,8 @@ export function AdminPlayersManager() {
                       <img
                         src={draft.imageUrl}
                         alt={draft.displayName || draft.gameName || 'Preview'}
+                        loading="lazy"
+                        decoding="async"
                         className="h-[220px] w-full object-cover"
                       />
                     ) : (
