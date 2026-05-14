@@ -64,6 +64,29 @@ const enforceAdmin = t.middleware(({ ctx, next }) => {
   });
 });
 
+const PROCEDURE_TIMEOUT_MS = 15_000;
+
+const enforceTimeout = t.middleware(async ({ next, path }) => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(
+        new TRPCError({
+          code: 'TIMEOUT',
+          message: `Procedure '${path}' exceeded ${PROCEDURE_TIMEOUT_MS}ms`,
+        }),
+      );
+    }, PROCEDURE_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([next(), timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+});
+
 const MUTATION_RATE_LIMIT_PER_MIN = 60;
 
 const enforceMutationRateLimit = t.middleware(async ({ ctx, type, path, next }) => {
@@ -90,15 +113,18 @@ const enforceMutationRateLimit = t.middleware(async ({ ctx, type, path, next }) 
 });
 
 export const createTRPCRouter = t.router;
-export const publicProcedure = t.procedure;
+export const publicProcedure = t.procedure.use(enforceTimeout);
 export const protectedProcedure = t.procedure
+  .use(enforceTimeout)
   .use(enforceUserIsAuthed)
   .use(enforceMutationRateLimit);
 export const captainProcedure = t.procedure
+  .use(enforceTimeout)
   .use(enforceUserIsAuthed)
   .use(enforceCaptain)
   .use(enforceMutationRateLimit);
 export const adminProcedure = t.procedure
+  .use(enforceTimeout)
   .use(enforceUserIsAuthed)
   .use(enforceAdmin)
   .use(enforceMutationRateLimit);

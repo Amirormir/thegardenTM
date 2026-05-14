@@ -193,6 +193,25 @@ export const transferRouter = createTRPCRouter({
           });
         }
 
+        // Cooldown: refuse if buyer just sent an offer (any status) for this
+        // player within the last 5 minutes. Prevents spam reposting after rejection.
+        const cooldownThreshold = new Date(Date.now() - 5 * 60_000);
+        const recentOffer = await tx.transferOffer.findFirst({
+          where: {
+            playerId: input.playerId,
+            fromTeamId: input.fromTeamId,
+            createdAt: { gte: cooldownThreshold },
+          },
+          select: { id: true, createdAt: true },
+        });
+
+        if (recentOffer) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: 'Une offre recente existe deja pour ce joueur. Patientez quelques minutes.',
+          });
+        }
+
         // Validate budget: the buying team must be able to afford the transfer fee
         const currentPayroll = budgetContracts.reduce((sum, c) => sum + c.salary, 0);
         const budgetRemaining = fromTeam.budget - currentPayroll;

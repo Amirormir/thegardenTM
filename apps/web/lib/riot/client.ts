@@ -1,6 +1,50 @@
 import axios, { type AxiosError } from 'axios';
+import { Redis } from '@upstash/redis';
 
 export type RiotErrorCode = 'RATE_LIMITED' | 'FORBIDDEN' | 'NOT_FOUND' | 'SERVER_ERROR' | 'UNKNOWN';
+
+const RIOT_API_KEY_REDIS_KEY = 'riot:apikey:override';
+const API_KEY_CACHE_TTL_MS = 60_000;
+
+let overrideRedis: Redis | null | undefined;
+let cachedOverride: { value: string | null; expiresAt: number } | null = null;
+
+function getOverrideRedis() {
+  if (overrideRedis !== undefined) return overrideRedis;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  overrideRedis = url && token ? new Redis({ url, token }) : null;
+  return overrideRedis;
+}
+
+async function readApiKeyOverride() {
+  if (cachedOverride && cachedOverride.expiresAt > Date.now()) {
+    return cachedOverride.value;
+  }
+
+  const client = getOverrideRedis();
+  if (!client) {
+    cachedOverride = { value: null, expiresAt: Date.now() + API_KEY_CACHE_TTL_MS };
+    return null;
+  }
+
+  try {
+    const value = await client.get<string>(RIOT_API_KEY_REDIS_KEY);
+    cachedOverride = {
+      value: typeof value === 'string' && value.length > 0 ? value : null,
+      expiresAt: Date.now() + API_KEY_CACHE_TTL_MS,
+    };
+    return cachedOverride.value;
+  } catch {
+    cachedOverride = { value: null, expiresAt: Date.now() + API_KEY_CACHE_TTL_MS };
+    return null;
+  }
+}
+
+export async function resolveRiotApiKey() {
+  const override = await readApiKeyOverride();
+  return override ?? process.env.RIOT_API_KEY ?? null;
+}
 
 export class RiotApiError extends Error {
   constructor(
@@ -48,8 +92,8 @@ function createRiotAxiosClient(baseURL: string) {
     timeout: 12000,
   });
 
-  client.interceptors.request.use((config) => {
-    const apiKey = process.env.RIOT_API_KEY;
+  client.interceptors.request.use(async (config) => {
+    const apiKey = await resolveRiotApiKey();
 
     if (!apiKey) {
       throw new RiotApiError(
