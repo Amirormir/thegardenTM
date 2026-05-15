@@ -36,6 +36,7 @@ interface PlayerDraftState {
   teamId: string;
   marketValue: string;
   salary: string;
+  cost: string;
   age: string;
   nationality: string;
   isActive: boolean;
@@ -52,6 +53,7 @@ function createEmptyPlayerDraft(): PlayerDraftState {
     teamId: '',
     marketValue: '0',
     salary: '0',
+    cost: '1',
     age: '',
     nationality: '',
     isActive: true,
@@ -69,6 +71,7 @@ function createPlayerDraft(player: AdminPlayerDetails): PlayerDraftState {
     teamId: player.teamId ?? '',
     marketValue: player.marketValue.toString(),
     salary: player.salary.toString(),
+    cost: (player.cost ?? 1).toString(),
     age: player.age?.toString() ?? '',
     nationality: player.nationality ?? '',
     isActive: player.isActive,
@@ -233,6 +236,7 @@ export function AdminPlayersManager() {
         teamId: draft.teamId.length > 0 ? draft.teamId : null,
         marketValue: parseInteger(draft.marketValue),
         salary: parseInteger(draft.salary),
+        cost: Math.min(5, Math.max(1, parseInteger(draft.cost, 1))),
         age: parseOptionalInteger(draft.age),
         nationality: draft.nationality.trim() || undefined,
         isActive: draft.isActive,
@@ -754,6 +758,23 @@ export function AdminPlayersManager() {
                         setDraft((current) => ({ ...current, salary: event.target.value }))
                       }
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
+                      Cost (1-5)
+                    </label>
+                    <Select
+                      value={draft.cost}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, cost: event.target.value }))
+                      }
+                    >
+                      {[1, 2, 3, 4, 5].map((value) => (
+                        <option key={value} value={value.toString()}>
+                          {value}
+                        </option>
+                      ))}
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">

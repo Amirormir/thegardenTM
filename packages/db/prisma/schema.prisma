@@ -144,6 +144,7 @@ model Player {
   nationality        String?
   marketValue        Int                  @default(0)
   salary             Int                  @default(0)
+  cost               Int                  @default(1)
   isActive           Boolean              @default(true)
   teamId             String?
   team               Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)

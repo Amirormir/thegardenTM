@@ -69,6 +69,7 @@ const playerBaseInputSchema = z.object({
   nationality: optionalTrimmedString.pipe(z.string().min(2).max(50).optional()),
   marketValue: z.number().int().nonnegative(),
   salary: z.number().int().nonnegative(),
+  cost: z.number().int().min(1).max(5).default(1),
   puuid: optionalTrimmedString.pipe(z.string().min(1).optional()),
   summonerId: optionalTrimmedString.pipe(z.string().min(1).optional()),
   isActive: z.boolean().optional(),
