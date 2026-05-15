@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { BudgetCalculator } from '@/components/features/team/budget-calculator';
+import { BudgetSlider } from '@/components/features/team/budget-slider';
 import { RosterTable } from '@/components/features/team/roster-table';
 import { TransferOffers } from '@/components/features/team/transfer-offers';
 import { buttonVariants } from '@/components/ui/button';
@@ -38,8 +39,10 @@ export default async function TeamDashboardPage() {
 
   const totalMarketValue = team.players.reduce((sum, player) => sum + player.marketValue, 0);
   const totalSalary = team.players.reduce((sum, player) => sum + player.salary, 0);
-  const budgetUsagePct = Math.round((totalSalary / team.budget) * 100);
-  const budgetRemaining = team.budget - totalSalary;
+  const salaryCapUsagePct = team.salaryBudgetCap > 0
+    ? Math.round((totalSalary / team.salaryBudgetCap) * 100)
+    : 0;
+  const salaryRemaining = team.salaryBudgetCap - totalSalary;
 
   return (
     <div className="flex flex-col gap-16 md:gap-20">
@@ -55,9 +58,14 @@ export default async function TeamDashboardPage() {
         <KpiBlock label="Roster" value={team.players.length.toString().padStart(2, '0')} hint="joueurs actifs" />
         <KpiBlock label="Market value" value={formatCurrency(totalMarketValue)} hint="total effectif" />
         <KpiBlock
-          label="Budget restant"
-          value={formatCurrency(budgetRemaining)}
-          hint={`${budgetUsagePct}% utilisé`}
+          label="Marge salariale"
+          value={formatCurrency(salaryRemaining)}
+          hint={`${salaryCapUsagePct}% de la masse salariale utilisée`}
+        />
+        <KpiBlock
+          label="Budget transfert"
+          value={formatCurrency(team.transferBudget)}
+          hint="cash disponible pour acquisitions"
         />
       </section>
 
@@ -109,10 +117,22 @@ export default async function TeamDashboardPage() {
 
       <section>
         <p className="label-mono">§ 04 Budget</p>
-        <h2 className="mt-3 display-md text-foreground">Simulateur budgétaire.</h2>
+        <h2 className="mt-3 display-md text-foreground">Arbitrage budgétaire.</h2>
+        <p className="mt-3 max-w-2xl text-base leading-7 text-foreground-dim">
+          Convertis du budget transfert en plafond salarial — ou inversement — selon le taux fixé
+          par la ligue.
+        </p>
+        <div className="mt-8">
+          <BudgetSlider teamId={teamId} />
+        </div>
+      </section>
+
+      <section>
+        <p className="label-mono">§ 05 Simulation</p>
+        <h2 className="mt-3 display-md text-foreground">Répartition salariale.</h2>
         <div className="mt-8">
           <BudgetCalculator
-            budget={team.budget}
+            budget={team.salaryBudgetCap}
             players={team.players.map((player) => ({ role: player.role, salary: player.salary }))}
           />
         </div>

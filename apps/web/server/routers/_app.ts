@@ -4,6 +4,7 @@ import { articleRouter } from './article';
 import { contractRouter } from './contract';
 import { customRouter } from './custom';
 import { leagueRouter } from './league';
+import { leagueSettingsRouter } from './league-settings';
 import { matchRouter } from './match';
 import { notificationRouter } from './notification';
 import { playerRouter } from './player';
@@ -18,6 +19,7 @@ export const appRouter = createTRPCRouter({
   contract: contractRouter,
   custom: customRouter,
   league: leagueRouter,
+  leagueSettings: leagueSettingsRouter,
   match: matchRouter,
   notification: notificationRouter,
   player: playerRouter,

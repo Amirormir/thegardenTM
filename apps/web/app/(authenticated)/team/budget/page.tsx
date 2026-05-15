@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { BudgetCalculator } from '@/components/features/team/budget-calculator';
+import { BudgetSlider } from '@/components/features/team/budget-slider';
 import { auth } from '@/lib/auth';
 import { getServerCaller } from '@/server/caller';
 
@@ -23,8 +24,9 @@ export default async function TeamBudgetPage() {
           Simulateur côté client pour la planification budgétaire.
         </p>
       </header>
+      <BudgetSlider teamId={teamId} />
       <BudgetCalculator
-        budget={team.budget}
+        budget={team.salaryBudgetCap}
         players={team.players.map((player) => ({ role: player.role, salary: player.salary }))}
       />
     </div>

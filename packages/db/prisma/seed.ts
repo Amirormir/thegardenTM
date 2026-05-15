@@ -20,7 +20,8 @@ interface SeedTeam {
   name: string;
   slug: string;
   shortCode: string;
-  budget: number;
+  transferBudget: number;
+  salaryBudgetCap: number;
 }
 
 interface SeedPlayer {
@@ -78,11 +79,11 @@ const users: SeedUser[] = [
 ];
 
 const teams: SeedTeam[] = [
-  { id: 'team-1', name: 'Astral Wolves', slug: 'astral-wolves', shortCode: 'AW', budget: 1200000 },
-  { id: 'team-2', name: 'Crimson Nova', slug: 'crimson-nova', shortCode: 'CN', budget: 1150000 },
-  { id: 'team-3', name: 'Golden Echo', slug: 'golden-echo', shortCode: 'GE', budget: 1100000 },
-  { id: 'team-4', name: 'Void Sentinels', slug: 'void-sentinels', shortCode: 'VS', budget: 1250000 },
-  { id: 'team-test', name: 'Admin Test Squad', slug: 'admin-test-squad', shortCode: 'ADM', budget: 1350000 },
+  { id: 'team-1', name: 'Astral Wolves', slug: 'astral-wolves', shortCode: 'AW', transferBudget: 1200000, salaryBudgetCap: 1200000 },
+  { id: 'team-2', name: 'Crimson Nova', slug: 'crimson-nova', shortCode: 'CN', transferBudget: 1150000, salaryBudgetCap: 1150000 },
+  { id: 'team-3', name: 'Golden Echo', slug: 'golden-echo', shortCode: 'GE', transferBudget: 1100000, salaryBudgetCap: 1100000 },
+  { id: 'team-4', name: 'Void Sentinels', slug: 'void-sentinels', shortCode: 'VS', transferBudget: 1250000, salaryBudgetCap: 1250000 },
+  { id: 'team-test', name: 'Admin Test Squad', slug: 'admin-test-squad', shortCode: 'ADM', transferBudget: 1350000, salaryBudgetCap: 1350000 },
 ];
 
 const captainAssignments = [
@@ -376,6 +377,17 @@ async function main() {
 
   await prisma.team.createMany({
     data: teams,
+  });
+
+  await prisma.leagueSettings.upsert({
+    where: { id: 1 },
+    create: {
+      id: 1,
+      boMaxRegularSeason: 18,
+      transferWindowOpen: true,
+      contractExpiryNoticeDays: 30,
+    },
+    update: {},
   });
 
   await Promise.all(

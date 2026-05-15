@@ -13,13 +13,18 @@ describe('transfer router', () => {
 
   describe('getByTeam', () => {
     it('returns incoming transfer offers for a team', async () => {
-      const offers = [{ id: 'o-1', status: 'PENDING', offeredFee: 500000 }];
+      const offers = [{
+        id: 'o-1',
+        status: 'PENDING',
+        offeredFee: 500000,
+        player: { id: 'p-1', firstName: 'A', lastName: 'B', gameName: 'AB' },
+      }];
       (prisma.transferOffer.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(offers);
 
       const { caller } = createCaptainCaller('team-1', prisma);
       const result = await caller.transfer.getByTeam({ teamId: 'team-1', direction: 'incoming' });
 
-      expect(result).toEqual(offers);
+      expect(result[0]?.id).toBe('o-1');
       expect(prisma.transferOffer.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { toTeamId: 'team-1' },
@@ -76,14 +81,12 @@ describe('transfer router', () => {
     function setupCreateMocks(overrides: {
       releaseClause?: number;
       playerTeamId?: string;
-      budget?: number;
-      existingPayroll?: number;
+      transferBudget?: number;
     } = {}) {
       const {
         releaseClause = 1000000,
         playerTeamId = 'team-2',
-        budget = 2000000,
-        existingPayroll = 0,
+        transferBudget = 2000000,
       } = overrides;
 
       const player = {
@@ -92,7 +95,7 @@ describe('transfer router', () => {
         teamId: playerTeamId,
         contracts: [{ id: 'c-1', teamId: playerTeamId, releaseClause }],
       };
-      const fromTeam = { id: 'team-1', name: 'Buying Team', budget };
+      const fromTeam = { id: 'team-1', name: 'Buying Team', transferBudget };
       const sellingTeam = { id: playerTeamId, name: 'Selling Team', captains: [{ id: 'captain-selling' }] };
       const offer = { id: 'o-new', status: 'PENDING', offeredFee: validInput.offeredFee, fromTeamId: 'team-1', toTeamId: playerTeamId };
 
@@ -100,9 +103,6 @@ describe('transfer router', () => {
       (prisma.team.findUnique as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce(fromTeam)
         .mockResolvedValueOnce(sellingTeam);
-      (prisma.contract.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
-        existingPayroll > 0 ? [{ salary: existingPayroll }] : [],
-      );
       (prisma.transferOffer.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       (prisma.transferOffer.create as ReturnType<typeof vi.fn>).mockResolvedValue(offer);
       (prisma.notification.create as ReturnType<typeof vi.fn>).mockResolvedValue({});
@@ -128,20 +128,23 @@ describe('transfer router', () => {
       );
     });
 
-    it('auto-accepts when offer >= release clause', async () => {
-      const autoAcceptedOffer = { id: 'o-new', status: 'ACCEPTED', offeredFee: 1000000, fromTeamId: 'team-1', toTeamId: 'team-2' };
+    it('auto-triggers release clause when offer >= release clause', async () => {
+      const autoAcceptedOffer = { id: 'o-new', status: 'CONTRACT_IN_PROGRESS', offeredFee: 1000000, fromTeamId: 'team-1', toTeamId: 'team-2' };
       setupCreateMocks({ releaseClause: 500000 });
       (prisma.transferOffer.create as ReturnType<typeof vi.fn>).mockResolvedValue(autoAcceptedOffer);
+      (prisma.contract.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'c-new' });
 
       const { caller } = createCaptainCaller('team-1', prisma);
       const result = await caller.transfer.create(validInput);
 
-      expect(result.status).toBe('ACCEPTED');
-      // Should terminate old contract
+      expect(result.status).toBe('CONTRACT_IN_PROGRESS');
       expect(prisma.contract.update).toHaveBeenCalled();
-      // Should create new contract
       expect(prisma.contract.create).toHaveBeenCalled();
-      // Should update player's team
+      expect(prisma.transferOffer.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ linkedContractId: 'c-new' }),
+        }),
+      );
       expect(prisma.player.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'player-1' },
@@ -195,13 +198,13 @@ describe('transfer router', () => {
       await expect(caller.transfer.create(validInput)).rejects.toThrow('deja une offre');
     });
 
-    it('rejects when budget is insufficient for transfer fee', async () => {
-      setupCreateMocks({ budget: 400000, existingPayroll: 200000 });
+    it('rejects when transfer budget is insufficient for transfer fee', async () => {
+      setupCreateMocks({ transferBudget: 400000 });
 
       const { caller } = createCaptainCaller('team-1', prisma);
       await expect(
-        caller.transfer.create({ ...validInput, offeredFee: 250000 }),
-      ).rejects.toThrow('Budget insuffisant');
+        caller.transfer.create({ ...validInput, offeredFee: 500000 }),
+      ).rejects.toThrow('Budget transfert insuffisant');
     });
 
     it('rejects player without active contract', async () => {
@@ -232,6 +235,214 @@ describe('transfer router', () => {
     it('rejects unauthenticated access', async () => {
       const { caller } = createPublicCaller(prisma);
       await expect(caller.transfer.create(validInput)).rejects.toThrow(TRPCError);
+    });
+
+    it('rejects when transfer window is closed', async () => {
+      setupCreateMocks();
+      (prisma.leagueSettings.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 1,
+        boMaxRegularSeason: 18,
+        transferWindowOpen: false,
+        transferWindowStart: null,
+        transferWindowEnd: null,
+        contractExpiryNoticeDays: 30,
+      });
+
+      const { caller } = createCaptainCaller('team-1', prisma);
+      await expect(caller.transfer.create(validInput)).rejects.toThrow('mercato');
+    });
+
+    it('rejects when current date is before transfer window start', async () => {
+      setupCreateMocks();
+      const future = new Date(Date.now() + 86_400_000);
+      (prisma.leagueSettings.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 1,
+        boMaxRegularSeason: 18,
+        transferWindowOpen: true,
+        transferWindowStart: future,
+        transferWindowEnd: null,
+        contractExpiryNoticeDays: 30,
+      });
+
+      const { caller } = createCaptainCaller('team-1', prisma);
+      await expect(caller.transfer.create(validInput)).rejects.toThrow('mercato ouvre');
+    });
+
+    it('rejects when current date is after transfer window end', async () => {
+      setupCreateMocks();
+      const past = new Date(Date.now() - 86_400_000);
+      (prisma.leagueSettings.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 1,
+        boMaxRegularSeason: 18,
+        transferWindowOpen: true,
+        transferWindowStart: null,
+        transferWindowEnd: past,
+        contractExpiryNoticeDays: 30,
+      });
+
+      const { caller } = createCaptainCaller('team-1', prisma);
+      await expect(caller.transfer.create(validInput)).rejects.toThrow('ferme');
+    });
+  });
+
+  // ─── adminValidate ─────────────────────────────────────────────────
+
+  describe('adminValidate', () => {
+    function setupAdminValidateMocks(overrides: { status?: string; transferBudget?: number; offeredFee?: number } = {}) {
+      const offer = {
+        id: 'o-1',
+        playerId: 'player-1',
+        fromTeamId: 'team-1',
+        toTeamId: 'team-2',
+        offeredFee: overrides.offeredFee ?? 500000,
+        status: overrides.status ?? 'ACCEPTED',
+        player: { id: 'player-1', firstName: 'A', lastName: 'B', gameName: 'AB' },
+        fromTeam: {
+          id: 'team-1',
+          name: 'Buyer',
+          transferBudget: overrides.transferBudget ?? 1000000,
+          captains: [{ id: 'captain-buyer' }],
+        },
+        toTeam: { id: 'team-2', name: 'Seller', captains: [{ id: 'captain-seller' }] },
+      };
+      (prisma.transferOffer.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(offer);
+      (prisma.transferOffer.update as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'o-1',
+        status: 'VALIDATED_ADMIN',
+        adminValidatedAt: new Date(),
+      });
+      return offer;
+    }
+
+    it('moves an ACCEPTED offer to VALIDATED_ADMIN', async () => {
+      setupAdminValidateMocks();
+      const { caller } = createAdminCaller(prisma);
+      const result = await caller.transfer.adminValidate({ id: 'o-1' });
+      expect(result.status).toBe('VALIDATED_ADMIN');
+      expect(prisma.transferOffer.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'VALIDATED_ADMIN' }),
+        }),
+      );
+    });
+
+    it('rejects non-ACCEPTED offer', async () => {
+      setupAdminValidateMocks({ status: 'PENDING' });
+      const { caller } = createAdminCaller(prisma);
+      await expect(caller.transfer.adminValidate({ id: 'o-1' })).rejects.toThrow('acceptees');
+    });
+
+    it('rejects when buyer transfer budget is insufficient', async () => {
+      setupAdminValidateMocks({ transferBudget: 100000, offeredFee: 500000 });
+      const { caller } = createAdminCaller(prisma);
+      await expect(caller.transfer.adminValidate({ id: 'o-1' })).rejects.toThrow('Budget transfert insuffisant');
+    });
+
+    it('rejects non-admin caller', async () => {
+      const { caller } = createCaptainCaller('team-1', prisma);
+      await expect(caller.transfer.adminValidate({ id: 'o-1' })).rejects.toThrow();
+    });
+
+    it('notifies both teams captains on validation', async () => {
+      setupAdminValidateMocks();
+      const { caller } = createAdminCaller(prisma);
+      await caller.transfer.adminValidate({ id: 'o-1' });
+      const calls = (prisma.notification.create as ReturnType<typeof vi.fn>).mock.calls;
+      const types = calls.map((c) => (c[0] as { data: { type: string } }).data.type);
+      expect(types).toContain('TRANSFER_VALIDATED_ADMIN');
+    });
+  });
+
+  // ─── startContract ─────────────────────────────────────────────────
+
+  describe('startContract', () => {
+    function setupStartContractMocks(overrides: {
+      status?: string;
+      linkedContractId?: string | null;
+      salaryBudgetCap?: number;
+      existingPayroll?: number;
+    } = {}) {
+      const offer = {
+        id: 'o-1',
+        playerId: 'player-1',
+        fromTeamId: 'team-1',
+        toTeamId: 'team-2',
+        offeredFee: 500000,
+        status: overrides.status ?? 'VALIDATED_ADMIN',
+        linkedContractId: overrides.linkedContractId ?? null,
+        player: { id: 'player-1', firstName: 'A', lastName: 'B', gameName: 'AB' },
+        fromTeam: { id: 'team-1', name: 'Buyer', salaryBudgetCap: overrides.salaryBudgetCap ?? 1000000 },
+        toTeam: { id: 'team-2', name: 'Seller', captains: [{ id: 'captain-seller' }] },
+      };
+      (prisma.transferOffer.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(offer);
+      (prisma.contract.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
+        overrides.existingPayroll !== undefined ? [{ salary: overrides.existingPayroll }] : [],
+      );
+      (prisma.contract.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'c-new', status: 'PENDING_APPROVAL' });
+      (prisma.transferOffer.update as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'o-1',
+        status: 'CONTRACT_IN_PROGRESS',
+        linkedContractId: 'c-new',
+      });
+      return offer;
+    }
+
+    const validInput = {
+      id: 'o-1',
+      salary: 100000,
+      durationBo3: 12,
+      releaseClause: 500000,
+    };
+
+    it('creates a PENDING_APPROVAL contract and moves offer to CONTRACT_IN_PROGRESS', async () => {
+      setupStartContractMocks();
+      const { caller } = createCaptainCaller('team-1', prisma);
+      const result = await caller.transfer.startContract(validInput);
+      expect(result.status).toBe('CONTRACT_IN_PROGRESS');
+      expect(prisma.contract.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            playerId: 'player-1',
+            teamId: 'team-1',
+            salary: 100000,
+            durationBo3: 12,
+            releaseClause: 500000,
+            transferFee: 500000,
+            status: 'PENDING_APPROVAL',
+          }),
+        }),
+      );
+      expect(prisma.transferOffer.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ linkedContractId: 'c-new' }),
+        }),
+      );
+    });
+
+    it('rejects when offer is not VALIDATED_ADMIN', async () => {
+      setupStartContractMocks({ status: 'PENDING' });
+      const { caller } = createCaptainCaller('team-1', prisma);
+      await expect(caller.transfer.startContract(validInput)).rejects.toThrow('valide par l');
+    });
+
+    it('rejects when a contract is already linked', async () => {
+      setupStartContractMocks({ linkedContractId: 'c-existing' });
+      const { caller } = createCaptainCaller('team-1', prisma);
+      await expect(caller.transfer.startContract(validInput)).rejects.toThrow('deja lie');
+    });
+
+    it('rejects when payroll + new salary exceeds cap', async () => {
+      setupStartContractMocks({ salaryBudgetCap: 200000, existingPayroll: 150000 });
+      const { caller } = createCaptainCaller('team-1', prisma);
+      await expect(
+        caller.transfer.startContract({ ...validInput, salary: 100000 }),
+      ).rejects.toThrow('Masse salariale');
+    });
+
+    it('rejects captain of wrong team', async () => {
+      setupStartContractMocks();
+      const { caller } = createCaptainCaller('team-2', prisma);
+      await expect(caller.transfer.startContract(validInput)).rejects.toThrow('own team');
     });
   });
 
@@ -266,59 +477,17 @@ describe('transfer router', () => {
       return offer;
     }
 
-    it('accepts a pending offer', async () => {
+    it('accepts a pending offer (no contract created yet)', async () => {
       setupAcceptMocks();
 
       const { caller } = createCaptainCaller('team-2', prisma);
       const result = await caller.transfer.accept({ id: 'o-1' });
 
       expect(result.status).toBe('ACCEPTED');
-    });
-
-    it('terminates old contract on accept', async () => {
-      setupAcceptMocks();
-
-      const { caller } = createCaptainCaller('team-2', prisma);
-      await caller.transfer.accept({ id: 'o-1' });
-
-      expect(prisma.contract.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'c-1' },
-          data: expect.objectContaining({ status: 'TERMINATED' }),
-        }),
-      );
-    });
-
-    it('creates new PENDING_APPROVAL contract for buying team', async () => {
-      setupAcceptMocks();
-
-      const { caller } = createCaptainCaller('team-2', prisma);
-      await caller.transfer.accept({ id: 'o-1' });
-
-      expect(prisma.contract.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            playerId: 'player-1',
-            teamId: 'team-1',
-            status: 'PENDING_APPROVAL',
-            transferFee: 500000,
-          }),
-        }),
-      );
-    });
-
-    it('moves player to buying team', async () => {
-      setupAcceptMocks();
-
-      const { caller } = createCaptainCaller('team-2', prisma);
-      await caller.transfer.accept({ id: 'o-1' });
-
-      expect(prisma.player.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'player-1' },
-          data: expect.objectContaining({ teamId: 'team-1' }),
-        }),
-      );
+      // Accept no longer creates a contract or moves the player — that happens
+      // post admin-validation via startContract + contract.approve.
+      expect(prisma.contract.create).not.toHaveBeenCalled();
+      expect(prisma.player.update).not.toHaveBeenCalled();
     });
 
     it('notifies buying team captain', async () => {

@@ -26,3 +26,16 @@ export const transferCounterProposeSchema = z.object({
   counterOffer: z.number().int().positive(),
   counterMessage: z.string().max(500).optional(),
 });
+
+export const transferAdminValidateSchema = z.object({
+  id: z.string().min(1),
+  notes: z.string().max(500).optional(),
+});
+
+export const transferStartContractSchema = z.object({
+  id: z.string().min(1),
+  salary: z.number().int().nonnegative(),
+  durationBo3: z.number().int().positive().max(200),
+  releaseClause: z.number().int().nonnegative(),
+  notes: z.string().max(500).optional(),
+});

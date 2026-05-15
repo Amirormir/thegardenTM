@@ -45,9 +45,17 @@ enum TransferOfferStatus {
   PENDING
   COUNTER_PROPOSED
   ACCEPTED
+  VALIDATED_ADMIN
+  CONTRACT_IN_PROGRESS
+  FINALIZED
   REJECTED
   CANCELLED
   COMPLETED
+}
+
+enum ConversionDirection {
+  TRANSFER_TO_SALARY
+  SALARY_TO_TRANSFER
 }
 
 model User {
@@ -99,7 +107,8 @@ model Team {
   slug             String             @unique
   shortCode        String             @unique
   logoUrl          String?
-  budget           Int                @default(1200000)
+  transferBudget   Int                @default(1200000)
+  salaryBudgetCap  Int                @default(1200000)
   captains         User[]             @relation("TeamCaptains")
   players          Player[]
   homeMatches      Match[]            @relation("HomeTeam")
@@ -113,6 +122,7 @@ model Team {
   playerMatchStats     PlayerMatchStats[]
   outgoingTransfers    TransferOffer[]    @relation("BuyingTeam")
   incomingTransfers    TransferOffer[]    @relation("SellingTeam")
+  budgetConversions    BudgetConversion[]
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 }
@@ -152,25 +162,29 @@ model Player {
 }
 
 model Contract {
-  id            String         @id @default(cuid())
-  playerId      String
-  teamId        String
-  status        ContractStatus @default(PENDING_APPROVAL)
-  salary        Int
-  durationBo3   Int            @default(10)
-  releaseClause Int
-  transferFee   Int?
-  approvedAt    DateTime?
-  terminatedAt  DateTime?
-  notes         String?
-  player        Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  team          Team           @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id                 String         @id @default(cuid())
+  playerId           String
+  teamId             String
+  status             ContractStatus @default(PENDING_APPROVAL)
+  salary             Int
+  durationBo3        Int            @default(10)
+  releaseClause      Int
+  transferFee        Int?
+  approvedAt         DateTime?
+  terminatedAt       DateTime?
+  expiresAt          DateTime?
+  expiryNotifiedAt   DateTime?
+  notes              String?
+  player             Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team               Team           @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  transferOffers     TransferOffer[] @relation("ContractTransfer")
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   @@unique([playerId, teamId, createdAt])
   @@index([playerId, status])
   @@index([teamId, status])
+  @@index([status, expiresAt])
 }
 
 model Season {
@@ -357,26 +371,55 @@ model VerificationToken {
 }
 
 model TransferOffer {
-  id              String              @id @default(cuid())
-  playerId        String
-  fromTeamId      String
-  toTeamId        String
-  offeredFee      Int
-  status          TransferOfferStatus @default(PENDING)
-  message         String?
-  rejectionReason String?
-  counterOffer    Int?
-  counterMessage  String?
-  respondedAt     DateTime?
-  player          Player              @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  fromTeam        Team                @relation("BuyingTeam", fields: [fromTeamId], references: [id], onDelete: Restrict)
-  toTeam          Team                @relation("SellingTeam", fields: [toTeamId], references: [id], onDelete: Restrict)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id                 String              @id @default(cuid())
+  playerId           String
+  fromTeamId         String
+  toTeamId           String
+  offeredFee         Int
+  status             TransferOfferStatus @default(PENDING)
+  message            String?
+  rejectionReason    String?
+  counterOffer       Int?
+  counterMessage     String?
+  adminValidatedAt   DateTime?
+  adminValidatedById String?
+  finalizedAt        DateTime?
+  linkedContractId   String?
+  respondedAt        DateTime?
+  player             Player              @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  fromTeam           Team                @relation("BuyingTeam", fields: [fromTeamId], references: [id], onDelete: Restrict)
+  toTeam             Team                @relation("SellingTeam", fields: [toTeamId], references: [id], onDelete: Restrict)
+  linkedContract     Contract?           @relation("ContractTransfer", fields: [linkedContractId], references: [id], onDelete: SetNull)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   @@index([toTeamId, status])
   @@index([fromTeamId, status])
   @@index([playerId])
+  @@index([linkedContractId])
+}
+
+model LeagueSettings {
+  id                   Int       @id @default(1)
+  boMaxRegularSeason   Int       @default(18)
+  transferWindowOpen   Boolean   @default(true)
+  transferWindowStart  DateTime?
+  transferWindowEnd    DateTime?
+  contractExpiryNoticeDays Int   @default(30)
+  updatedAt            DateTime  @updatedAt
+}
+
+model BudgetConversion {
+  id           String              @id @default(cuid())
+  teamId       String
+  direction    ConversionDirection
+  amount       Int
+  nUsed        Int
+  createdById  String
+  createdAt    DateTime            @default(now())
+  team         Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, createdAt])
 }
 
 model Notification {

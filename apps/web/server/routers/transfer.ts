@@ -1,15 +1,18 @@
 import { TRPCError } from '@trpc/server';
 import { ContractStatus, TransferOfferStatus } from '@nexus/db';
 import {
+  transferAdminValidateSchema,
   transferCounterProposeSchema,
   transferOfferCreateSchema,
   transferOfferIdSchema,
   transferOfferRespondSchema,
   transferOffersByTeamSchema,
+  transferStartContractSchema,
 } from '@/lib/validators/transfer';
 import { buildAuditLogInput } from '@/server/utils/audit';
 import { ensureTeamAccess } from '@/server/utils/authz';
 import {
+  adminProcedure,
   captainProcedure,
   createTRPCRouter,
 } from '@/server/trpc';
@@ -19,12 +22,6 @@ import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
 const ACTIVE_CONTRACT_STATUSES: ContractStatus[] = [
   ContractStatus.ACTIVE,
   ContractStatus.LOAN,
-];
-
-const BUDGET_RELEVANT_STATUSES: ContractStatus[] = [
-  ContractStatus.ACTIVE,
-  ContractStatus.LOAN,
-  ContractStatus.PENDING_APPROVAL,
 ];
 
 async function createNotification(
@@ -51,6 +48,78 @@ async function createNotification(
 }
 
 export const transferRouter = createTRPCRouter({
+  getById: captainProcedure
+    .input(transferOfferIdSchema)
+    .query(async ({ ctx, input }) => {
+      const offer = await ctx.prisma.transferOffer.findUnique({
+        where: { id: input.id },
+        select: {
+          id: true,
+          status: true,
+          offeredFee: true,
+          counterOffer: true,
+          message: true,
+          counterMessage: true,
+          rejectionReason: true,
+          respondedAt: true,
+          adminValidatedAt: true,
+          finalizedAt: true,
+          linkedContractId: true,
+          createdAt: true,
+          player: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              gameName: true,
+              tagLine: true,
+              imageUrl: true,
+              role: true,
+              marketValue: true,
+              salary: true,
+            },
+          },
+          fromTeam: {
+            select: {
+              id: true,
+              name: true,
+              shortCode: true,
+              transferBudget: true,
+              salaryBudgetCap: true,
+              players: {
+                where: { isActive: true },
+                select: { id: true, salary: true, isActive: true },
+              },
+            },
+          },
+          toTeam: {
+            select: { id: true, name: true, shortCode: true },
+          },
+        },
+      });
+
+      if (!offer) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Offre introuvable.' });
+      }
+
+      const userTeamId = ctx.session.user.teamId;
+      const isAdmin = ctx.session.user.role === 'ADMIN';
+      if (!isAdmin && userTeamId !== offer.fromTeam.id && userTeamId !== offer.toTeam.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Vous n\'avez pas accès à cette offre.',
+        });
+      }
+
+      return {
+        ...offer,
+        player: {
+          ...offer.player,
+          displayName: resolveStoredPlayerDisplayName(offer.player),
+        },
+      };
+    }),
+
   getByTeam: captainProcedure
     .input(transferOffersByTeamSchema)
     .query(async ({ ctx, input }) => {
@@ -116,7 +185,30 @@ export const transferRouter = createTRPCRouter({
       ensureTeamAccess(ctx.session.user, input.fromTeamId);
 
       return ctx.prisma.$transaction(async (tx) => {
-        const [player, fromTeam, budgetContracts] = await Promise.all([
+        const settings = await tx.leagueSettings.findUnique({ where: { id: 1 } });
+        const now = new Date();
+        if (settings) {
+          if (!settings.transferWindowOpen) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Le mercato est actuellement ferme.',
+            });
+          }
+          if (settings.transferWindowStart && now < settings.transferWindowStart) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Le mercato ouvre le ${settings.transferWindowStart.toISOString().slice(0, 10)}.`,
+            });
+          }
+          if (settings.transferWindowEnd && now > settings.transferWindowEnd) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Le mercato s'est ferme le ${settings.transferWindowEnd.toISOString().slice(0, 10)}.`,
+            });
+          }
+        }
+
+        const [player, fromTeam] = await Promise.all([
           tx.player.findUnique({
             where: { id: input.playerId },
             select: {
@@ -134,14 +226,7 @@ export const transferRouter = createTRPCRouter({
           }),
           tx.team.findUnique({
             where: { id: input.fromTeamId },
-            select: { id: true, name: true, budget: true },
-          }),
-          tx.contract.findMany({
-            where: {
-              teamId: input.fromTeamId,
-              status: { in: BUDGET_RELEVANT_STATUSES },
-            },
-            select: { salary: true },
+            select: { id: true, name: true, transferBudget: true },
           }),
         ]);
 
@@ -213,39 +298,16 @@ export const transferRouter = createTRPCRouter({
         }
 
         // Validate budget: the buying team must be able to afford the transfer fee
-        const currentPayroll = budgetContracts.reduce((sum, c) => sum + c.salary, 0);
-        const budgetRemaining = fromTeam.budget - currentPayroll;
-
-        if (input.offeredFee > budgetRemaining) {
+        // out of its transfer budget (cash dedicated to acquisitions).
+        if (input.offeredFee > fromTeam.transferBudget) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
-            message: `Budget insuffisant. Budget restant: ${budgetRemaining}. Offre: ${input.offeredFee}.`,
+            message: `Budget transfert insuffisant. Budget restant: ${fromTeam.transferBudget}. Offre: ${input.offeredFee}.`,
           });
         }
 
         // If offered fee >= release clause, auto-accept
         const autoAccepted = input.offeredFee >= activeContract.releaseClause;
-
-        const offer = await tx.transferOffer.create({
-          data: {
-            playerId: input.playerId,
-            fromTeamId: input.fromTeamId,
-            toTeamId: player.teamId,
-            offeredFee: input.offeredFee,
-            status: autoAccepted
-              ? TransferOfferStatus.ACCEPTED
-              : TransferOfferStatus.PENDING,
-            ...(input.message ? { message: input.message } : {}),
-            ...(autoAccepted ? { respondedAt: new Date() } : {}),
-          },
-          select: {
-            id: true,
-            status: true,
-            offeredFee: true,
-            fromTeamId: true,
-            toTeamId: true,
-          },
-        });
 
         // Get selling team's captains for notification
         const sellingTeam = await tx.team.findUnique({
@@ -254,6 +316,27 @@ export const transferRouter = createTRPCRouter({
             id: true,
             name: true,
             captains: { select: { id: true } },
+          },
+        });
+
+        const offer = await tx.transferOffer.create({
+          data: {
+            playerId: input.playerId,
+            fromTeamId: input.fromTeamId,
+            toTeamId: player.teamId,
+            offeredFee: input.offeredFee,
+            status: autoAccepted
+              ? TransferOfferStatus.CONTRACT_IN_PROGRESS
+              : TransferOfferStatus.PENDING,
+            ...(input.message ? { message: input.message } : {}),
+            ...(autoAccepted ? { respondedAt: new Date(), adminValidatedAt: new Date() } : {}),
+          },
+          select: {
+            id: true,
+            status: true,
+            offeredFee: true,
+            fromTeamId: true,
+            toTeamId: true,
           },
         });
 
@@ -268,7 +351,7 @@ export const transferRouter = createTRPCRouter({
             },
           });
 
-          await tx.contract.create({
+          const newContract = await tx.contract.create({
             data: {
               playerId: input.playerId,
               teamId: input.fromTeamId,
@@ -279,6 +362,12 @@ export const transferRouter = createTRPCRouter({
               status: ContractStatus.PENDING_APPROVAL,
               notes: `Transfert via clause liberatoire depuis ${sellingTeam?.name ?? 'equipe inconnue'}.`,
             },
+            select: { id: true },
+          });
+
+          await tx.transferOffer.update({
+            where: { id: offer.id },
+            data: { linkedContractId: newContract.id },
           });
 
           // Update player's team
@@ -366,11 +455,6 @@ export const transferRouter = createTRPCRouter({
                 firstName: true,
                 lastName: true,
                 gameName: true,
-                contracts: {
-                  where: { status: { in: ACTIVE_CONTRACT_STATUSES } },
-                  take: 1,
-                  select: { id: true, releaseClause: true },
-                },
               },
             },
             fromTeam: { select: { id: true, name: true, captains: { select: { id: true } } } },
@@ -383,7 +467,6 @@ export const transferRouter = createTRPCRouter({
         }
 
         // PENDING → selling team accepts. COUNTER_PROPOSED → buying team accepts the counter.
-        const playerDisplayName = resolveStoredPlayerDisplayName(offer.player);
         const isCounterAccept = offer.status === TransferOfferStatus.COUNTER_PROPOSED;
         const acceptingTeamId = isCounterAccept ? offer.fromTeamId : offer.toTeamId;
         ensureTeamAccess(ctx.session.user, acceptingTeamId);
@@ -398,53 +481,23 @@ export const transferRouter = createTRPCRouter({
           });
         }
 
+        const playerDisplayName = resolveStoredPlayerDisplayName(offer.player);
+
         // The effective fee: counter amount if counter-accepted, else original offer
         const effectiveFee = isCounterAccept && offer.counterOffer != null
           ? offer.counterOffer
           : offer.offeredFee;
 
-        // Terminate active contract
-        const activeContract = offer.player.contracts[0];
-        if (activeContract) {
-          await tx.contract.update({
-            where: { id: activeContract.id },
-            data: {
-              status: ContractStatus.TERMINATED,
-              terminatedAt: new Date(),
-              notes: `Transfert accepte vers ${offer.fromTeam.name} (${effectiveFee}).`,
-            },
-          });
-        }
-
-        // Create new contract for buying team
-        await tx.contract.create({
-          data: {
-            playerId: offer.playerId,
-            teamId: offer.fromTeamId,
-            salary: 0,
-            durationBo3: 10,
-            releaseClause: activeContract?.releaseClause ?? 0,
-            transferFee: effectiveFee,
-            status: ContractStatus.PENDING_APPROVAL,
-            notes: isCounterAccept
-              ? `Contre-proposition acceptee depuis ${offer.toTeam.name}.`
-              : `Transfert accepte depuis ${offer.toTeam.name}.`,
-          },
-        });
-
-        // Update player's team
-        await tx.player.update({
-          where: { id: offer.playerId },
-          data: { teamId: offer.fromTeamId, salary: 0 },
-        });
-
         const accepted = await tx.transferOffer.update({
           where: { id: input.id },
-          data: { status: TransferOfferStatus.ACCEPTED, respondedAt: new Date() },
+          data: {
+            status: TransferOfferStatus.ACCEPTED,
+            respondedAt: new Date(),
+            ...(isCounterAccept ? { offeredFee: effectiveFee } : {}),
+          },
           select: { id: true, status: true },
         });
 
-        // Notify all captains of the other party
         const notifyCaptains = isCounterAccept ? offer.toTeam.captains : offer.fromTeam.captains;
         for (const cap of notifyCaptains) {
           await createNotification(tx as unknown as PrismaClient, {
@@ -452,8 +505,8 @@ export const transferRouter = createTRPCRouter({
             type: 'TRANSFER_ACCEPTED',
             title: isCounterAccept ? 'Contre-proposition acceptee' : 'Offre acceptee',
             message: isCounterAccept
-              ? `${offer.fromTeam.name} a accepte votre contre-proposition de ${effectiveFee} pour ${playerDisplayName}. Contrat en attente de validation admin.`
-              : `${offer.toTeam.name} a accepte votre offre pour ${playerDisplayName}. Contrat en attente de validation admin.`,
+              ? `${offer.fromTeam.name} a accepte votre contre-proposition de ${effectiveFee} pour ${playerDisplayName}. En attente de validation admin.`
+              : `${offer.toTeam.name} a accepte votre offre pour ${playerDisplayName}. En attente de validation admin.`,
             link: '/team',
             metadata: { offerId: offer.id, playerId: offer.playerId },
           });
@@ -470,6 +523,225 @@ export const transferRouter = createTRPCRouter({
         });
 
         return accepted;
+      });
+    }),
+
+  adminValidate: adminProcedure
+    .input(transferAdminValidateSchema)
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.$transaction(async (tx) => {
+        const offer = await tx.transferOffer.findUnique({
+          where: { id: input.id },
+          select: {
+            id: true,
+            playerId: true,
+            fromTeamId: true,
+            toTeamId: true,
+            offeredFee: true,
+            status: true,
+            player: {
+              select: { id: true, firstName: true, lastName: true, gameName: true },
+            },
+            fromTeam: {
+              select: {
+                id: true,
+                name: true,
+                transferBudget: true,
+                captains: { select: { id: true } },
+              },
+            },
+            toTeam: {
+              select: { id: true, name: true, captains: { select: { id: true } } },
+            },
+          },
+        });
+
+        if (!offer) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Offre introuvable.' });
+        }
+
+        if (offer.status !== TransferOfferStatus.ACCEPTED) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: "Seules les offres acceptees peuvent etre validees par l'admin.",
+          });
+        }
+
+        if (offer.offeredFee > offer.fromTeam.transferBudget) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Budget transfert insuffisant pour ${offer.fromTeam.name}. Disponible: ${offer.fromTeam.transferBudget}. Offre: ${offer.offeredFee}.`,
+          });
+        }
+
+        const playerDisplayName = resolveStoredPlayerDisplayName(offer.player);
+
+        const validated = await tx.transferOffer.update({
+          where: { id: input.id },
+          data: {
+            status: TransferOfferStatus.VALIDATED_ADMIN,
+            adminValidatedAt: new Date(),
+            adminValidatedById: ctx.session.user.id,
+            ...(input.notes ? { rejectionReason: null } : {}),
+          },
+          select: { id: true, status: true, adminValidatedAt: true },
+        });
+
+        for (const cap of offer.fromTeam.captains) {
+          await createNotification(tx as unknown as PrismaClient, {
+            userId: cap.id,
+            type: 'TRANSFER_VALIDATED_ADMIN',
+            title: 'Transfert valide par administration',
+            message: `Le transfert pour ${playerDisplayName} a ete valide. Vous pouvez maintenant proposer les conditions du contrat.`,
+            link: '/team',
+            metadata: { offerId: offer.id, playerId: offer.playerId },
+          });
+        }
+        for (const cap of offer.toTeam.captains) {
+          await createNotification(tx as unknown as PrismaClient, {
+            userId: cap.id,
+            type: 'TRANSFER_VALIDATED_ADMIN',
+            title: 'Transfert valide par administration',
+            message: `Le transfert de ${playerDisplayName} vers ${offer.fromTeam.name} a ete valide.`,
+            link: '/team',
+            metadata: { offerId: offer.id, playerId: offer.playerId },
+          });
+        }
+
+        await tx.auditLog.create({
+          data: buildAuditLogInput({
+            userId: ctx.session.user.id,
+            action: 'ADMIN_VALIDATE',
+            entity: 'TransferOffer',
+            entityId: offer.id,
+            details: {
+              playerId: offer.playerId,
+              fromTeamId: offer.fromTeamId,
+              toTeamId: offer.toTeamId,
+              offeredFee: offer.offeredFee,
+              notes: input.notes ?? null,
+            },
+          }),
+        });
+
+        return validated;
+      });
+    }),
+
+  startContract: captainProcedure
+    .input(transferStartContractSchema)
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.$transaction(async (tx) => {
+        const offer = await tx.transferOffer.findUnique({
+          where: { id: input.id },
+          select: {
+            id: true,
+            playerId: true,
+            fromTeamId: true,
+            toTeamId: true,
+            offeredFee: true,
+            status: true,
+            linkedContractId: true,
+            player: { select: { id: true, firstName: true, lastName: true, gameName: true } },
+            fromTeam: {
+              select: {
+                id: true,
+                name: true,
+                salaryBudgetCap: true,
+              },
+            },
+            toTeam: { select: { id: true, name: true, captains: { select: { id: true } } } },
+          },
+        });
+
+        if (!offer) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Offre introuvable.' });
+        }
+
+        ensureTeamAccess(ctx.session.user, offer.fromTeamId);
+
+        if (offer.status !== TransferOfferStatus.VALIDATED_ADMIN) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: "Le transfert doit etre valide par l'admin avant la creation du contrat.",
+          });
+        }
+
+        if (offer.linkedContractId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Un contrat est deja lie a ce transfert.',
+          });
+        }
+
+        const buyerPayrollContracts = await tx.contract.findMany({
+          where: {
+            teamId: offer.fromTeamId,
+            status: { in: [ContractStatus.ACTIVE, ContractStatus.LOAN, ContractStatus.PENDING_APPROVAL] },
+          },
+          select: { salary: true },
+        });
+        const buyerPayroll = buyerPayrollContracts.reduce((sum, c) => sum + c.salary, 0);
+
+        if (buyerPayroll + input.salary > offer.fromTeam.salaryBudgetCap) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Masse salariale depassee. Marge restante: ${offer.fromTeam.salaryBudgetCap - buyerPayroll}. Salaire propose: ${input.salary}.`,
+          });
+        }
+
+        const contract = await tx.contract.create({
+          data: {
+            playerId: offer.playerId,
+            teamId: offer.fromTeamId,
+            salary: input.salary,
+            durationBo3: input.durationBo3,
+            releaseClause: input.releaseClause,
+            transferFee: offer.offeredFee,
+            status: ContractStatus.PENDING_APPROVAL,
+            notes: input.notes ?? `Transfert depuis ${offer.toTeam.name}.`,
+          },
+          select: { id: true, status: true },
+        });
+
+        const updated = await tx.transferOffer.update({
+          where: { id: offer.id },
+          data: {
+            status: TransferOfferStatus.CONTRACT_IN_PROGRESS,
+            linkedContractId: contract.id,
+          },
+          select: { id: true, status: true, linkedContractId: true },
+        });
+
+        const playerDisplayName = resolveStoredPlayerDisplayName(offer.player);
+        for (const cap of offer.toTeam.captains) {
+          await createNotification(tx as unknown as PrismaClient, {
+            userId: cap.id,
+            type: 'TRANSFER_CONTRACT_IN_PROGRESS',
+            title: 'Contrat en cours de validation',
+            message: `${offer.fromTeam.name} a propose un contrat pour ${playerDisplayName}. En attente d'approbation admin.`,
+            link: '/team',
+            metadata: { offerId: offer.id, playerId: offer.playerId, contractId: contract.id },
+          });
+        }
+
+        await tx.auditLog.create({
+          data: buildAuditLogInput({
+            userId: ctx.session.user.id,
+            action: 'START_CONTRACT',
+            entity: 'TransferOffer',
+            entityId: offer.id,
+            details: {
+              contractId: contract.id,
+              playerId: offer.playerId,
+              salary: input.salary,
+              durationBo3: input.durationBo3,
+              releaseClause: input.releaseClause,
+            },
+          }),
+        });
+
+        return updated;
       });
     }),
 
@@ -497,7 +769,6 @@ export const transferRouter = createTRPCRouter({
         }
 
         // PENDING → selling team rejects. COUNTER_PROPOSED → buying team rejects the counter.
-        const playerDisplayName = resolveStoredPlayerDisplayName(offer.player);
         const isCounterReject = offer.status === TransferOfferStatus.COUNTER_PROPOSED;
         const rejectingTeamId = isCounterReject ? offer.fromTeamId : offer.toTeamId;
         ensureTeamAccess(ctx.session.user, rejectingTeamId);
@@ -511,6 +782,8 @@ export const transferRouter = createTRPCRouter({
             message: 'Seules les offres en attente ou en contre-proposition peuvent etre rejetees.',
           });
         }
+
+        const playerDisplayName = resolveStoredPlayerDisplayName(offer.player);
 
         const rejected = await tx.transferOffer.update({
           where: { id: input.id },

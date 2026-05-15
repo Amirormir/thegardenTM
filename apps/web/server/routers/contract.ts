@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { ContractStatus } from '@nexus/db';
+import { ContractStatus, TransferOfferStatus } from '@nexus/db';
 import {
   contractApproveSchema,
   contractCreateSchema,
@@ -120,7 +120,7 @@ export const contractRouter = createTRPCRouter({
             id: true,
             name: true,
             shortCode: true,
-            budget: true,
+            salaryBudgetCap: true,
           },
         },
       },
@@ -145,7 +145,7 @@ export const contractRouter = createTRPCRouter({
           select: {
             id: true,
             name: true,
-            budget: true,
+            salaryBudgetCap: true,
           },
         }),
         tx.player.findUnique({
@@ -216,10 +216,10 @@ export const contractRouter = createTRPCRouter({
         0,
       );
 
-      if (currentPayroll + input.salary > team.budget) {
+      if (currentPayroll + input.salary > team.salaryBudgetCap) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: `Budget depasse pour ${team.name}. Budget restant: ${team.budget - currentPayroll}. Salaire demande: ${input.salary}.`,
+          message: `Masse salariale depassee pour ${team.name}. Marge restante: ${team.salaryBudgetCap - currentPayroll}. Salaire demande: ${input.salary}.`,
         });
       }
 
@@ -291,7 +291,7 @@ export const contractRouter = createTRPCRouter({
       const [team, activeTeamContracts] = await Promise.all([
         tx.team.findUnique({
           where: { id: existing.teamId },
-          select: { id: true, name: true, budget: true },
+          select: { id: true, name: true, salaryBudgetCap: true },
         }),
         tx.contract.findMany({
           where: {
@@ -308,10 +308,10 @@ export const contractRouter = createTRPCRouter({
 
       const currentPayroll = activeTeamContracts.reduce((sum, c) => sum + c.salary, 0);
 
-      if (currentPayroll + existing.salary > team.budget) {
+      if (currentPayroll + existing.salary > team.salaryBudgetCap) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: `Budget depasse pour ${team.name}. Impossible d'approuver ce contrat.`,
+          message: `Masse salariale depassee pour ${team.name}. Impossible d'approuver ce contrat.`,
         });
       }
 
@@ -327,8 +327,63 @@ export const contractRouter = createTRPCRouter({
           teamId: true,
           status: true,
           salary: true,
+          transferFee: true,
         },
       });
+
+      // Finalize a linked transfer offer if present: terminate previous active
+      // contract on the selling team, move the money, mark FINALIZED.
+      const linkedOffer = await tx.transferOffer.findFirst({
+        where: {
+          linkedContractId: approved.id,
+          status: { in: [TransferOfferStatus.CONTRACT_IN_PROGRESS, TransferOfferStatus.VALIDATED_ADMIN] },
+        },
+        select: {
+          id: true,
+          fromTeamId: true,
+          toTeamId: true,
+          offeredFee: true,
+        },
+      });
+
+      if (linkedOffer) {
+        const previousActive = await tx.contract.findFirst({
+          where: {
+            playerId: approved.playerId,
+            teamId: linkedOffer.toTeamId,
+            status: { in: ACTIVE_CONTRACT_STATUSES },
+          },
+          select: { id: true },
+        });
+
+        if (previousActive) {
+          await tx.contract.update({
+            where: { id: previousActive.id },
+            data: {
+              status: ContractStatus.TERMINATED,
+              terminatedAt: new Date(),
+              notes: `Transfert finalise vers ${team.name}.`,
+            },
+          });
+        }
+
+        await tx.team.update({
+          where: { id: linkedOffer.fromTeamId },
+          data: { transferBudget: { decrement: linkedOffer.offeredFee } },
+        });
+        await tx.team.update({
+          where: { id: linkedOffer.toTeamId },
+          data: { transferBudget: { increment: linkedOffer.offeredFee } },
+        });
+
+        await tx.transferOffer.update({
+          where: { id: linkedOffer.id },
+          data: {
+            status: TransferOfferStatus.FINALIZED,
+            finalizedAt: new Date(),
+          },
+        });
+      }
 
       await tx.player.update({
         where: { id: approved.playerId },
@@ -347,6 +402,9 @@ export const contractRouter = createTRPCRouter({
           details: {
             playerId: approved.playerId,
             teamId: approved.teamId,
+            ...(linkedOffer
+              ? { linkedTransferOfferId: linkedOffer.id, transferFee: linkedOffer.offeredFee }
+              : {}),
           },
         }),
       });
@@ -391,6 +449,24 @@ export const contractRouter = createTRPCRouter({
         },
       });
 
+      const linkedOffer = await tx.transferOffer.findFirst({
+        where: {
+          linkedContractId: input.id,
+          status: { in: [TransferOfferStatus.CONTRACT_IN_PROGRESS, TransferOfferStatus.VALIDATED_ADMIN] },
+        },
+        select: { id: true },
+      });
+
+      if (linkedOffer) {
+        await tx.transferOffer.update({
+          where: { id: linkedOffer.id },
+          data: {
+            status: TransferOfferStatus.REJECTED,
+            rejectionReason: input.reason ?? 'Contrat rejete par administration.',
+          },
+        });
+      }
+
       await tx.auditLog.create({
         data: buildAuditLogInput({
           userId: ctx.session.user.id,
@@ -400,6 +476,7 @@ export const contractRouter = createTRPCRouter({
           details: {
             previousStatus: existing.status,
             reason: input.reason ?? null,
+            ...(linkedOffer ? { linkedTransferOfferId: linkedOffer.id } : {}),
           },
         }),
       });
@@ -435,7 +512,7 @@ export const contractRouter = createTRPCRouter({
         const [team, activeTeamContracts] = await Promise.all([
           tx.team.findUnique({
             where: { id: existing.teamId },
-            select: { id: true, name: true, budget: true },
+            select: { id: true, name: true, salaryBudgetCap: true },
           }),
           tx.contract.findMany({
             where: {
@@ -453,10 +530,10 @@ export const contractRouter = createTRPCRouter({
 
         const payroll = activeTeamContracts.reduce((sum, c) => sum + c.salary, 0) + nextSalary;
 
-        if (payroll > team.budget) {
+        if (payroll > team.salaryBudgetCap) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
-            message: `Budget depasse pour ${team.name}.`,
+            message: `Masse salariale depassee pour ${team.name}.`,
           });
         }
       }
@@ -533,11 +610,11 @@ export const contractRouter = createTRPCRouter({
     }
 
     return ctx.prisma.$transaction(async (tx) => {
-      // Budget check: payroll without the expiring contract + new salary <= team budget
+      // Budget check: payroll without the expiring contract + new salary <= salary cap
       const [team, otherContracts] = await Promise.all([
         tx.team.findUnique({
           where: { id: existing.teamId },
-          select: { id: true, name: true, budget: true },
+          select: { id: true, name: true, salaryBudgetCap: true },
         }),
         tx.contract.findMany({
           where: {
@@ -555,10 +632,10 @@ export const contractRouter = createTRPCRouter({
 
       const payrollWithoutCurrent = otherContracts.reduce((sum, c) => sum + c.salary, 0);
 
-      if (payrollWithoutCurrent + newTerms.salary > team.budget) {
+      if (payrollWithoutCurrent + newTerms.salary > team.salaryBudgetCap) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: `Budget depasse pour ${team.name}. Budget restant (hors contrat actuel): ${team.budget - payrollWithoutCurrent}. Salaire demande: ${newTerms.salary}.`,
+          message: `Masse salariale depassee pour ${team.name}. Marge restante (hors contrat actuel): ${team.salaryBudgetCap - payrollWithoutCurrent}. Salaire demande: ${newTerms.salary}.`,
         });
       }
 
@@ -604,6 +681,106 @@ export const contractRouter = createTRPCRouter({
       });
 
       return renewed;
+    });
+  }),
+
+  // Admin job: process contract expirations and 30-day notices.
+  // - ACTIVE contracts past expiresAt → EXPIRED, player becomes free agent.
+  // - ACTIVE contracts within the notice window → notify captains once.
+  processExpirations: adminProcedure.mutation(async ({ ctx }) => {
+    const now = new Date();
+    const settings = await ctx.prisma.leagueSettings.findUnique({ where: { id: 1 } });
+    const noticeDays = settings?.contractExpiryNoticeDays ?? 30;
+    const noticeThreshold = new Date(now.getTime() + noticeDays * 24 * 60 * 60 * 1000);
+
+    return ctx.prisma.$transaction(async (tx) => {
+      const expiring = await tx.contract.findMany({
+        where: {
+          status: { in: ACTIVE_CONTRACT_STATUSES },
+          expiresAt: { lte: now },
+        },
+        select: {
+          id: true,
+          playerId: true,
+          teamId: true,
+          player: { select: { firstName: true, lastName: true, gameName: true } },
+          team: { select: { name: true, captains: { select: { id: true } } } },
+        },
+      });
+
+      for (const contract of expiring) {
+        await tx.contract.update({
+          where: { id: contract.id },
+          data: { status: ContractStatus.EXPIRED, terminatedAt: now },
+        });
+        await tx.player.update({
+          where: { id: contract.playerId },
+          data: { teamId: null, salary: 0 },
+        });
+        const displayName = resolveStoredPlayerDisplayName(contract.player);
+        for (const cap of contract.team.captains) {
+          await tx.notification.create({
+            data: {
+              userId: cap.id,
+              type: 'CONTRACT_EXPIRED',
+              title: 'Contrat expire',
+              message: `Le contrat de ${displayName} est arrive a echeance. Le joueur est desormais free agent.`,
+              link: '/team/contracts',
+              metadata: { contractId: contract.id, playerId: contract.playerId },
+            },
+          });
+        }
+        await tx.auditLog.create({
+          data: buildAuditLogInput({
+            userId: ctx.session.user.id,
+            action: 'EXPIRE',
+            entity: 'Contract',
+            entityId: contract.id,
+            details: { playerId: contract.playerId, teamId: contract.teamId },
+          }),
+        });
+      }
+
+      const upcoming = await tx.contract.findMany({
+        where: {
+          status: { in: ACTIVE_CONTRACT_STATUSES },
+          expiresAt: { gt: now, lte: noticeThreshold },
+          expiryNotifiedAt: null,
+        },
+        select: {
+          id: true,
+          playerId: true,
+          expiresAt: true,
+          player: { select: { firstName: true, lastName: true, gameName: true } },
+          team: { select: { name: true, captains: { select: { id: true } } } },
+        },
+      });
+
+      for (const contract of upcoming) {
+        await tx.contract.update({
+          where: { id: contract.id },
+          data: { expiryNotifiedAt: now },
+        });
+        const displayName = resolveStoredPlayerDisplayName(contract.player);
+        const expiryStr = contract.expiresAt?.toISOString().slice(0, 10) ?? '';
+        for (const cap of contract.team.captains) {
+          await tx.notification.create({
+            data: {
+              userId: cap.id,
+              type: 'CONTRACT_EXPIRING_SOON',
+              title: 'Fin de contrat imminente',
+              message: `Le contrat de ${displayName} expire le ${expiryStr}. Pensez a le renouveler.`,
+              link: '/team/contracts',
+              metadata: { contractId: contract.id, playerId: contract.playerId },
+            },
+          });
+        }
+      }
+
+      return {
+        expired: expiring.length,
+        notified: upcoming.length,
+      };
     });
   }),
 

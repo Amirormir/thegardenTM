@@ -140,14 +140,14 @@ export function AdminContractsManager() {
               <TableHead>Duree</TableHead>
               <TableHead>Clause</TableHead>
               <TableHead>Transfert</TableHead>
-              <TableHead>Budget restant</TableHead>
+              <TableHead>Marge salariale</TableHead>
               <TableHead>Soumis le</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {pending.map((contract) => {
-              const budgetRemaining = contract.team.budget - contract.salary;
+              const budgetRemaining = contract.team.salaryBudgetCap - contract.salary;
               const budgetDanger = budgetRemaining < 0;
 
               return (

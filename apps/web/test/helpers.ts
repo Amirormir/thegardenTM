@@ -53,6 +53,28 @@ export function createMockPrisma() {
     auditLog: {
       create: vi.fn().mockResolvedValue({}),
     },
+    leagueSettings: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      upsert: vi.fn().mockResolvedValue({
+        id: 1,
+        boMaxRegularSeason: 18,
+        transferWindowOpen: true,
+        transferWindowStart: null,
+        transferWindowEnd: null,
+        contractExpiryNoticeDays: 30,
+        updatedAt: new Date(),
+      }),
+      update: vi.fn().mockResolvedValue({}),
+    },
+    budgetConversion: {
+      create: vi.fn().mockResolvedValue({}),
+    },
+    user: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
   };
 
   return mockPrisma as unknown as TRPCContext['prisma'];

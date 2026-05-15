@@ -34,13 +34,17 @@ describe('contract router', () => {
 
   describe('getByTeam', () => {
     it('returns contracts for a captain\'s team', async () => {
-      const contracts = [{ id: 'c-1', status: 'ACTIVE' }];
+      const contracts = [{
+        id: 'c-1',
+        status: 'ACTIVE',
+        player: { id: 'p-1', firstName: 'A', lastName: 'B', gameName: 'AB' },
+      }];
       (prisma.contract.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(contracts);
 
       const { caller } = createCaptainCaller('team-1', prisma);
       const result = await caller.contract.getByTeam({ teamId: 'team-1' });
 
-      expect(result).toEqual(contracts);
+      expect(result[0]?.id).toBe('c-1');
     });
 
     it('rejects unauthenticated access', async () => {
@@ -73,7 +77,7 @@ describe('contract router', () => {
     };
 
     function setupCreateMocks() {
-      const team = { id: 'team-1', name: 'Test Team', budget: 1200000 };
+      const team = { id: 'team-1', name: 'Test Team', salaryBudgetCap: 1200000 };
       const player = { id: 'player-1', gameName: 'TestPlayer', teamId: null };
       const budgetContracts: { id: string; salary: number }[] = [];
       const activePlayerContracts: { id: string; teamId: string }[] = [];
@@ -109,7 +113,7 @@ describe('contract router', () => {
     });
 
     it('rejects when player not found', async () => {
-      (prisma.team.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'team-1', name: 'T', budget: 1000000 });
+      (prisma.team.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'team-1', name: 'T', salaryBudgetCap: 1000000 });
       (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       (prisma.contract.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]).mockResolvedValue([]);
 
@@ -118,7 +122,7 @@ describe('contract router', () => {
     });
 
     it('rejects player on another team', async () => {
-      (prisma.team.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'team-1', name: 'T', budget: 1000000 });
+      (prisma.team.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'team-1', name: 'T', salaryBudgetCap: 1000000 });
       (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'p-1', gameName: 'X', teamId: 'team-2' });
       (prisma.contract.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]).mockResolvedValue([]);
 
@@ -127,7 +131,7 @@ describe('contract router', () => {
     });
 
     it('rejects when salary exceeds budget', async () => {
-      (prisma.team.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'team-1', name: 'T', budget: 100000 });
+      (prisma.team.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'team-1', name: 'T', salaryBudgetCap: 100000 });
       (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'p-1', gameName: 'X', teamId: null });
       (prisma.contract.findMany as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce([{ id: 'c-x', salary: 50000 }]) // budget contracts
@@ -136,11 +140,11 @@ describe('contract router', () => {
       const { caller } = createCaptainCaller('team-1', prisma);
       await expect(
         caller.contract.create({ ...validInput, salary: 60000 }),
-      ).rejects.toThrow('Budget depasse');
+      ).rejects.toThrow('Masse salariale depassee');
     });
 
     it('rejects duplicate active contract for same player and team', async () => {
-      (prisma.team.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'team-1', name: 'T', budget: 1000000 });
+      (prisma.team.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'team-1', name: 'T', salaryBudgetCap: 1000000 });
       (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'p-1', gameName: 'X', teamId: null });
       (prisma.contract.findMany as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce([]) // budget contracts
@@ -176,7 +180,7 @@ describe('contract router', () => {
   describe('approve', () => {
     it('approves a pending contract', async () => {
       const existing = { id: 'c-1', playerId: 'p-1', teamId: 'team-1', status: 'PENDING_APPROVAL', salary: 150000 };
-      const team = { id: 'team-1', name: 'T', budget: 1000000 };
+      const team = { id: 'team-1', name: 'T', salaryBudgetCap: 1000000 };
       const approved = { id: 'c-1', playerId: 'p-1', teamId: 'team-1', status: 'ACTIVE', salary: 150000 };
 
       (prisma.contract.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(existing);
@@ -211,11 +215,11 @@ describe('contract router', () => {
       (prisma.contract.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'c-1', playerId: 'p-1', teamId: 'team-1', status: 'PENDING_APPROVAL', salary: 800000,
       });
-      (prisma.team.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'team-1', name: 'T', budget: 1000000 });
+      (prisma.team.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'team-1', name: 'T', salaryBudgetCap: 1000000 });
       (prisma.contract.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([{ salary: 300000 }]);
 
       const { caller } = createAdminCaller(prisma);
-      await expect(caller.contract.approve({ id: 'c-1' })).rejects.toThrow('Budget depasse');
+      await expect(caller.contract.approve({ id: 'c-1' })).rejects.toThrow('Masse salariale depassee');
     });
 
     it('rejects contract not found', async () => {
@@ -335,18 +339,123 @@ describe('contract router', () => {
 
   describe('getPendingApprovals', () => {
     it('returns pending contracts for admin', async () => {
-      const pending = [{ id: 'c-1', status: 'PENDING_APPROVAL' }];
+      const pending = [{
+        id: 'c-1',
+        status: 'PENDING_APPROVAL',
+        player: { id: 'p-1', firstName: 'A', lastName: 'B', gameName: 'AB' },
+        team: { id: 't-1', name: 'T', shortCode: 'TTT', salaryBudgetCap: 1000 },
+      }];
       (prisma.contract.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(pending);
 
       const { caller } = createAdminCaller(prisma);
       const result = await caller.contract.getPendingApprovals();
 
-      expect(result).toEqual(pending);
+      expect(result[0]?.id).toBe('c-1');
     });
 
     it('rejects non-admin caller', async () => {
       const { caller } = createCaptainCaller('team-1', prisma);
       await expect(caller.contract.getPendingApprovals()).rejects.toThrow(TRPCError);
+    });
+  });
+
+  // ─── processExpirations ────────────────────────────────────────────
+
+  describe('processExpirations', () => {
+    function mockSettings(contractExpiryNoticeDays = 30) {
+      (prisma.leagueSettings.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 1,
+        boMaxRegularSeason: 18,
+        transferWindowOpen: true,
+        transferWindowStart: null,
+        transferWindowEnd: null,
+        contractExpiryNoticeDays,
+      });
+    }
+
+    it('expires contracts past expiresAt and frees players', async () => {
+      mockSettings();
+      const expiredContracts = [{
+        id: 'c-1',
+        playerId: 'p-1',
+        teamId: 't-1',
+        player: { firstName: 'A', lastName: 'B', gameName: 'AB' },
+        team: { name: 'T', captains: [{ id: 'cap-1' }] },
+      }];
+      (prisma.contract.findMany as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(expiredContracts)
+        .mockResolvedValueOnce([]);
+
+      const { caller } = createAdminCaller(prisma);
+      const result = await caller.contract.processExpirations();
+
+      expect(result.expired).toBe(1);
+      expect(prisma.contract.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'c-1' },
+          data: expect.objectContaining({ status: 'EXPIRED' }),
+        }),
+      );
+      expect(prisma.player.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'p-1' },
+          data: { teamId: null, salary: 0 },
+        }),
+      );
+      expect(prisma.notification.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: 'cap-1',
+            type: 'CONTRACT_EXPIRED',
+          }),
+        }),
+      );
+    });
+
+    it('notifies captains for contracts inside the notice window', async () => {
+      mockSettings(30);
+      const upcoming = [{
+        id: 'c-2',
+        playerId: 'p-2',
+        expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+        player: { firstName: 'C', lastName: 'D', gameName: 'CD' },
+        team: { name: 'T', captains: [{ id: 'cap-2' }] },
+      }];
+      (prisma.contract.findMany as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(upcoming);
+
+      const { caller } = createAdminCaller(prisma);
+      const result = await caller.contract.processExpirations();
+
+      expect(result.notified).toBe(1);
+      expect(prisma.contract.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'c-2' },
+          data: expect.objectContaining({ expiryNotifiedAt: expect.any(Date) }),
+        }),
+      );
+      expect(prisma.notification.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: 'cap-2',
+            type: 'CONTRACT_EXPIRING_SOON',
+          }),
+        }),
+      );
+    });
+
+    it('returns 0/0 when no contracts match', async () => {
+      mockSettings();
+      (prisma.contract.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      const { caller } = createAdminCaller(prisma);
+      const result = await caller.contract.processExpirations();
+      expect(result).toEqual({ expired: 0, notified: 0 });
+    });
+
+    it('rejects non-admin caller', async () => {
+      const { caller } = createCaptainCaller('team-1', prisma);
+      await expect(caller.contract.processExpirations()).rejects.toThrow();
     });
   });
 });

@@ -20,7 +20,8 @@ interface TeamDraft {
   slug: string;
   shortCode: string;
   logoUrl: string;
-  budget: string;
+  transferBudget: string;
+  salaryBudgetCap: string;
 }
 
 function createEmptyDraft(): TeamDraft {
@@ -29,7 +30,8 @@ function createEmptyDraft(): TeamDraft {
     slug: '',
     shortCode: '',
     logoUrl: '',
-    budget: '1200000',
+    transferBudget: '1200000',
+    salaryBudgetCap: '1200000',
   };
 }
 
@@ -82,11 +84,15 @@ export function AdminTeamsManager() {
     (sum, player) => sum + player.salary,
     0,
   ) ?? 0;
-  const parsedBudget = Number.parseInt(draft.budget, 10);
-  const budgetPreview = Number.isFinite(parsedBudget)
-    ? parsedBudget
-    : (selectedTeamDetailsQuery.data?.budget ?? 0);
-  const remainingBudget = budgetPreview - payroll;
+  const parsedSalaryCap = Number.parseInt(draft.salaryBudgetCap, 10);
+  const parsedTransferBudget = Number.parseInt(draft.transferBudget, 10);
+  const salaryCapPreview = Number.isFinite(parsedSalaryCap)
+    ? parsedSalaryCap
+    : (selectedTeamDetailsQuery.data?.salaryBudgetCap ?? 0);
+  const transferBudgetPreview = Number.isFinite(parsedTransferBudget)
+    ? parsedTransferBudget
+    : (selectedTeamDetailsQuery.data?.transferBudget ?? 0);
+  const remainingSalaryCap = salaryCapPreview - payroll;
 
   function selectTeam(teamId: string) {
     const team = teams.find((entry) => entry.id === teamId);
@@ -101,7 +107,8 @@ export function AdminTeamsManager() {
       slug: team.slug,
       shortCode: team.shortCode,
       logoUrl: team.logoUrl ?? '',
-      budget: team.budget.toString(),
+      transferBudget: team.transferBudget.toString(),
+      salaryBudgetCap: team.salaryBudgetCap.toString(),
     });
     setFeedback(null);
   }
@@ -116,7 +123,8 @@ export function AdminTeamsManager() {
     event.preventDefault();
     setFeedback(null);
 
-    const budget = Number.parseInt(draft.budget, 10);
+    const transferBudget = Number.parseInt(draft.transferBudget, 10);
+    const salaryBudgetCap = Number.parseInt(draft.salaryBudgetCap, 10);
 
     try {
       if (selectedTeamId) {
@@ -126,7 +134,8 @@ export function AdminTeamsManager() {
           slug: draft.slug,
           shortCode: draft.shortCode,
           logoUrl: draft.logoUrl || undefined,
-          budget: Number.isFinite(budget) ? budget : undefined,
+          transferBudget: Number.isFinite(transferBudget) ? transferBudget : undefined,
+          salaryBudgetCap: Number.isFinite(salaryBudgetCap) ? salaryBudgetCap : undefined,
         });
         setFeedback({ type: 'success', message: 'Team updated successfully.' });
       } else {
@@ -135,7 +144,8 @@ export function AdminTeamsManager() {
           slug: draft.slug || slugify(draft.name),
           shortCode: draft.shortCode,
           logoUrl: draft.logoUrl || undefined,
-          budget: Number.isFinite(budget) ? budget : undefined,
+          transferBudget: Number.isFinite(transferBudget) ? transferBudget : undefined,
+          salaryBudgetCap: Number.isFinite(salaryBudgetCap) ? salaryBudgetCap : undefined,
         });
         setSelectedTeamId(created.id);
         setFeedback({ type: 'success', message: 'Team created successfully.' });
@@ -226,7 +236,7 @@ export function AdminTeamsManager() {
                           {team.shortCode} - {team._count.players} players
                         </p>
                       </div>
-                      <Badge variant="actif">{formatCurrency(team.budget)}</Badge>
+                      <Badge variant="actif">{formatCurrency(team.salaryBudgetCap)}</Badge>
                     </div>
                   </button>
                 );
@@ -302,14 +312,28 @@ export function AdminTeamsManager() {
 
               <div className="space-y-2">
                 <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
-                  Budget cap
+                  Masse salariale max
                 </label>
                 <Input
                   type="number"
                   min={0}
-                  value={draft.budget}
+                  value={draft.salaryBudgetCap}
                   onChange={(event) =>
-                    setDraft((current) => ({ ...current, budget: event.target.value }))
+                    setDraft((current) => ({ ...current, salaryBudgetCap: event.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
+                  Budget transfert
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={draft.transferBudget}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, transferBudget: event.target.value }))
                   }
                 />
               </div>
@@ -328,10 +352,10 @@ export function AdminTeamsManager() {
               </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4">
                 <p className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
-                  Current payroll
+                  Masse salariale actuelle
                 </p>
                 <p className="mt-2 font-display tabular-nums text-2xl font-semibold text-white">
                   {formatCurrency(payroll)}
@@ -340,15 +364,24 @@ export function AdminTeamsManager() {
 
               <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4">
                 <p className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
-                  Budget remaining
+                  Marge salariale
                 </p>
                 <p
                   className={cn(
                     'mt-2 font-display tabular-nums text-2xl font-semibold',
-                    remainingBudget >= 0 ? 'text-white' : 'text-[color:var(--loss)]',
+                    remainingSalaryCap >= 0 ? 'text-white' : 'text-[color:var(--loss)]',
                   )}
                 >
-                  {formatCurrency(remainingBudget)}
+                  {formatCurrency(remainingSalaryCap)}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
+                  Budget transfert
+                </p>
+                <p className="mt-2 font-display tabular-nums text-2xl font-semibold text-white">
+                  {formatCurrency(transferBudgetPreview)}
                 </p>
               </div>
             </div>

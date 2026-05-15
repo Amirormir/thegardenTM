@@ -18,6 +18,7 @@ packages/db/prisma/dev.db-journal
 
 *.log
 *.tsbuildinfo
+.local-postgres/
 
 .DS_Store
 Thumbs.db

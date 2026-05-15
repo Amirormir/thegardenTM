@@ -19,7 +19,8 @@ export const teamCreateSchema = z.object({
   slug: z.string().min(1).max(80),
   shortCode: z.string().min(2).max(8),
   logoUrl: z.string().url().optional(),
-  budget: z.number().int().positive().optional(),
+  transferBudget: z.number().int().nonnegative().optional(),
+  salaryBudgetCap: z.number().int().nonnegative().optional(),
 });
 
 export const teamUpdateSchema = teamCreateSchema.partial().extend({
@@ -39,4 +40,14 @@ export const teamDeleteSchema = z.object({
 export const teamUpdatePlayerRoleSchema = z.object({
   playerId: z.string().min(1),
   teamRole: z.enum(['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']),
+});
+
+export const teamBudgetConvertSchema = z.object({
+  teamId: z.string().min(1),
+  direction: z.enum(['TRANSFER_TO_SALARY', 'SALARY_TO_TRANSFER']),
+  amount: z.number().int().positive(),
+});
+
+export const teamBudgetSnapshotSchema = z.object({
+  teamId: z.string().min(1),
 });

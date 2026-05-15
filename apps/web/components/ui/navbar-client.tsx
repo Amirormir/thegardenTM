@@ -218,6 +218,9 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
                       <UserMenuLink href="/team/contracts" onClick={() => setUserMenuOpen(false)}>
                         Contrats
                       </UserMenuLink>
+                      <UserMenuLink href="/team/budget" onClick={() => setUserMenuOpen(false)}>
+                        Budget
+                      </UserMenuLink>
                     </>
                   ) : null}
                   {currentUser.role === 'ADMIN' ? (
@@ -355,9 +358,14 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
                       Notifications
                     </UserMenuLink>
                     {currentUser.teamId ? (
-                      <UserMenuLink href="/team/contracts" onClick={() => setMobileOpen(false)}>
-                        Contrats
-                      </UserMenuLink>
+                      <>
+                        <UserMenuLink href="/team/contracts" onClick={() => setMobileOpen(false)}>
+                          Contrats
+                        </UserMenuLink>
+                        <UserMenuLink href="/team/budget" onClick={() => setMobileOpen(false)}>
+                          Budget
+                        </UserMenuLink>
+                      </>
                     ) : null}
                     <button
                       type="button"

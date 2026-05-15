@@ -95,9 +95,9 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
     : null;
   const totalMarketValue = sortedPlayers.reduce((sum, player) => sum + player.marketValue, 0);
   const totalSalary = sortedPlayers.reduce((sum, player) => sum + player.salary, 0);
-  const budgetRemaining = team.budget - totalSalary;
-  const budgetUsedPercent =
-    team.budget > 0 ? Math.min(100, Math.round((totalSalary / team.budget) * 100)) : 0;
+  const salaryRemaining = team.salaryBudgetCap - totalSalary;
+  const salaryUsedPercent =
+    team.salaryBudgetCap > 0 ? Math.min(100, Math.round((totalSalary / team.salaryBudgetCap) * 100)) : 0;
   const teamMatches = schedule.filter(
     (match) => match.homeTeam.id === team.id || match.awayTeam.id === team.id,
   );
@@ -174,23 +174,24 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
             helper={`Cumul ${sortedPlayers.length} joueur${sortedPlayers.length > 1 ? 's' : ''}.`}
           />
           <KpiBlock
-            label="Budget restant"
-            value={formatCurrency(budgetRemaining)}
-            helper={`${budgetUsedPercent}% de la masse engagée.`}
+            label="Marge salariale"
+            value={formatCurrency(salaryRemaining)}
+            helper={`${salaryUsedPercent}% de la masse engagée.`}
           />
         </div>
 
         <aside className="space-y-6 lg:border-l lg:border-hairline lg:pl-10">
           <div className="border border-hairline bg-surface p-5">
-            <p className="label-mono">Budget club</p>
+            <p className="label-mono">Masse salariale max</p>
             <p className="mt-3 display-md text-foreground tabular-nums">
-              {formatCurrency(team.budget)}
+              {formatCurrency(team.salaryBudgetCap)}
             </p>
-            <div className="mt-5 percentile-bar" style={{ '--percentile': `${budgetUsedPercent}%` } as CSSProperties} />
+            <div className="mt-5 percentile-bar" style={{ '--percentile': `${salaryUsedPercent}%` } as CSSProperties} />
             <div className="mt-4 space-y-0">
               <SidebarFact label="Masse salariale" value={formatCurrency(totalSalary)} />
-              <SidebarFact label="Marge libre" value={formatCurrency(budgetRemaining)} />
-              <SidebarFact label="Engagé" value={`${budgetUsedPercent}%`} />
+              <SidebarFact label="Marge libre" value={formatCurrency(salaryRemaining)} />
+              <SidebarFact label="Engagé" value={`${salaryUsedPercent}%`} />
+              <SidebarFact label="Budget transfert" value={formatCurrency(team.transferBudget)} />
             </div>
           </div>
 

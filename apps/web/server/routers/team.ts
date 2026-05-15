@@ -1,8 +1,10 @@
 import { TRPCError } from '@trpc/server';
-import { UserRole } from '@nexus/db';
+import { ConversionDirection, UserRole } from '@nexus/db';
 import type { PlayerRole } from '@nexus/db';
 import type { TeamMarketValueEntry } from '@nexus/types';
 import {
+  teamBudgetConvertSchema,
+  teamBudgetSnapshotSchema,
   teamCaptainCandidatesSchema,
   standingsInputSchema,
   teamCreateSchema,
@@ -29,7 +31,8 @@ const publicTeamSelect = {
   slug: true,
   shortCode: true,
   logoUrl: true,
-  budget: true,
+  transferBudget: true,
+  salaryBudgetCap: true,
   captains: {
     select: {
       id: true,
@@ -64,7 +67,8 @@ function toPublicTeam(team: {
   slug: string;
   shortCode: string;
   logoUrl: string | null;
-  budget: number;
+  transferBudget: number;
+  salaryBudgetCap: number;
   captains: Array<{
     id: string;
     name: string | null;
@@ -106,7 +110,8 @@ export const teamRouter = createTRPCRouter({
         slug: true,
         shortCode: true,
         logoUrl: true,
-        budget: true,
+        transferBudget: true,
+        salaryBudgetCap: true,
         captains: {
           select: {
             id: true,
@@ -238,14 +243,16 @@ export const teamRouter = createTRPCRouter({
           slug: input.slug,
           shortCode: input.shortCode,
           ...(input.logoUrl ? { logoUrl: input.logoUrl } : {}),
-          ...(input.budget !== undefined ? { budget: input.budget } : {}),
+          ...(input.transferBudget !== undefined ? { transferBudget: input.transferBudget } : {}),
+          ...(input.salaryBudgetCap !== undefined ? { salaryBudgetCap: input.salaryBudgetCap } : {}),
         },
         select: {
           id: true,
           name: true,
           slug: true,
           shortCode: true,
-          budget: true,
+          transferBudget: true,
+          salaryBudgetCap: true,
         },
       });
 
@@ -277,7 +284,8 @@ export const teamRouter = createTRPCRouter({
         name: true,
         slug: true,
         shortCode: true,
-        budget: true,
+        transferBudget: true,
+        salaryBudgetCap: true,
       },
     });
 
@@ -293,14 +301,16 @@ export const teamRouter = createTRPCRouter({
           ...(data.slug ? { slug: data.slug } : {}),
           ...(data.shortCode ? { shortCode: data.shortCode } : {}),
           ...(data.logoUrl ? { logoUrl: data.logoUrl } : {}),
-          ...(data.budget !== undefined ? { budget: data.budget } : {}),
+          ...(data.transferBudget !== undefined ? { transferBudget: data.transferBudget } : {}),
+          ...(data.salaryBudgetCap !== undefined ? { salaryBudgetCap: data.salaryBudgetCap } : {}),
         },
         select: {
           id: true,
           name: true,
           slug: true,
           shortCode: true,
-          budget: true,
+          transferBudget: true,
+          salaryBudgetCap: true,
         },
       });
 
@@ -426,6 +436,179 @@ export const teamRouter = createTRPCRouter({
         where: { id: input.playerId },
         data: { teamRole: input.teamRole },
         select: { id: true, gameName: true, role: true, teamRole: true },
+      });
+    }),
+
+  getBudgetSnapshot: captainProcedure
+    .input(teamBudgetSnapshotSchema)
+    .query(async ({ ctx, input }) => {
+      ensureTeamAccess(ctx.session.user, input.teamId);
+
+      const [team, settings] = await Promise.all([
+        ctx.prisma.team.findUnique({
+          where: { id: input.teamId },
+          select: {
+            id: true,
+            name: true,
+            shortCode: true,
+            transferBudget: true,
+            salaryBudgetCap: true,
+            players: {
+              where: { isActive: true },
+              select: { id: true, salary: true },
+            },
+          },
+        }),
+        ctx.prisma.leagueSettings.findUnique({ where: { id: 1 } }),
+      ]);
+
+      if (!team) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Équipe introuvable.' });
+      }
+
+      const payroll = team.players.reduce((sum, player) => sum + player.salary, 0);
+      const salaryRemaining = team.salaryBudgetCap - payroll;
+      const n = settings?.boMaxRegularSeason ?? 18;
+
+      return {
+        teamId: team.id,
+        transferBudget: team.transferBudget,
+        salaryBudgetCap: team.salaryBudgetCap,
+        payroll,
+        salaryRemaining,
+        nUsed: n,
+        conversion: {
+          transferToSalaryRate: 1 / n,
+          salaryToTransferRate: n,
+          maxTransferToSalary: team.transferBudget,
+          maxSalaryToTransfer: Math.max(0, salaryRemaining),
+        },
+      };
+    }),
+
+  convertBudget: captainProcedure
+    .input(teamBudgetConvertSchema)
+    .mutation(async ({ ctx, input }) => {
+      ensureTeamAccess(ctx.session.user, input.teamId);
+
+      return ctx.prisma.$transaction(async (tx) => {
+        const team = await tx.team.findUnique({
+          where: { id: input.teamId },
+          select: {
+            id: true,
+            transferBudget: true,
+            salaryBudgetCap: true,
+            players: {
+              where: { isActive: true },
+              select: { salary: true },
+            },
+          },
+        });
+
+        if (!team) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Équipe introuvable.' });
+        }
+
+        const settings = await tx.leagueSettings.upsert({
+          where: { id: 1 },
+          create: { id: 1 },
+          update: {},
+        });
+
+        const n = settings.boMaxRegularSeason;
+        if (n <= 0) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Configuration de saison invalide (boMaxRegularSeason).',
+          });
+        }
+
+        const payroll = team.players.reduce((sum, p) => sum + p.salary, 0);
+
+        let nextTransfer = team.transferBudget;
+        let nextSalaryCap = team.salaryBudgetCap;
+
+        if (input.direction === ConversionDirection.TRANSFER_TO_SALARY) {
+          if (input.amount > team.transferBudget) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Budget transfert insuffisant. Disponible: ${team.transferBudget}.`,
+            });
+          }
+          const salaryGain = Math.floor(input.amount / n);
+          if (salaryGain <= 0) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Montant trop faible. Minimum: ${n} (1 unité de salaire = ${n} de transfert).`,
+            });
+          }
+          nextTransfer -= input.amount;
+          nextSalaryCap += salaryGain;
+        } else {
+          if (input.amount > team.salaryBudgetCap) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Marge salariale insuffisante. Plafond: ${team.salaryBudgetCap}.`,
+            });
+          }
+          const newCap = team.salaryBudgetCap - input.amount;
+          if (newCap < payroll) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Conversion impossible: le plafond salarial passerait sous la masse salariale active (${payroll}).`,
+            });
+          }
+          const transferGain = input.amount * n;
+          nextSalaryCap = newCap;
+          nextTransfer += transferGain;
+        }
+
+        const updated = await tx.team.update({
+          where: { id: team.id },
+          data: {
+            transferBudget: nextTransfer,
+            salaryBudgetCap: nextSalaryCap,
+          },
+          select: {
+            id: true,
+            transferBudget: true,
+            salaryBudgetCap: true,
+          },
+        });
+
+        await tx.budgetConversion.create({
+          data: {
+            teamId: team.id,
+            direction: input.direction,
+            amount: input.amount,
+            nUsed: n,
+            createdById: ctx.session.user.id,
+          },
+        });
+
+        await tx.auditLog.create({
+          data: buildAuditLogInput({
+            userId: ctx.session.user.id,
+            action: 'CONVERT_BUDGET',
+            entity: 'Team',
+            entityId: team.id,
+            details: {
+              direction: input.direction,
+              amount: input.amount,
+              nUsed: n,
+              before: {
+                transferBudget: team.transferBudget,
+                salaryBudgetCap: team.salaryBudgetCap,
+              },
+              after: {
+                transferBudget: updated.transferBudget,
+                salaryBudgetCap: updated.salaryBudgetCap,
+              },
+            },
+          }),
+        });
+
+        return updated;
       });
     }),
 });
