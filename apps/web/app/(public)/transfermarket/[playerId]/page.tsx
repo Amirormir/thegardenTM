@@ -209,12 +209,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
               <span>{riotId}</span>
             </div>
 
-            <p className="mt-6 max-w-2xl text-base leading-7 text-foreground-dim">
-              Profil public alimente par Prisma via tRPC avec historique contractuel,
-              trajectoire de valorisation et performances stockees game par game.
-            </p>
-
-            <div className="mt-8 flex flex-wrap items-center gap-5 label-mono">
+            <div className="mt-6 flex flex-wrap items-center gap-5 label-mono">
               <Link
                 href={`/transfermarket/comparison?playerA=${player.id}`}
                 className="text-foreground-dim transition-colors duration-150 hover:text-accent"

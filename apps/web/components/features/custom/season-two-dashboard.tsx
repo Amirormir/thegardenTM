@@ -11,6 +11,7 @@ import {
 import type { SeasonTwoData } from '@/lib/custom/season-two';
 import { formatCompactDate, formatDateTime } from '@/lib/utils/format';
 import { CustomRankBadge } from './custom-rank-badge';
+import { CustomResultsDateSelect } from './custom-results-date-select';
 import { DeleteTestLeaderboardButton } from './delete-test-leaderboard-button';
 
 type LeaderboardPlayer = SeasonTwoData['leaderboard'][number];
@@ -75,7 +76,19 @@ function unrankedReasonLabel(player: LeaderboardPlayer) {
   return null;
 }
 
-export function SeasonTwoDashboard({ data }: { data: SeasonTwoData }) {
+interface SeasonTwoDashboardProps {
+  data: SeasonTwoData;
+  availableMatchDates: { value: string; label: string; count: number }[];
+  selectedMatchDate: string | null;
+  selectedMatchDateLabel: string | null;
+}
+
+export function SeasonTwoDashboard({
+  data,
+  availableMatchDates,
+  selectedMatchDate,
+  selectedMatchDateLabel,
+}: SeasonTwoDashboardProps) {
   const topPlayer = data.leaderboard.find((player) => player.isRanked) ?? data.leaderboard[0] ?? null;
 
   return (
@@ -357,9 +370,22 @@ export function SeasonTwoDashboard({ data }: { data: SeasonTwoData }) {
       </section>
 
       <section>
-        <div className="border-b border-hairline pb-6">
-          <p className="label-mono">Derniers resultats</p>
-          <h2 className="mt-3 display-md text-foreground">Recap des customs finies.</h2>
+        <div className="flex flex-col gap-4 border-b border-hairline pb-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="label-mono">Derniers resultats</p>
+            <h2 className="mt-3 display-md text-foreground">Recap des customs finies.</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-foreground-dim">
+              {selectedMatchDateLabel
+                ? `Affichage des customs du ${selectedMatchDateLabel}.`
+                : 'Les customs finies apparaitront ici des qu elles seront enregistrees.'}
+            </p>
+          </div>
+          {availableMatchDates.length > 0 && selectedMatchDate ? (
+            <CustomResultsDateSelect
+              availableDates={availableMatchDates}
+              selectedDate={selectedMatchDate}
+            />
+          ) : null}
         </div>
 
         <div className="mt-8 grid gap-4 xl:grid-cols-2">

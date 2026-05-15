@@ -279,7 +279,6 @@ export async function getSeasonTwoData(): Promise<SeasonTwoData> {
       .collection<RawMatch>('matches')
       .find({})
       .sort({ resolvedAt: -1, createdAt: -1 })
-      .limit(8)
       .toArray(),
   ]);
 

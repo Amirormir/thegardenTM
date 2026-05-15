@@ -3,12 +3,14 @@ import { ArrowDown } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { PlayerLink } from '@/components/ui/player-link';
 import { TeamInline } from '@/components/ui/team-inline';
+import { getPlayerInitials } from '@/lib/utils/player-display';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format';
 
 interface HeroTopPlayer {
   id: string;
   displayName: string;
+  imageUrl: string | null;
   role: string;
   marketValue: number;
   teamName: string;
@@ -68,8 +70,8 @@ export function Hero({
     <section className="grid gap-12 border-b border-hairline pb-14 lg:grid-cols-[1.2fr_0.8fr] lg:gap-16">
       <div>
         <p className="breadcrumb-mono">
-          § 00 · L&apos;édition · {seasonName ?? 'Split en cours'}
-          {topTeam ? ` / ${topTeam.shortCode} en tête` : ''}
+          00 / L&apos;edition / {seasonName ?? 'Split en cours'}
+          {topTeam ? ` / ${topTeam.shortCode} en tete` : ''}
         </p>
 
         {featuredArticle ? (
@@ -89,7 +91,7 @@ export function Hero({
                 />
               </div>
             ) : null}
-            <p className="mt-6 label-mono text-foreground-muted">À la une</p>
+            <p className="mt-6 label-mono text-foreground-muted">A la une</p>
             <h1 className="mt-3 display-xl text-foreground transition-colors duration-150 group-hover:text-accent">
               {featuredArticle.title}
             </h1>
@@ -100,14 +102,14 @@ export function Hero({
         ) : (
           <>
             <h1 className="mt-6 display-xl text-foreground">
-              La ligue et le marché,
+              La ligue et le marche,
               <br />
-              racontés à hauteur d&apos;équipe.
+              racontes a hauteur d&apos;equipe.
             </h1>
 
             <p className="mt-7 max-w-xl text-base leading-7 text-foreground-dim md:text-lg md:leading-8">
-              En haut, les plus grosses valeurs du marché. Plus bas, le classement et les derniers
-              résultats donnent le vrai rythme du split, sans détour.
+              En haut, les plus grosses valeurs du marche. Plus bas, le classement et les derniers
+              resultats donnent le vrai rythme du split, sans detour.
             </p>
           </>
         )}
@@ -122,7 +124,7 @@ export function Hero({
             </Link>
           ) : (
             <Link href="/transfermarket" className={buttonVariants({ size: 'lg' })}>
-              Explorer le marché
+              Explorer le marche
             </Link>
           )}
           <Link
@@ -130,13 +132,13 @@ export function Hero({
             className={cn(buttonVariants({ variant: 'ghost', size: 'lg' }), 'gap-2')}
           >
             <ArrowDown className="h-4 w-4" />
-            Classement et résultats
+            Classement et resultats
           </Link>
         </div>
 
         <div className="mt-14 grid gap-8 sm:grid-cols-3">
           <HeroKpi
-            label="Équipes"
+            label="Equipes"
             value={teamCount.toString().padStart(2, '0')}
             helper={
               topTeam ? (
@@ -145,7 +147,7 @@ export function Hero({
                   shortCode={topTeam.shortCode}
                   logoUrl={topTeam.logoUrl}
                   size="xs"
-                  text={`${topTeam.shortCode} mène le split.`}
+                  text={`${topTeam.shortCode} mene le split.`}
                 />
               ) : (
                 'Classement en attente.'
@@ -155,12 +157,12 @@ export function Hero({
           <HeroKpi
             label="Joueurs suivis"
             value={playerCount.toString().padStart(2, '0')}
-            helper={`${completedMatchCount} séries déjà jouées.`}
+            helper={`${completedMatchCount} series deja jouees.`}
           />
           <HeroKpi
-            label="Valeur cumulée"
+            label="Valeur cumulee"
             value={formatCurrency(totalMarketValue)}
-            helper="Évaluée par la direction sportive."
+            helper="Evaluee par la direction sportive."
           />
         </div>
       </div>
@@ -169,7 +171,7 @@ export function Hero({
         <p className="label-mono">Top 10 valeurs</p>
         <h2 className="mt-3 display-md text-foreground">Les gros noms du moment.</h2>
         <p className="mt-3 max-w-sm text-sm leading-6 text-foreground-dim">
-          Les dix plus grosses valeurs marchandes, telles que cotées au début de la fenêtre.
+          Les dix plus grosses valeurs marchandes, telles que cotees au debut de la fenetre.
         </p>
 
         <ol className="mt-8 flex flex-col">
@@ -177,29 +179,46 @@ export function Hero({
             topPlayers.slice(0, 10).map((player, index) => (
               <li
                 key={player.id}
-                className="grid grid-cols-[auto_1fr_auto] items-baseline gap-5 border-t border-hairline py-5"
+                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-5 border-t border-hairline py-5"
               >
                 <span className="label-mono text-foreground-muted tabular-nums">
-                  § {(index + 1).toString().padStart(2, '0')}
+                  #{(index + 1).toString().padStart(2, '0')}
                 </span>
-                <div className="min-w-0">
-                  <PlayerLink
-                    playerId={player.id}
-                    className="block truncate font-display text-2xl tracking-tight text-foreground"
-                  >
-                    {player.displayName}
-                  </PlayerLink>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 label-mono text-foreground-muted">
-                    <TeamInline
-                      name={player.teamName}
-                      shortCode={player.teamShortCode}
-                      logoUrl={player.teamLogoUrl}
-                      size="xs"
-                      text={player.teamShortCode}
-                      textClassName="text-foreground-muted"
-                    />
-                    <span>·</span>
-                    <span>{player.role}</span>
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="placeholder-diag h-12 w-12 shrink-0 overflow-hidden border border-hairline bg-surface">
+                    {player.imageUrl ? (
+                      <img
+                        src={player.imageUrl}
+                        alt={player.displayName}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center font-display text-sm text-foreground-dim">
+                        {getPlayerInitials(player.displayName)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <PlayerLink
+                      playerId={player.id}
+                      className="block truncate font-display text-2xl tracking-tight text-foreground"
+                    >
+                      {player.displayName}
+                    </PlayerLink>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 label-mono text-foreground-muted">
+                      <TeamInline
+                        name={player.teamName}
+                        shortCode={player.teamShortCode}
+                        logoUrl={player.teamLogoUrl}
+                        size="xs"
+                        text={player.teamShortCode}
+                        textClassName="text-foreground-muted"
+                      />
+                      <span>·</span>
+                      <span>{player.role}</span>
+                    </div>
                   </div>
                 </div>
                 <p className="font-display text-xl tracking-tight text-foreground tabular-nums">
@@ -209,7 +228,7 @@ export function Hero({
             ))
           ) : (
             <li className="border-t border-hairline py-5 text-sm text-foreground-muted">
-              Les top valeurs apparaîtront ici dès que les joueurs seront disponibles.
+              Les top valeurs apparaitront ici des que les joueurs seront disponibles.
             </li>
           )}
         </ol>
