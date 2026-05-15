@@ -10,6 +10,7 @@ import {
   teamCreateSchema,
   teamDeleteSchema,
   teamIdSchema,
+  teamRecentActivitySchema,
   teamSlugSchema,
   teamUpdateSchema,
   teamUpdatePlayerRoleSchema,
@@ -483,6 +484,133 @@ export const teamRouter = createTRPCRouter({
           maxTransferToSalary: team.transferBudget,
           maxSalaryToTransfer: Math.max(0, salaryRemaining),
         },
+      };
+    }),
+
+  getRecentActivity: captainProcedure
+    .input(teamRecentActivitySchema)
+    .query(async ({ ctx, input }) => {
+      ensureTeamAccess(ctx.session.user, input.teamId);
+
+      const [recentMatches, recentStats] = await Promise.all([
+        ctx.prisma.match.findMany({
+          where: {
+            OR: [{ homeTeamId: input.teamId }, { awayTeamId: input.teamId }],
+            isCompleted: true,
+          },
+          orderBy: [{ playedAt: 'desc' }, { scheduledAt: 'desc' }],
+          take: 5,
+          select: {
+            id: true,
+            format: true,
+            scheduledAt: true,
+            playedAt: true,
+            homeScore: true,
+            awayScore: true,
+            winnerTeamId: true,
+            homeTeam: { select: { id: true, name: true, shortCode: true, logoUrl: true } },
+            awayTeam: { select: { id: true, name: true, shortCode: true, logoUrl: true } },
+          },
+        }),
+        ctx.prisma.playerMatchStats.findMany({
+          where: { teamId: input.teamId },
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+          select: {
+            playerId: true,
+            champion: true,
+            kills: true,
+            deaths: true,
+            assists: true,
+            cs: true,
+            result: true,
+          },
+        }),
+      ]);
+
+      const championPoolMap = new Map<string, { games: number; wins: number }>();
+      const perPlayerMap = new Map<
+        string,
+        {
+          games: number;
+          wins: number;
+          kills: number;
+          deaths: number;
+          assists: number;
+          cs: number;
+          champions: Map<string, number>;
+        }
+      >();
+
+      for (const stat of recentStats) {
+        const champEntry = championPoolMap.get(stat.champion) ?? { games: 0, wins: 0 };
+        champEntry.games += 1;
+        if (stat.result === 'WIN') champEntry.wins += 1;
+        championPoolMap.set(stat.champion, champEntry);
+
+        const playerEntry =
+          perPlayerMap.get(stat.playerId) ?? {
+            games: 0,
+            wins: 0,
+            kills: 0,
+            deaths: 0,
+            assists: 0,
+            cs: 0,
+            champions: new Map<string, number>(),
+          };
+        playerEntry.games += 1;
+        if (stat.result === 'WIN') playerEntry.wins += 1;
+        playerEntry.kills += stat.kills;
+        playerEntry.deaths += stat.deaths;
+        playerEntry.assists += stat.assists;
+        playerEntry.cs += stat.cs;
+        playerEntry.champions.set(
+          stat.champion,
+          (playerEntry.champions.get(stat.champion) ?? 0) + 1,
+        );
+        perPlayerMap.set(stat.playerId, playerEntry);
+      }
+
+      const championPool = Array.from(championPoolMap.entries())
+        .map(([champion, { games, wins }]) => ({
+          champion,
+          games,
+          wins,
+          winRate: games > 0 ? wins / games : 0,
+        }))
+        .sort((a, b) => b.games - a.games || b.winRate - a.winRate)
+        .slice(0, 8);
+
+      const playerStats: Record<
+        string,
+        {
+          games: number;
+          wins: number;
+          avgKda: number;
+          avgCs: number;
+          topChampion: string | null;
+        }
+      > = {};
+
+      for (const [playerId, entry] of perPlayerMap.entries()) {
+        const topChampion =
+          Array.from(entry.champions.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+        playerStats[playerId] = {
+          games: entry.games,
+          wins: entry.wins,
+          avgKda:
+            entry.deaths > 0
+              ? (entry.kills + entry.assists) / entry.deaths
+              : entry.kills + entry.assists,
+          avgCs: entry.games > 0 ? entry.cs / entry.games : 0,
+          topChampion,
+        };
+      }
+
+      return {
+        recentMatches,
+        championPool,
+        playerStats,
       };
     }),
 

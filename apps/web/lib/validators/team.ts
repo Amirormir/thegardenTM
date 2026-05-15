@@ -51,3 +51,7 @@ export const teamBudgetConvertSchema = z.object({
 export const teamBudgetSnapshotSchema = z.object({
   teamId: z.string().min(1),
 });
+
+export const teamRecentActivitySchema = z.object({
+  teamId: z.string().min(1),
+});
