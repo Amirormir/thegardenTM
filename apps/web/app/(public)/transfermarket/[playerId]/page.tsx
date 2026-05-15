@@ -223,22 +223,13 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
 
         {canOfferTransfer && activeContract ? (
           <div className="mt-10">
-            <TransferOfferButton
-              playerId={player.id}
-              playerName={player.displayName}
-              releaseClause={activeContract.releaseClause}
-              buyerTeamId={userTeamId!}
-            />
+            <TransferOfferButton playerId={player.id} />
           </div>
         ) : null}
 
         {canSignFreeAgent ? (
           <div className="mt-10">
-            <FreeAgentSignButton
-              playerId={player.id}
-              playerName={player.displayName}
-              teamId={userTeamId!}
-            />
+            <FreeAgentSignButton playerId={player.id} />
           </div>
         ) : null}
       </header>
