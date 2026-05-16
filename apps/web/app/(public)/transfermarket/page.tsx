@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { CostFilters } from '@/components/features/transfermarket/cost-filters';
+import { CostTierGrid } from '@/components/features/transfermarket/cost-tier-grid';
 import { MarketFilters } from '@/components/features/transfermarket/market-filters';
 import { PlayerCard } from '@/components/features/transfermarket/player-card';
 import { TeamMarketValueRanking } from '@/components/features/transfermarket/team-market-value-ranking';
@@ -32,7 +34,7 @@ const roleOptions = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'] as const;
 
 type SortValue = (typeof sortOptions)[number];
 type RoleValue = (typeof roleOptions)[number];
-type TransferView = 'players' | 'teams';
+type TransferView = 'players' | 'teams' | 'cost';
 
 function getSearchValue(value: string | string[] | undefined) {
   return typeof value === 'string' ? value : undefined;
@@ -47,7 +49,9 @@ function getSortValue(value: string | undefined): SortValue {
 }
 
 function getViewValue(value: string | undefined): TransferView {
-  return value === 'teams' ? 'teams' : 'players';
+  if (value === 'teams') return 'teams';
+  if (value === 'cost') return 'cost';
+  return 'players';
 }
 
 function buildTransfermarketHref(options: {
@@ -58,8 +62,8 @@ function buildTransfermarketHref(options: {
 }) {
   const query = new URLSearchParams();
 
-  if (options.view === 'teams') {
-    query.set('view', 'teams');
+  if (options.view === 'teams' || options.view === 'cost') {
+    query.set('view', options.view);
   }
 
   if (options.search) {
@@ -129,6 +133,14 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
           sort,
         })
       : [];
+  const costPlayers =
+    view === 'cost'
+      ? await caller.player.getAll({
+          ...(role ? { role } : {}),
+          limit: 200,
+          sort: 'marketValue-desc',
+        })
+      : [];
   const teams = view === 'teams' ? await caller.team.getMarketValueRanking() : [];
 
   const totalPlayerMarketValue = players.reduce((sum, player) => sum + player.marketValue, 0);
@@ -148,18 +160,28 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
   const teamsViewHref = buildTransfermarketHref({
     view: 'teams',
   });
+  const costViewHref = buildTransfermarketHref({
+    view: 'cost',
+    role,
+  });
 
   return (
     <div className="flex flex-col gap-20 md:gap-24">
       <header className="border-b border-hairline pb-8">
         <p className="breadcrumb-mono">§ 02 · Le marché</p>
         <h1 className="mt-4 display-lg text-foreground">
-          {view === 'players' ? 'Liste des joueurs.' : 'Classement des équipes.'}
+          {view === 'players'
+            ? 'Liste des joueurs.'
+            : view === 'cost'
+              ? 'Joueurs par cost.'
+              : 'Classement des équipes.'}
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-foreground-dim">
           {view === 'players'
             ? 'Les meilleures valeurs du marché, les profils à suivre et les comparaisons utiles pour lire la fenêtre en un coup d’œil.'
-            : 'Lecture simple de la valeur marchande totale de chaque effectif, accentuée par la couleur dominante du logo.'}
+            : view === 'cost'
+              ? 'Tous les joueurs regroupés par leur cost (1 à 5). Filtre par rôle principal pour cibler les profils.'
+              : 'Lecture simple de la valeur marchande totale de chaque effectif, accentuée par la couleur dominante du logo.'}
         </p>
 
         <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -168,6 +190,7 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
             className="flex items-center gap-6 border-b border-hairline"
           >
             <ViewTab active={view === 'players'} href={playersViewHref} label="Joueurs" />
+            <ViewTab active={view === 'cost'} href={costViewHref} label="Cost" />
             <ViewTab active={view === 'teams'} href={teamsViewHref} label="Équipes" />
           </nav>
 
@@ -186,8 +209,15 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
             <MarketFilters search={search} role={role ?? 'all'} sort={sort} />
           </div>
         ) : null}
+
+        {view === 'cost' ? (
+          <div className="mt-6">
+            <CostFilters role={role ?? 'all'} />
+          </div>
+        ) : null}
       </header>
 
+      {view === 'cost' ? null : (
       <section className="grid gap-10 md:grid-cols-3 md:gap-12">
         {view === 'players' ? (
           <>
@@ -259,6 +289,20 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
           </>
         )}
       </section>
+      )}
+
+      {view === 'cost' ? (
+        <section>
+          <p className="label-mono">Cost tiers</p>
+          <h2 className="mt-3 display-md text-foreground">
+            {costPlayers.length.toString().padStart(2, '0')} joueur
+            {costPlayers.length > 1 ? 's' : ''} listé{costPlayers.length > 1 ? 's' : ''}.
+          </h2>
+          <div className="mt-8">
+            <CostTierGrid players={costPlayers} />
+          </div>
+        </section>
+      ) : null}
 
       {view === 'players' && players.length >= 3 && sort === 'marketValue-desc' ? (
         <section>
@@ -302,18 +346,24 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
         </section>
       ) : null}
 
-      {(view === 'players' && players.length === 0) || (view === 'teams' && teams.length === 0) ? (
+      {(view === 'players' && players.length === 0) ||
+      (view === 'teams' && teams.length === 0) ||
+      (view === 'cost' && costPlayers.length === 0) ? (
         <section className="border-y border-hairline py-12">
           <p className="label-mono">Aucun résultat</p>
           <h2 className="mt-3 display-md text-foreground">
             {view === 'players'
               ? 'Aucun joueur ne correspond aux filtres actuels.'
-              : 'Aucune équipe disponible pour le moment.'}
+              : view === 'cost'
+                ? 'Aucun joueur pour ce rôle.'
+                : 'Aucune équipe disponible pour le moment.'}
           </h2>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-foreground-dim">
             {view === 'players'
               ? 'Change la recherche, le rôle ou réinitialise les filtres pour revenir à la vue complète du marché.'
-              : 'Le classement des valeurs marchandes équipe apparaîtra ici dès que des effectifs seront disponibles.'}
+              : view === 'cost'
+                ? 'Change ou réinitialise le filtre de rôle pour voir d’autres paliers.'
+                : 'Le classement des valeurs marchandes équipe apparaîtra ici dès que des effectifs seront disponibles.'}
           </p>
         </section>
       ) : null}

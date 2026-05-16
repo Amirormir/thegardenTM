@@ -199,6 +199,7 @@ export const playerRouter = createTRPCRouter({
         secondaryRoles: true,
         marketValue: true,
         salary: true,
+        cost: true,
         teamId: true,
         team: {
           select: {
@@ -234,6 +235,7 @@ export const playerRouter = createTRPCRouter({
           ? player.marketValueHistory[0].newValue - player.marketValueHistory[0].previousValue
           : 0,
       salary: player.salary,
+      cost: player.cost,
       teamId: player.teamId,
       ...toTeamDisplay(player.team),
     }));

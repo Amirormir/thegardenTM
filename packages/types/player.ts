@@ -13,6 +13,7 @@ export interface PlayerListItem {
   marketValue: number;
   marketValueDelta?: number | null;
   salary: number;
+  cost?: number;
   teamId?: string | null;
   teamName: string;
   teamShortCode?: string | null;
