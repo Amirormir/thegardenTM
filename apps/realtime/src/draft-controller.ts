@@ -279,7 +279,7 @@ async function loadCandidatePool(_draftId: string): Promise<string[]> {
     select: { id: true },
     orderBy: { id: 'asc' },
   });
-  candidatePoolCache = { ids: champions.map((c) => c.id), loadedAt: now };
+  candidatePoolCache = { ids: champions.map((c: { id: string }) => c.id), loadedAt: now };
   return candidatePoolCache.ids;
 }
 

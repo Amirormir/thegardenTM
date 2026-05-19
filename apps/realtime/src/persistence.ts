@@ -1,4 +1,4 @@
-import { prisma, type Prisma } from '@nexus/db';
+import { prisma } from '@nexus/db';
 import {
   createInitialState,
   type DraftState,
@@ -75,7 +75,14 @@ export async function hydrateStateFromDatabase(draftId: string): Promise<DraftSt
     fearlessLockedChampionIds: fearless,
   });
 
-  const actions: LockedAction[] = draft.actions.map((a) => ({
+  const actions: LockedAction[] = draft.actions.map((a: {
+    step: number;
+    type: LockedAction['type'];
+    side: LockedAction['side'];
+    championId: string | null;
+    wasAutoPicked: boolean;
+    lockedAt: Date;
+  }) => ({
     step: a.step,
     type: a.type,
     side: a.side,
@@ -136,8 +143,11 @@ export async function persistLockedAction(
       }),
     ]);
   } catch (error) {
-    const e = error as Prisma.PrismaClientKnownRequestError;
-    if (e.code === 'P2002') {
+    const code =
+      typeof error === 'object' && error !== null && 'code' in error
+        ? (error as { code?: unknown }).code
+        : undefined;
+    if (code === 'P2002') {
       // already persisted — race with another worker. Safe to swallow.
       logger.warn({ draftId, step: action.step }, 'duplicate draft action ignored');
       return;
