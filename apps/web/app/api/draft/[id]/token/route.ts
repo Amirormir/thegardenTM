@@ -26,21 +26,15 @@ export async function POST(_req: Request, ctx: RouteContext): Promise<Response> 
     return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
   }
 
-  // Team ownership takes precedence over ADMIN role so an admin who captains
-  // one of the two teams (e.g. the local test squad) gets BLUE/RED captaincy
-  // instead of being treated as a spectating admin.
-  //
-  // Local-only escape hatch: in non-production, an ADMIN gets DEV_DUAL_CAPTAIN
-  // so a single account can drive both sides of a draft for testing.
+  // Admins can always assume DEV_DUAL_CAPTAIN so a single account can drive
+  // both sides of a draft when supervising or testing a match.
   let role: DraftRole;
-  if (process.env.NODE_ENV !== 'production' && session.user.role === 'ADMIN') {
+  if (session.user.role === 'ADMIN') {
     role = 'DEV_DUAL_CAPTAIN';
   } else if (session.user.teamId === draft.blueTeamId) {
     role = 'BLUE_CAPTAIN';
   } else if (session.user.teamId === draft.redTeamId) {
     role = 'RED_CAPTAIN';
-  } else if (session.user.role === 'ADMIN') {
-    role = 'ADMIN';
   } else {
     role = 'SPECTATOR';
   }

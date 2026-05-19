@@ -22,6 +22,15 @@ export const matchRouter = createTRPCRouter({
         isCompleted: true,
         homeScore: true,
         awayScore: true,
+        drafts: {
+          select: {
+            id: true,
+            gameNumber: true,
+            status: true,
+            createdAt: true,
+          },
+          orderBy: { gameNumber: 'asc' },
+        },
         homeTeam: {
           select: {
             id: true,

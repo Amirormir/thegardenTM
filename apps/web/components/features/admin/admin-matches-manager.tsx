@@ -1,7 +1,8 @@
 'use client';
 
 import type { inferRouterOutputs } from '@trpc/server';
-import { ArrowRightLeft, Check, Loader2, Pencil, Plus, Save } from 'lucide-react';
+import { ArrowRightLeft, Check, Loader2, Pencil, Play, Plus, Save } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -112,6 +113,7 @@ function FeedbackBanner({ feedback }: { feedback: FeedbackState | null }) {
 }
 
 export function AdminMatchesManager() {
+  const router = useRouter();
   const utils = api.useUtils();
   const matchesQuery = api.match.getAll.useQuery();
   const teamsQuery = api.team.getAll.useQuery();
@@ -123,6 +125,7 @@ export function AdminMatchesManager() {
   const [gameStates, setGameStates] = useState<Record<number, GameState>>({});
 
   const createMatch = api.match.create.useMutation();
+  const createDraft = api.draft.create.useMutation();
   const recordResult = api.match.recordResult.useMutation();
 
   const matches = matchesQuery.data ?? [];
@@ -247,6 +250,71 @@ export function AdminMatchesManager() {
     if (matched) return matched;
     const sameRole = roster.filter((p) => p.role === replayPlayer.role);
     return sameRole[0] ?? null;
+  }
+
+  async function handleLaunchDraft(match: MatchSummary) {
+    setFeedback(null);
+
+    const liveDraft =
+      match.drafts.find((draft) => !['COMPLETED', 'CANCELLED'].includes(draft.status)) ?? null;
+    if (liveDraft) {
+      router.push(`/draft/${liveDraft.id}`);
+      return;
+    }
+
+    if (match.isCompleted) {
+      setFeedback({
+        type: 'error',
+        message: 'Ce match est déjà terminé, aucun nouveau draft ne peut être lancé.',
+      });
+      return;
+    }
+
+    const nextGameNumber =
+      match.drafts
+        .filter((draft) => draft.status !== 'CANCELLED')
+        .reduce((maxGameNumber, draft) => Math.max(maxGameNumber, draft.gameNumber), 0) + 1;
+
+    const maxGames = FORMAT_GAME_LIMIT[match.format];
+    if (nextGameNumber > maxGames) {
+      const latestDraft = match.drafts[match.drafts.length - 1] ?? null;
+      if (latestDraft) {
+        router.push(`/draft/${latestDraft.id}`);
+        return;
+      }
+
+      setFeedback({
+        type: 'error',
+        message: `Le format ${match.format} a déjà atteint son nombre maximum de drafts.`,
+      });
+      return;
+    }
+
+    try {
+      const draft = await createDraft.mutateAsync({
+        matchId: match.id,
+        gameNumber: nextGameNumber,
+        format: match.format,
+        fearless: true,
+        blueSide: 'HOME',
+      });
+
+      await Promise.all([
+        utils.match.getAll.invalidate(),
+        utils.draft.list.invalidate(),
+        utils.draft.byId.invalidate(),
+        utils.draft.eligibleMatches.invalidate(),
+      ]);
+
+      setFeedback({
+        type: 'success',
+        message: `Draft game ${nextGameNumber} prêt — redirection en cours.`,
+      });
+      router.push(`/draft/${draft.id}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Le lancement du draft a échoué.';
+      setFeedback({ type: 'error', message });
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -548,6 +616,14 @@ export function AdminMatchesManager() {
                     <p className="mt-1 label-mono">
                       {match.format} · {match.season.name} · {formatDateTime(match.scheduledAt)}
                     </p>
+                    {match.drafts.length > 0 ? (
+                      <p className="mt-2 label-mono text-foreground-dim">
+                        Drafts :{' '}
+                        {match.drafts
+                          .map((draft) => `G${draft.gameNumber} ${draft.status}`)
+                          .join(' Â· ')}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-display text-2xl tabular-nums text-foreground">
@@ -556,6 +632,22 @@ export function AdminMatchesManager() {
                     <Badge variant={match.isCompleted ? 'actif' : 'expiré'}>
                       {match.isCompleted ? 'Terminé' : 'Programmé'}
                     </Badge>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      disabled={createDraft.isPending}
+                      icon={
+                        createDraft.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Play className="h-4 w-4" />
+                        )
+                      }
+                      onClick={() => void handleLaunchDraft(match)}
+                    >
+                      Lancer le draft
+                    </Button>
                     {recordingMatchId === match.id ? (
                       <Button
                         type="button"
