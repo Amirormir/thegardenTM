@@ -20,6 +20,7 @@ import { ReplayImportButton } from './replay-import-button';
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 type MatchSummary = RouterOutputs['match']['getAll'][number];
 type TeamRosterPlayer = RouterOutputs['player']['getByTeam'][number];
+type DraftSummary = RouterOutputs['draft']['list'][number];
 
 interface FeedbackState {
   type: 'success' | 'error';
@@ -116,6 +117,7 @@ export function AdminMatchesManager() {
   const router = useRouter();
   const utils = api.useUtils();
   const matchesQuery = api.match.getAll.useQuery();
+  const draftsQuery = api.draft.list.useQuery({ limit: 100 });
   const teamsQuery = api.team.getAll.useQuery();
   const seasonsQuery = api.league.getAllSeasons.useQuery();
 
@@ -129,8 +131,21 @@ export function AdminMatchesManager() {
   const recordResult = api.match.recordResult.useMutation();
 
   const matches = matchesQuery.data ?? [];
+  const drafts = draftsQuery.data ?? [];
   const teams = teamsQuery.data ?? [];
   const seasons = seasonsQuery.data ?? [];
+  const draftsByMatchId = useMemo(() => {
+    const grouped = new Map<string, DraftSummary[]>();
+    for (const draft of drafts) {
+      const existing = grouped.get(draft.matchId) ?? [];
+      existing.push(draft);
+      grouped.set(draft.matchId, existing);
+    }
+    for (const matchDrafts of grouped.values()) {
+      matchDrafts.sort((left, right) => left.gameNumber - right.gameNumber);
+    }
+    return grouped;
+  }, [drafts]);
   const recordingMatch = useMemo(
     () => matches.find((match) => match.id === recordingMatchId) ?? null,
     [matches, recordingMatchId],
@@ -254,9 +269,10 @@ export function AdminMatchesManager() {
 
   async function handleLaunchDraft(match: MatchSummary) {
     setFeedback(null);
+    const matchDrafts = draftsByMatchId.get(match.id) ?? [];
 
     const liveDraft =
-      match.drafts.find((draft) => !['COMPLETED', 'CANCELLED'].includes(draft.status)) ?? null;
+      matchDrafts.find((draft) => !['COMPLETED', 'CANCELLED'].includes(draft.status)) ?? null;
     if (liveDraft) {
       router.push(`/draft/${liveDraft.id}`);
       return;
@@ -271,13 +287,13 @@ export function AdminMatchesManager() {
     }
 
     const nextGameNumber =
-      match.drafts
+      matchDrafts
         .filter((draft) => draft.status !== 'CANCELLED')
         .reduce((maxGameNumber, draft) => Math.max(maxGameNumber, draft.gameNumber), 0) + 1;
 
     const maxGames = FORMAT_GAME_LIMIT[match.format];
     if (nextGameNumber > maxGames) {
-      const latestDraft = match.drafts[match.drafts.length - 1] ?? null;
+      const latestDraft = matchDrafts[matchDrafts.length - 1] ?? null;
       if (latestDraft) {
         router.push(`/draft/${latestDraft.id}`);
         return;
@@ -605,7 +621,10 @@ export function AdminMatchesManager() {
               Chargement...
             </div>
           ) : matches.length > 0 ? (
-            matches.map((match) => (
+            matches.map((match) => {
+              const matchDrafts = draftsByMatchId.get(match.id) ?? [];
+
+              return (
               <article key={match.id} className="bg-background">
                 <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-5">
                   <div>
@@ -616,10 +635,10 @@ export function AdminMatchesManager() {
                     <p className="mt-1 label-mono">
                       {match.format} · {match.season.name} · {formatDateTime(match.scheduledAt)}
                     </p>
-                    {match.drafts.length > 0 ? (
+                    {matchDrafts.length > 0 ? (
                       <p className="mt-2 label-mono text-foreground-dim">
                         Drafts :{' '}
-                        {match.drafts
+                        {matchDrafts
                           .map((draft) => `G${draft.gameNumber} ${draft.status}`)
                           .join(' Â· ')}
                       </p>
@@ -747,7 +766,8 @@ export function AdminMatchesManager() {
                   </form>
                 ) : null}
               </article>
-            ))
+            );
+            })
           ) : (
             <div className="bg-background px-5 py-6 text-sm text-foreground-dim">
               Aucun match enregistré.
