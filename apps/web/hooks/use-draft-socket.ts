@@ -154,7 +154,7 @@ export function useDraftSocket(draftId: string): UseDraftSocketResult {
     let cancelled = false;
     setStatus('fetching-token');
 
-    (async () => {
+    void (async () => {
       let token: string;
       let resolvedRole: DraftRole;
       let resolvedTeamId: string | null;

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   buildSplashUrl,
   buildSquareUrl,
@@ -8,7 +8,29 @@ import {
 import { createMockPrisma } from '@/test/helpers';
 import type { TRPCContext } from '@/server/context';
 
-function makeEntry(id: string, overrides: Partial<DataDragonChampionEntry> = {}): DataDragonChampionEntry {
+type MockPrisma = ReturnType<typeof createMockPrisma>;
+
+type ChampionRow = { id: string };
+type ChampionUpsertData = {
+  name: string;
+  title: string;
+  splashUrl: string;
+  squareUrl: string;
+  patchVersion: string;
+  roles?: unknown;
+  enabled?: unknown;
+};
+
+type ChampionUpsertArgs = {
+  where: { id: string };
+  create: { id: string } & ChampionUpsertData;
+  update: ChampionUpsertData;
+};
+
+function makeEntry(
+  id: string,
+  overrides: Partial<DataDragonChampionEntry> = {},
+): DataDragonChampionEntry {
   return {
     id,
     key: '0',
@@ -19,8 +41,22 @@ function makeEntry(id: string, overrides: Partial<DataDragonChampionEntry> = {})
   };
 }
 
-function asPrisma(mock: ReturnType<typeof createMockPrisma>) {
+function asPrisma(mock: MockPrisma) {
   return mock as unknown as TRPCContext['prisma'];
+}
+
+function setChampionFindManyResult(prisma: MockPrisma, rows: ChampionRow[]) {
+  const findManyMock = prisma.champion.findMany as unknown as {
+    mockResolvedValue: (value: ChampionRow[]) => unknown;
+  };
+  findManyMock.mockResolvedValue(rows);
+}
+
+function getChampionUpsertCalls(prisma: MockPrisma): ChampionUpsertArgs[] {
+  const upsertMock = prisma.champion.upsert as unknown as {
+    mock: { calls: [ChampionUpsertArgs][] };
+  };
+  return upsertMock.mock.calls.map(([args]) => args);
 }
 
 describe('buildSplashUrl', () => {
@@ -40,7 +76,7 @@ describe('buildSquareUrl', () => {
 });
 
 describe('syncChampionsToDatabase', () => {
-  let prisma: ReturnType<typeof createMockPrisma>;
+  let prisma: MockPrisma;
 
   beforeEach(() => {
     prisma = createMockPrisma();
@@ -53,9 +89,7 @@ describe('syncChampionsToDatabase', () => {
   });
 
   it('counts inserts and updates separately', async () => {
-    (prisma.champion.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 'Aatrox' },
-    ]);
+    setChampionFindManyResult(prisma, [{ id: 'Aatrox' }]);
 
     const entries = [makeEntry('Aatrox'), makeEntry('Ahri'), makeEntry('Akali')];
     const result = await syncChampionsToDatabase({
@@ -70,11 +104,11 @@ describe('syncChampionsToDatabase', () => {
       inserted: 2,
       updated: 1,
     });
-    expect((prisma.champion.upsert as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(3);
+    expect(getChampionUpsertCalls(prisma)).toHaveLength(3);
   });
 
   it('preserves existing roles/enabled by not touching them on upsert', async () => {
-    (prisma.champion.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 'Ahri' }]);
+    setChampionFindManyResult(prisma, [{ id: 'Ahri' }]);
 
     await syncChampionsToDatabase({
       prisma: asPrisma(prisma),
@@ -82,9 +116,9 @@ describe('syncChampionsToDatabase', () => {
       entries: [makeEntry('Ahri', { title: 'the Nine-Tailed Fox' })],
     });
 
-    const calls = (prisma.champion.upsert as ReturnType<typeof vi.fn>).mock.calls;
+    const calls = getChampionUpsertCalls(prisma);
     expect(calls).not.toHaveLength(0);
-    const call = calls[0]![0]!;
+    const call = calls[0]!;
     expect(call.update).not.toHaveProperty('roles');
     expect(call.update).not.toHaveProperty('enabled');
     expect(call.create).not.toHaveProperty('roles');
@@ -99,9 +133,9 @@ describe('syncChampionsToDatabase', () => {
       entries: [makeEntry('Aatrox')],
     });
 
-    const calls = (prisma.champion.upsert as ReturnType<typeof vi.fn>).mock.calls;
+    const calls = getChampionUpsertCalls(prisma);
     expect(calls).not.toHaveLength(0);
-    const call = calls[0]![0]!;
+    const call = calls[0]!;
     expect(call.create.squareUrl).toContain('15.1.1');
     expect(call.create.patchVersion).toBe('15.1.1');
   });
