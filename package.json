@@ -6,7 +6,8 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "turbo dev --output-logs=full",
+    "dev": "pnpm clean:test-drafts && turbo dev --output-logs=full",
+    "clean:test-drafts": "pnpm --filter @nexus/db db:clean-test",
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
@@ -14,7 +15,8 @@
     "db:push": "pnpm --filter @nexus/db db:push",
     "db:migrate": "pnpm --filter @nexus/db db:migrate",
     "db:seed": "pnpm --filter @nexus/db db:seed",
-    "db:studio": "pnpm --filter @nexus/db db:studio"
+    "db:studio": "pnpm --filter @nexus/db db:studio",
+    "test:draft": "pnpm --filter @nexus/db db:seed:draft"
   },
   "devDependencies": {
     "eslint": "9.39.4",

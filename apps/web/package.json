@@ -14,6 +14,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "2.11.1",
     "@nexus/db": "workspace:*",
+    "@nexus/draft-engine": "workspace:*",
     "@nexus/types": "workspace:*",
     "@tanstack/react-query": "5.95.2",
     "@trpc/client": "11.15.1",
@@ -27,6 +28,7 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "framer-motion": "11.18.2",
+    "jose": "6.2.3",
     "lucide-react": "1.7.0",
     "mongodb": "^7.2.0",
     "next": "15.5.14",
@@ -34,6 +36,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "2.15.4",
+    "socket.io-client": "4.8.3",
     "superjson": "2.2.6",
     "tailwind-merge": "3.5.0",
     "zod": "4.3.6"

@@ -9,7 +9,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@nexus/db', '@nexus/types'],
+  transpilePackages: ['@nexus/db', '@nexus/draft-engine', '@nexus/types'],
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
   images: {

@@ -1,8 +1,10 @@
 import { createTRPCRouter } from '@/server/trpc';
 import { adminRouter } from './admin';
 import { articleRouter } from './article';
+import { championRouter } from './champion';
 import { contractRouter } from './contract';
 import { customRouter } from './custom';
+import { draftRouter } from './draft';
 import { leagueRouter } from './league';
 import { leagueSettingsRouter } from './league-settings';
 import { matchRouter } from './match';
@@ -16,8 +18,10 @@ import { userRouter } from './user';
 export const appRouter = createTRPCRouter({
   admin: adminRouter,
   article: articleRouter,
+  champion: championRouter,
   contract: contractRouter,
   custom: customRouter,
+  draft: draftRouter,
   league: leagueRouter,
   leagueSettings: leagueSettingsRouter,
   match: matchRouter,

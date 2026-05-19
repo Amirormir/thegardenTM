@@ -92,10 +92,10 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
   const navItems = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
       { href: '/', label: 'Accueil' },
-      { href: '/league', label: 'Classements' },
-      { href: '/league/matches', label: 'Matchs' },
+      { href: '/league', label: 'Ligue' },
       { href: '/custom', label: 'Custom' },
       { href: '/transfermarket', label: 'Marche' },
+      { href: '/draft', label: 'Draft' },
       { href: '/news', label: 'News' },
     ];
 

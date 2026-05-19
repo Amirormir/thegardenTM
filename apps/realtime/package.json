@@ -1,0 +1,32 @@
+{
+  "name": "@nexus/realtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env.local --import tsx --watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node --env-file-if-exists=.env.local dist/index.js",
+    "lint": "echo \"No lint configured for @nexus/realtime\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@nexus/db": "workspace:*",
+    "@nexus/draft-engine": "workspace:*",
+    "bullmq": "5.76.10",
+    "ioredis": "5.10.1",
+    "jose": "6.2.3",
+    "pino": "10.3.1",
+    "pino-pretty": "13.1.1",
+    "socket.io": "4.8.3"
+  },
+  "devDependencies": {
+    "@nexus/config": "workspace:*",
+    "@types/node": "25.5.0",
+    "tsx": "4.22.1",
+    "typescript": "5.9.3",
+    "vitest": "^4.1.2"
+  }
+}

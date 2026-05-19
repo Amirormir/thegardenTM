@@ -47,6 +47,14 @@ export function getChampionIconUrl(championId: string, version?: string): string
   return `${DDRAGON_BASE}/cdn/${v}/img/champion/${championId}.png`;
 }
 
+/**
+ * Data Dragon splash art (versionless). 1215×717 horizontal. Used for the
+ * tournament-style pick slot tiles.
+ */
+export function getChampionSplashUrl(championId: string): string {
+  return `${DDRAGON_BASE}/cdn/img/champion/splash/${championId}_0.jpg`;
+}
+
 export function getItemIconUrl(itemId: number, version?: string): string | null {
   if (!itemId) return null;
   const v = version ?? '15.6.1';

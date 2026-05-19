@@ -9,6 +9,7 @@ import {
   Menu,
   Newspaper,
   Shield,
+  Sparkles,
   Swords,
   UserCog,
   Users,
@@ -26,6 +27,7 @@ const items = [
   { href: '/admin/contracts', label: 'Contracts', icon: FileText },
   { href: '/admin/league', label: 'League', icon: CalendarRange },
   { href: '/admin/news', label: 'News', icon: Newspaper },
+  { href: '/admin/champions', label: 'Champions', icon: Sparkles },
 ];
 
 export function Sidebar() {

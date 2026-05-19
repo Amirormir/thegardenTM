@@ -1,0 +1,23 @@
+{
+  "name": "@nexus/draft-engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sequence": "./src/sequence.ts",
+    "./types": "./src/types.ts",
+    "./events": "./src/events.ts"
+  },
+  "scripts": {
+    "build": "echo \"No build required for @nexus/draft-engine\"",
+    "lint": "echo \"No lint required for @nexus/draft-engine\"",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@nexus/config": "workspace:*",
+    "@types/node": "25.5.0",
+    "vitest": "^4.1.2"
+  }
+}

@@ -58,6 +58,39 @@ enum ConversionDirection {
   SALARY_TO_TRANSFER
 }
 
+enum DraftStatus {
+  LOBBY
+  COINFLIP
+  IN_PROGRESS
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum DraftActionType {
+  BAN
+  PICK
+}
+
+enum DraftSide {
+  BLUE
+  RED
+}
+
+enum CoinflipDecision {
+  SIDE_BLUE
+  SIDE_RED
+  FIRST_PICK
+  SECOND_PICK
+}
+
+enum DraftParticipantRole {
+  BLUE_CAPTAIN
+  RED_CAPTAIN
+  SPECTATOR
+  ADMIN
+}
+
 model User {
   id                  String               @id @default(cuid())
   name                String?
@@ -74,6 +107,8 @@ model User {
   marketValueChanges  MarketValueHistory[] @relation("MarketValueChangedBy")
   notifications       Notification[]
   articles            Article[]            @relation("ArticleAuthor")
+  createdDrafts       Draft[]              @relation("DraftCreatedBy")
+  draftParticipations DraftParticipant[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -102,29 +137,33 @@ model Article {
 }
 
 model Team {
-  id               String             @id @default(cuid())
-  name             String             @unique
-  slug             String             @unique
-  shortCode        String             @unique
-  logoUrl          String?
-  transferBudget   Int                @default(1200000)
-  salaryBudgetCap  Int                @default(1200000)
-  captains         User[]             @relation("TeamCaptains")
-  players          Player[]
-  homeMatches      Match[]            @relation("HomeTeam")
-  awayMatches      Match[]            @relation("AwayTeam")
-  wonMatches       Match[]            @relation("WinnerTeam")
-  blueSideGames    MatchGame[]        @relation("BlueSideTeam")
-  redSideGames     MatchGame[]        @relation("RedSideTeam")
-  wonGames         MatchGame[]        @relation("GameWinnerTeam")
-  contracts            Contract[]
-  teamTrophies         Trophy[]           @relation("TeamTrophies")
-  playerMatchStats     PlayerMatchStats[]
-  outgoingTransfers    TransferOffer[]    @relation("BuyingTeam")
-  incomingTransfers    TransferOffer[]    @relation("SellingTeam")
-  budgetConversions    BudgetConversion[]
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  id                String             @id @default(cuid())
+  name              String             @unique
+  slug              String             @unique
+  shortCode         String             @unique
+  logoUrl           String?
+  transferBudget    Int                @default(1200000)
+  salaryBudgetCap   Int                @default(1200000)
+  captains          User[]             @relation("TeamCaptains")
+  players           Player[]
+  homeMatches       Match[]            @relation("HomeTeam")
+  awayMatches       Match[]            @relation("AwayTeam")
+  wonMatches        Match[]            @relation("WinnerTeam")
+  blueSideGames     MatchGame[]        @relation("BlueSideTeam")
+  redSideGames      MatchGame[]        @relation("RedSideTeam")
+  wonGames          MatchGame[]        @relation("GameWinnerTeam")
+  contracts         Contract[]
+  teamTrophies      Trophy[]           @relation("TeamTrophies")
+  playerMatchStats  PlayerMatchStats[]
+  outgoingTransfers TransferOffer[]    @relation("BuyingTeam")
+  incomingTransfers TransferOffer[]    @relation("SellingTeam")
+  budgetConversions BudgetConversion[]
+  blueDrafts           Draft[]         @relation("BlueTeamDrafts")
+  redDrafts            Draft[]         @relation("RedTeamDrafts")
+  coinflipWinnerDrafts Draft[]         @relation("CoinflipWinnerTeamDrafts")
+  wonDrafts            Draft[]         @relation("WonDrafts")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
 model Player {
@@ -163,24 +202,24 @@ model Player {
 }
 
 model Contract {
-  id                 String         @id @default(cuid())
-  playerId           String
-  teamId             String
-  status             ContractStatus @default(PENDING_APPROVAL)
-  salary             Int
-  durationBo3        Int            @default(10)
-  releaseClause      Int
-  transferFee        Int?
-  approvedAt         DateTime?
-  terminatedAt       DateTime?
-  expiresAt          DateTime?
-  expiryNotifiedAt   DateTime?
-  notes              String?
-  player             Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  team               Team           @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  transferOffers     TransferOffer[] @relation("ContractTransfer")
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  id               String          @id @default(cuid())
+  playerId         String
+  teamId           String
+  status           ContractStatus  @default(PENDING_APPROVAL)
+  salary           Int
+  durationBo3      Int             @default(10)
+  releaseClause    Int
+  transferFee      Int?
+  approvedAt       DateTime?
+  terminatedAt     DateTime?
+  expiresAt        DateTime?
+  expiryNotifiedAt DateTime?
+  notes            String?
+  player           Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team             Team            @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  transferOffers   TransferOffer[] @relation("ContractTransfer")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   @@unique([playerId, teamId, createdAt])
   @@index([playerId, status])
@@ -189,17 +228,18 @@ model Contract {
 }
 
 model Season {
-  id         String   @id @default(cuid())
-  name       String   @unique
-  slug       String   @unique
-  year       Int
-  isCurrent  Boolean  @default(false)
-  startDate  DateTime
-  endDate    DateTime
-  matches    Match[]
-  trophies   Trophy[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  year      Int
+  isCurrent Boolean  @default(false)
+  startDate DateTime
+  endDate   DateTime
+  matches   Match[]
+  trophies  Trophy[]
+  drafts    Draft[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([year, slug])
   @@index([isCurrent])
@@ -223,6 +263,7 @@ model Match {
   awayTeam     Team        @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Restrict)
   winnerTeam   Team?       @relation("WinnerTeam", fields: [winnerTeamId], references: [id], onDelete: SetNull)
   games        MatchGame[]
+  drafts       Draft[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -347,7 +388,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
   @@index([userId])
@@ -401,24 +442,24 @@ model TransferOffer {
 }
 
 model LeagueSettings {
-  id                   Int       @id @default(1)
-  boMaxRegularSeason   Int       @default(18)
-  transferWindowOpen   Boolean   @default(true)
-  transferWindowStart  DateTime?
-  transferWindowEnd    DateTime?
-  contractExpiryNoticeDays Int   @default(30)
-  updatedAt            DateTime  @updatedAt
+  id                       Int       @id @default(1)
+  boMaxRegularSeason       Int       @default(18)
+  transferWindowOpen       Boolean   @default(true)
+  transferWindowStart      DateTime?
+  transferWindowEnd        DateTime?
+  contractExpiryNoticeDays Int       @default(30)
+  updatedAt                DateTime  @updatedAt
 }
 
 model BudgetConversion {
-  id           String              @id @default(cuid())
-  teamId       String
-  direction    ConversionDirection
-  amount       Int
-  nUsed        Int
-  createdById  String
-  createdAt    DateTime            @default(now())
-  team         Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  id          String              @id @default(cuid())
+  teamId      String
+  direction   ConversionDirection
+  amount      Int
+  nUsed       Int
+  createdById String
+  createdAt   DateTime            @default(now())
+  team        Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([teamId, createdAt])
 }
@@ -436,4 +477,101 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, isRead, createdAt])
+}
+
+model Champion {
+  id           String       @id
+  name         String
+  title        String
+  roles        PlayerRole[] @default([])
+  splashUrl    String
+  squareUrl    String
+  patchVersion String
+  enabled      Boolean      @default(true)
+  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime     @default(now())
+
+  @@index([enabled])
+}
+
+model Draft {
+  id       String @id @default(cuid())
+  matchId  String
+  match    Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  seasonId String
+  season   Season @relation(fields: [seasonId], references: [id], onDelete: Restrict)
+
+  format       MatchFormat
+  fearless     Boolean     @default(true)
+  gameNumber   Int
+  patchVersion String
+
+  blueTeamId String
+  blueTeam   Team   @relation("BlueTeamDrafts", fields: [blueTeamId], references: [id], onDelete: Restrict)
+  redTeamId  String
+  redTeam    Team   @relation("RedTeamDrafts", fields: [redTeamId], references: [id], onDelete: Restrict)
+
+  status      DraftStatus @default(LOBBY)
+  currentStep Int         @default(0)
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  coinflipWinnerTeamId String?
+  coinflipWinnerTeam   Team?             @relation("CoinflipWinnerTeamDrafts", fields: [coinflipWinnerTeamId], references: [id], onDelete: SetNull)
+  coinflipDecision     CoinflipDecision?
+  coinflipResolvedAt   DateTime?
+
+  // Result vote — captains must agree on the winner before stats are recorded
+  // and before the next game in a BO3/BO5 series unlocks.
+  blueResultVote DraftSide?
+  redResultVote  DraftSide?
+  winnerSide     DraftSide?
+  winnerTeamId   String?
+  winnerTeam     Team?      @relation("WonDrafts", fields: [winnerTeamId], references: [id], onDelete: SetNull)
+  resultLockedAt DateTime?
+
+  actions      DraftAction[]
+  participants DraftParticipant[]
+
+  createdById String
+  createdBy   User   @relation("DraftCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([matchId])
+  @@index([seasonId, status])
+  @@index([status, createdAt])
+  @@index([coinflipWinnerTeamId])
+  @@index([winnerTeamId])
+}
+
+model DraftAction {
+  id            String          @id @default(cuid())
+  draftId       String
+  draft         Draft           @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  step          Int
+  type          DraftActionType
+  side          DraftSide
+  championId    String?
+  championName  String?
+  wasAutoPicked Boolean         @default(false)
+  lockedAt      DateTime        @default(now())
+
+  @@unique([draftId, step])
+  @@index([draftId])
+}
+
+model DraftParticipant {
+  id       String               @id @default(cuid())
+  draftId  String
+  draft    Draft                @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     DraftParticipantRole
+  joinedAt DateTime             @default(now())
+  leftAt   DateTime?
+
+  @@unique([draftId, userId])
+  @@index([draftId])
 }

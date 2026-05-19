@@ -1,0 +1,7 @@
+{
+  "extends": "@nexus/config/typescript/base",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}

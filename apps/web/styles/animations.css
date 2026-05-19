@@ -38,3 +38,60 @@
       0 0 20px rgba(239, 68, 68, 0.1);
   }
 }
+
+/* Draft pick reveal */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slotFlash {
+  0% {
+    box-shadow: 0 0 0 0 var(--accent);
+  }
+  35% {
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@keyframes overlayFade {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Tentative selection ghost — pulsing border while the captain hovers. */
+@keyframes pulseBorder {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*='animate-[fadeIn'],
+  [class*='animate-[slotFlash'],
+  [class*='animate-[overlayFade'],
+  [class*='animate-[pulseBorder'] {
+    animation: none !important;
+  }
+}
