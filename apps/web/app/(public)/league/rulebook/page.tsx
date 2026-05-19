@@ -1,0 +1,460 @@
+import type { ReactNode } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
+const PERFORMANCE_COMPENSATIONS = [
+  { rank: '1er', amount: '1,5 M' },
+  { rank: '2e', amount: '2,5 M' },
+  { rank: '3e', amount: '3,0 M' },
+  { rank: '4e', amount: '3,5 M' },
+  { rank: '5e', amount: '3,5 M' },
+  { rank: '6e', amount: '5,0 M' },
+  { rank: '7e', amount: '6,0 M' },
+  { rank: '8e', amount: '7,0 M' },
+  { rank: '9e', amount: '8,0 M' },
+  { rank: '10e (dernier)', amount: '10,0 M' },
+] as const;
+
+function RuleSection({
+  id,
+  title,
+  children,
+}: {
+  id: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section id={id} className="flex flex-col gap-8 border-t border-hairline pt-8">
+      <h2 className="display-md text-foreground">{title}</h2>
+      <div className="flex flex-col gap-8 text-base leading-8 text-foreground-dim md:text-lg md:leading-9">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function RuleSubsection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <h3 className="text-lg font-semibold text-foreground md:text-xl">{title}</h3>
+      <div className="flex flex-col gap-4">{children}</div>
+    </div>
+  );
+}
+
+function RuleList({ items }: { items: ReactNode[] }) {
+  return (
+    <ul className="flex flex-col gap-3">
+      {items.map((item, index) => (
+        <li key={index} className="flex gap-3">
+          <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export default function LeagueRulebookPage() {
+  return (
+    <div className="flex flex-col gap-16 md:gap-20">
+      <header className="border-b border-hairline pb-8">
+        <p className="breadcrumb-mono">§ 06 · Rulebook</p>
+        <h1 className="mt-4 display-lg text-foreground">Garden — Rulebook officiel.</h1>
+        <p className="mt-4 max-w-3xl text-base leading-7 text-foreground-dim">
+          Document de référence pour les règles de la ligue Garden. Toutes les valeurs
+          chiffrées mentionnées dans ce document peuvent être modifiées par le staff.
+        </p>
+      </header>
+
+      <div className="grid gap-12 xl:grid-cols-[0.32fr_0.68fr] xl:gap-16">
+        <aside className="h-fit border border-hairline bg-surface px-5 py-5">
+          <p className="label-mono text-foreground-muted">Navigation</p>
+          <nav aria-label="Sommaire rulebook" className="mt-4 flex flex-col gap-3 text-sm">
+            <a href="#creation-equipe" className="transition-colors hover:text-foreground">
+              1. Création d&apos;équipe
+            </a>
+            <a href="#budget" className="transition-colors hover:text-foreground">
+              2. Budget
+            </a>
+            <a href="#valeur-marchande" className="transition-colors hover:text-foreground">
+              3. Valeur marchande
+            </a>
+            <a href="#contrats" className="transition-colors hover:text-foreground">
+              4. Contrats
+            </a>
+            <a href="#transferts" className="transition-colors hover:text-foreground">
+              5. Transferts
+            </a>
+            <a href="#matchs" className="transition-colors hover:text-foreground">
+              6. Matchs
+            </a>
+            <a href="#comportement" className="transition-colors hover:text-foreground">
+              7. Comportement
+            </a>
+            <a href="#rappels" className="transition-colors hover:text-foreground">
+              8. Rappels et points en attente
+            </a>
+          </nav>
+        </aside>
+
+        <article className="flex flex-col gap-10">
+          <RuleSection id="creation-equipe" title="1. Création d'équipe">
+            <RuleSubsection title="1.1 Système de cost">
+              <RuleList
+                items={[
+                  <>Chaque joueur possède un <strong className="text-foreground">cost compris entre 1 et 5</strong>.</>,
+                  <>Chaque équipe peut comporter, à sa création, un <strong className="text-foreground">total maximum de 15 cost</strong>.</>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="1.2 Attribution des costs">
+              <RuleList
+                items={[
+                  <>
+                    La majorité des costs sera déterminée <strong className="text-foreground">une première fois</strong> avec
+                    l&apos;opinion ouverte de n&apos;importe qui durant une soirée dédiée.
+                  </>,
+                  <>Après cette soirée, tous les prochains costs à déterminer le seront <strong className="text-foreground">uniquement par le staff</strong>.</>,
+                ]}
+              />
+            </RuleSubsection>
+          </RuleSection>
+
+          <RuleSection id="budget" title="2. Budget">
+            <div className="border border-hairline bg-surface px-5 py-4 text-sm text-foreground-dim">
+              ⚠️ Disclaimer : toutes les valeurs citées dans cette section peuvent être modifiées
+              par le staff.
+            </div>
+
+            <RuleSubsection title="2.1 Budget de départ">
+              <RuleList
+                items={[
+                  <>
+                    Chaque équipe reçoit à sa création un <strong className="text-foreground">budget transfert de 40 millions</strong>.
+                  </>,
+                  <>
+                    Chaque équipe reçoit aussi une <strong className="text-foreground">masse salariale de 5 millions</strong>.
+                  </>,
+                  <>Ce budget peut être <strong className="text-foreground">équilibré librement</strong> par le chef d&apos;équipe.</>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="2.2 Conversion budget transfert ⇄ masse salariale">
+              <RuleList
+                items={[
+                  <>
+                    <strong className="text-foreground">Transfert vers salarial</strong> : on divise la somme à injecter par le{' '}
+                    <strong className="text-foreground">nombre de BO</strong> qu&apos;une équipe doit jouer sur la saison régulière.
+                  </>,
+                  <>
+                    <strong className="text-foreground">Salarial vers transfert</strong> : on applique l&apos;opération inverse.
+                  </>,
+                  <>
+                    <strong className="text-foreground">Nombre de BO actuellement fixé</strong> : 18.
+                  </>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="2.3 Sources de revenus">
+              <p>
+                Pour l&apos;instant, il n&apos;existe que <strong className="text-foreground">deux moyens</strong> de gagner du
+                budget :
+              </p>
+              <RuleList
+                items={[
+                  <>Vendre un joueur.</>,
+                  <>Compensations de performance, distribuées à chaque deadline selon le classement.</>,
+                ]}
+              />
+
+              <div className="overflow-x-auto border-t border-hairline">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Classement</TableHead>
+                      <TableHead>Compensation</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {PERFORMANCE_COMPENSATIONS.map((entry) => (
+                      <TableRow key={entry.rank}>
+                        <TableCell>{entry.rank}</TableCell>
+                        <TableCell className="font-display tabular-nums text-foreground">
+                          {entry.amount}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </RuleSubsection>
+          </RuleSection>
+
+          <RuleSection id="valeur-marchande" title="3. Valeur marchande (VM)">
+            <RuleSubsection title="3.1 Principes">
+              <RuleList
+                items={[
+                  <>Chaque joueur possède une <strong className="text-foreground">valeur marchande (VM)</strong>.</>,
+                  <>L&apos;échelle de la VM est calée sur celle utilisée dans le <strong className="text-foreground">sport classique</strong>.</>,
+                  <>La <strong className="text-foreground">VM de base</strong> d&apos;un joueur correspond simplement à son cost.</>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="3.2 Évolution de la VM">
+              <RuleList
+                items={[
+                  <>Après chaque game, un <strong className="text-foreground">algorithme</strong> attribue une note de performance au joueur.</>,
+                  <>Cette note fait évoluer la VM <strong className="text-foreground">à la hausse ou à la baisse</strong>.</>,
+                  <>
+                    L&apos;algorithme est conçu pour récompenser la <strong className="text-foreground">régularité</strong> et la{' '}
+                    <strong className="text-foreground">performance</strong>.
+                  </>,
+                  <>
+                    L&apos;algorithme est aussi conçu pour punir les joueurs <strong className="text-foreground">irréguliers</strong> et les{' '}
+                    <strong className="text-foreground">grosses baisses de performance</strong>.
+                  </>,
+                  <>Les détails précis de l&apos;algorithme seront communiqués à l&apos;approche des matchs.</>,
+                ]}
+              />
+            </RuleSubsection>
+          </RuleSection>
+
+          <RuleSection id="contrats" title="4. Contrats">
+            <RuleSubsection title="4.1 Principes généraux">
+              <RuleList
+                items={[
+                  <>Chaque joueur est <strong className="text-foreground">lié à son équipe par un contrat</strong>, y compris le chef d&apos;équipe.</>,
+                  <>Les contrats s&apos;effectuent <strong className="text-foreground">sur le site Garden</strong>.</>,
+                  <>Les capitaines signent eux-mêmes via leur compte.</>,
+                  <>Les joueurs n&apos;ayant pas de compte voient leur contrat accepté manuellement par un admin.</>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="4.2 Validation par un admin">
+              <p>Un contrat ne peut être accepté par un admin uniquement après confirmation que :</p>
+              <RuleList
+                items={[
+                  <>Le joueur a accepté lui-même.</>,
+                  <>Son capitaine a confirmé en son nom.</>,
+                  <>
+                    En cas de <strong className="text-foreground">mensonge</strong> de l&apos;une des deux parties, des sanctions pourront
+                    être appliquées.
+                  </>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="4.3 Champs obligatoires d'un contrat">
+              <RuleList
+                items={[
+                  <>
+                    <strong className="text-foreground">Montant du salaire</strong> avec un minimum de 5 % de la masse salariale
+                    lorsque le budget est réparti 50/50.
+                  </>,
+                  <>
+                    <strong className="text-foreground">Durée du contrat</strong> en BO, avec une durée minimum de 5 BO.
+                  </>,
+                  <>
+                    <strong className="text-foreground">Clause libératoire</strong>.
+                  </>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="4.4 Rupture et prolongation">
+              <RuleList
+                items={[
+                  <>Un contrat ne peut pas être brisé avant la fin de sa durée en BO.</>,
+                  <>Certains cas particuliers peuvent autoriser une rupture anticipée.</>,
+                  <>Des sanctions peuvent éventuellement s&apos;appliquer.</>,
+                  <>Ces situations sont gérées au cas par cas par le staff.</>,
+                  <>Un contrat peut bien sûr être prolongé.</>,
+                ]}
+              />
+            </RuleSubsection>
+          </RuleSection>
+
+          <RuleSection id="transferts" title="5. Transferts">
+            <RuleSubsection title="5.1 Modes d'achat d'un joueur">
+              <p>Une équipe peut acheter un joueur à une autre équipe de deux manières :</p>
+              <RuleList
+                items={[
+                  <>Accord entre les deux équipes sur une somme.</>,
+                  <>
+                    Paiement de la <strong className="text-foreground">clause libératoire</strong> présente dans le contrat du joueur.
+                    Dans ce cas, l&apos;équipe vendeuse n&apos;a plus son mot à dire.
+                  </>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="5.2 Fair-play financier">
+              <div className="border border-hairline bg-surface px-5 py-4 text-sm text-foreground-dim">
+                🚨 Attention : règle importante pour éviter les abus entre chefs d&apos;équipes amis.
+              </div>
+              <RuleList
+                items={[
+                  <>Il existe une <strong className="text-foreground">valeur minimale</strong> pour acheter un joueur.</>,
+                  <>Cette valeur est calculée à partir de la <strong className="text-foreground">VM du joueur</strong>.</>,
+                  <>Pour l&apos;instant, il faut au minimum <strong className="text-foreground">environ 50 % de la VM</strong> du joueur pour pouvoir l&apos;acheter.</>,
+                  <>Cette valeur peut changer.</>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="5.3 Échanges de joueurs">
+              <RuleList
+                items={[
+                  <>Les échanges sont autorisés.</>,
+                  <>Ils respectent la même règle de fair-play financier que les achats classiques.</>,
+                  <>
+                    Si une équipe veut échanger un joueur contre un joueur de VM plus faible, la VM du joueur échangé doit
+                    représenter au moins les 50 % requis.
+                  </>,
+                  <>Sinon, l&apos;équipe acheteuse doit compléter avec de l&apos;argent dans le transfert.</>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="5.4 Fenêtre de transfert">
+              <RuleList
+                items={[
+                  <>Les transferts sont bloqués pendant la phase de création des équipes pour éviter toute confusion.</>,
+                  <>Ils sont ouverts une fois que la valeur du fair-play financier est définitivement fixée.</>,
+                ]}
+              />
+            </RuleSubsection>
+          </RuleSection>
+
+          <RuleSection id="matchs" title="6. Matchs">
+            <RuleSubsection title="6.1 Deadlines">
+              <RuleList
+                items={[
+                  <>La ligue se veut plus longue que les anciens tournois et plus clémente sur les emplois du temps.</>,
+                  <>Pour éviter de s&apos;étaler sur un an, il existe une <strong className="text-foreground">deadline de BO à jouer</strong>.</>,
+                  <>Cette deadline est fixée par le staff en fonction de la période et de l&apos;avis des équipes.</>,
+                  <>Le non-respect d&apos;une deadline sera sanctionné.</>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="6.2 Format de ligue">
+              <RuleList
+                items={[
+                  <>Le format ainsi que les tiebreaks seront annoncés par le staff à l&apos;approche des matchs.</>,
+                  <>Il est impossible d&apos;établir un format stable sans connaître à l&apos;avance le nombre d&apos;équipes.</>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="6.3 Absences et remplacements">
+              <RuleList
+                items={[
+                  <>
+                    Une équipe présentant un ou plusieurs joueurs absents au moment du début de la rencontre dispose d&apos;un{' '}
+                    <strong className="text-foreground">délai de 15 minutes</strong> pour présenter un remplaçant officiel valide ou
+                    demander un report d&apos;urgence.
+                  </>,
+                  <>Le temps de draft n&apos;est pas inclus dans ce délai.</>,
+                  <>Si l&apos;équipe ne trouve toujours pas de joueur, elle doit utiliser son joker de non-présence.</>,
+                  <>Un joker est attribué à chaque équipe à chaque deadline.</>,
+                  <>Les jokers ne sont pas cumulables.</>,
+                  <>
+                    En cas de non-présence sans joker disponible, la décision finale revient au staff, qui peut prononcer un
+                    report ou un forfait selon la situation.
+                  </>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="6.4 Draft">
+              <RuleList
+                items={[
+                  <>Toutes les drafts sans exception doivent se faire sur le site Garden.</>,
+                ]}
+              />
+            </RuleSubsection>
+          </RuleSection>
+
+          <RuleSection id="comportement" title="7. Comportement">
+            <RuleSubsection title="7.1 Recommandations">
+              <RuleList
+                items={[
+                  <>Il est conseillé à tous les joueurs de ne pas utiliser le <strong className="text-foreground">/all</strong> durant les games pour éviter tout souci.</>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="7.2 Évaluation">
+              <RuleList
+                items={[
+                  <>Chaque comportement peut être apprécié différemment selon les équipes et les joueurs.</>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="7.3 Sanctions">
+              <p>Sont strictement sanctionnés :</p>
+              <RuleList
+                items={[
+                  <>Toute forme de flame.</>,
+                  <>Le racisme.</>,
+                  <>L&apos;homophobie.</>,
+                  <>La misogynie.</>,
+                  <>Toute autre forme de comportement discriminatoire ou toxique.</>,
+                ]}
+              />
+            </RuleSubsection>
+          </RuleSection>
+
+          <RuleSection id="rappels" title="8. Rappels et points en attente">
+            <RuleSubsection title="Subs / remplaçants">
+              <RuleList
+                items={[
+                  <>Sujet sensible, actuellement en discussion.</>,
+                  <>Les équipes sont invitées à ne pas recruter de remplaçants immédiatement.</>,
+                  <>Une règle claire sur leur recrutement sera publiée par le staff.</>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <RuleSubsection title="À venir">
+              <RuleList
+                items={[
+                  <>Règles précises sur les remakes.</>,
+                  <>Règles précises sur le classement.</>,
+                  <>Règles précises sur les tiebreaks.</>,
+                  <>Et tout autre point non encore couvert dans ce document.</>,
+                ]}
+              />
+            </RuleSubsection>
+
+            <p className="border-t border-hairline pt-6 text-sm text-foreground-muted">
+              Document évolutif : toute mise à jour sera communiquée officiellement par le staff
+              Garden.
+            </p>
+          </RuleSection>
+        </article>
+      </div>
+    </div>
+  );
+}

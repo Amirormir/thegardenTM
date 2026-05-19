@@ -9,6 +9,7 @@ const LEAGUE_LINKS = [
   { href: '/league/matches', label: 'Matchs' },
   { href: '/league/historique', label: 'Historique' },
   { href: '/league/stats', label: 'Statistiques' },
+  { href: '/league/rulebook', label: 'Rulebook' },
 ] as const;
 
 export function LeagueSubNav() {
