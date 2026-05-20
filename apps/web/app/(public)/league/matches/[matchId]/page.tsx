@@ -13,6 +13,9 @@ import {
 } from '@/components/ui/table';
 import { PlayerLink } from '@/components/ui/player-link';
 import { TeamAvatar } from '@/components/ui/team-avatar';
+import { GameStatBars } from '@/components/features/league/game-stat-bars';
+import { GamePlayerBars } from '@/components/features/league/game-player-bars';
+import { GameMvpCard } from '@/components/features/league/game-mvp-card';
 import { cn } from '@/lib/utils/cn';
 import { formatDateTime } from '@/lib/utils/format';
 import { getServerCaller } from '@/server/caller';
@@ -192,6 +195,44 @@ export default async function MatchDetailPage({
                 );
               })}
             </nav>
+          ) : null}
+
+          {selectedGame.playerStats.length > 0 ? (
+            <div className="mt-8 flex flex-col gap-10">
+              <GameMvpCard playerStats={selectedGame.playerStats} />
+              <GameStatBars
+                playerStats={selectedGame.playerStats}
+                blueTeamShortCode={
+                  selectedGame.blueTeamId === match.homeTeam.id
+                    ? match.homeTeam.shortCode
+                    : match.awayTeam.shortCode
+                }
+                redTeamShortCode={
+                  selectedGame.redTeamId === match.homeTeam.id
+                    ? match.homeTeam.shortCode
+                    : match.awayTeam.shortCode
+                }
+                winningSide={
+                  selectedGame.winnerTeamId === selectedGame.blueTeamId
+                    ? 'BLUE'
+                    : selectedGame.winnerTeamId === selectedGame.redTeamId
+                      ? 'RED'
+                      : null
+                }
+              />
+              <GamePlayerBars
+                playerStats={selectedGame.playerStats}
+                metric="damage"
+                title="Dégâts par joueur"
+                helper="Bleu vs Rouge"
+              />
+              <GamePlayerBars
+                playerStats={selectedGame.playerStats}
+                metric="gold"
+                title="Gold par joueur"
+                helper="Bleu vs Rouge"
+              />
+            </div>
           ) : null}
 
           <div className="mt-8 flex flex-col gap-8">
