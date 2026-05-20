@@ -8,8 +8,27 @@ import {
   RiotApiError,
 } from '@/lib/riot';
 import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
-import { fetchFromRiotSchema, leagueStatsSchema, playerStatsSchema } from '@/lib/validators/stats';
+import {
+  championDetailSchema,
+  championLeaderboardSchema,
+  fetchFromRiotSchema,
+  leagueStatsSchema,
+  playerLeaderboardSchema,
+  playerStatsSchema,
+  seasonOverviewSchema,
+  teamDraftPreferencesSchema,
+  teamLeaderboardSchema,
+} from '@/lib/validators/stats';
+import { getChampionDetail } from '@/server/utils/stats/champion-detail';
+import { getChampionLeaderboard } from '@/server/utils/stats/champions';
+import { getPlayerLeaderboard } from '@/server/utils/stats/players';
+import { getSeasonOverview } from '@/server/utils/stats/season-overview';
+import { getTeamDraftPreferences } from '@/server/utils/stats/team-draft-preferences';
+import { getTeamLeaderboard } from '@/server/utils/stats/teams';
+import { buildStatsCacheKey, withStatsCache } from '@/lib/cache/stats-cache';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/trpc';
+
+const STATS_CACHE_TTL_SECONDS = 300;
 
 function mapRiotErrorToTRPC(error: unknown): never {
   if (error instanceof RiotApiError) {
@@ -539,6 +558,92 @@ export const statsRouter = createTRPCRouter({
       champions: championRows.sort((a, b) => b.games - a.games),
     };
   }),
+
+  getChampionLeaderboard: publicProcedure
+    .input(championLeaderboardSchema)
+    .query(async ({ ctx, input }) => {
+      // Source of truth: docs/stats-source-of-truth.md §3 — draft block from
+      // DraftAction (always available), performance block from PlayerMatchStats
+      // (replay-dependent). Role filter only narrows the performance block.
+      return withStatsCache({
+        key: buildStatsCacheKey('champion-leaderboard', input.seasonId, input.role),
+        ttlSeconds: STATS_CACHE_TTL_SECONDS,
+        compute: async () => {
+          const { rows, totalDrafts } = await getChampionLeaderboard(ctx.prisma, {
+            seasonId: input.seasonId,
+            ...(input.role ? { role: input.role } : {}),
+          });
+          return { rows, totalDrafts };
+        },
+      });
+    }),
+
+  getPlayerLeaderboard: publicProcedure
+    .input(playerLeaderboardSchema)
+    .query(async ({ ctx, input }) => {
+      return withStatsCache({
+        key: buildStatsCacheKey('player-leaderboard', input.seasonId, input.role),
+        ttlSeconds: STATS_CACHE_TTL_SECONDS,
+        compute: async () => {
+          const rows = await getPlayerLeaderboard(ctx.prisma, {
+            seasonId: input.seasonId,
+            ...(input.role ? { role: input.role } : {}),
+          });
+          return { rows };
+        },
+      });
+    }),
+
+  getTeamLeaderboard: publicProcedure
+    .input(teamLeaderboardSchema)
+    .query(async ({ ctx, input }) => {
+      return withStatsCache({
+        key: buildStatsCacheKey('team-leaderboard', input.seasonId),
+        ttlSeconds: STATS_CACHE_TTL_SECONDS,
+        compute: async () => {
+          const rows = await getTeamLeaderboard(ctx.prisma, { seasonId: input.seasonId });
+          return { rows };
+        },
+      });
+    }),
+
+  getSeasonOverview: publicProcedure
+    .input(seasonOverviewSchema)
+    .query(({ ctx, input }) =>
+      withStatsCache({
+        key: buildStatsCacheKey('season-overview', input.seasonId),
+        ttlSeconds: STATS_CACHE_TTL_SECONDS,
+        compute: () => getSeasonOverview(ctx.prisma, input.seasonId),
+      }),
+    ),
+
+  getChampionDetail: publicProcedure
+    .input(championDetailSchema)
+    .query(({ ctx, input }) =>
+      withStatsCache({
+        key: buildStatsCacheKey('champion-detail', input.seasonId, input.championId),
+        ttlSeconds: STATS_CACHE_TTL_SECONDS,
+        compute: () =>
+          getChampionDetail(ctx.prisma, {
+            seasonId: input.seasonId,
+            championId: input.championId,
+          }),
+      }),
+    ),
+
+  getTeamDraftPreferences: publicProcedure
+    .input(teamDraftPreferencesSchema)
+    .query(({ ctx, input }) =>
+      withStatsCache({
+        key: buildStatsCacheKey('team-draft-preferences', input.seasonId, input.teamId),
+        ttlSeconds: STATS_CACHE_TTL_SECONDS,
+        compute: () =>
+          getTeamDraftPreferences(ctx.prisma, {
+            seasonId: input.seasonId,
+            teamId: input.teamId,
+          }),
+      }),
+    ),
 
   fetchFromRiot: protectedProcedure
     .input(fetchFromRiotSchema)

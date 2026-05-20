@@ -95,6 +95,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
     const items: NavItem[] = [
       { href: '/', label: 'Accueil' },
       { href: '/league', label: 'Ligue' },
+      { href: '/league/stats', label: 'Stats' },
       { href: '/custom', label: 'Custom' },
       { href: '/transfermarket', label: 'Marche' },
       { href: '/draft', label: 'Draft' },

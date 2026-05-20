@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import type { CSSProperties } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { PlayerLink } from '@/components/ui/player-link';
+import { TeamDraftPreferencesPanel } from '@/components/features/stats/team-draft-preferences-panel';
 import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCompactDate, formatCurrency, formatDateTime } from '@/lib/utils/format';
 import { getServerCaller } from '@/server/caller';
@@ -62,7 +63,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
   const { teamSlug } = await params;
   const caller = await getServerCaller();
 
-  const [team, standings, schedule] = await Promise.all([
+  const [team, standings, schedule, seasons, currentSeason] = await Promise.all([
     caller.team.getBySlug({ slug: teamSlug }).catch((error: unknown) => {
       if (isNotFoundError(error)) {
         notFound();
@@ -72,6 +73,8 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
     }),
     caller.league.getStandings(),
     caller.league.getSchedule(),
+    caller.league.getAllSeasons(),
+    caller.league.getCurrentSeason(),
   ]);
 
   if (!team) {
@@ -375,6 +378,17 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
           </div>
         </div>
       </section>
+
+      <TeamDraftPreferencesPanel
+        teamId={team.id}
+        seasons={seasons.map((season) => ({
+          id: season.id,
+          name: season.name,
+          year: season.year,
+          isCurrent: season.isCurrent,
+        }))}
+        defaultSeasonId={currentSeason?.id ?? seasons[0]?.id ?? null}
+      />
     </div>
   );
 }

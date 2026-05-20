@@ -11,6 +11,35 @@ export const leagueStatsSchema = z
   })
   .optional();
 
+export const championLeaderboardSchema = z
+  .object({
+    seasonId: z.string().min(1),
+    role: z.enum(['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']).optional(),
+  });
+
+export const playerLeaderboardSchema = z.object({
+  seasonId: z.string().min(1),
+  role: z.enum(['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']).optional(),
+});
+
+export const teamLeaderboardSchema = z.object({
+  seasonId: z.string().min(1),
+});
+
+export const seasonOverviewSchema = z.object({
+  seasonId: z.string().min(1),
+});
+
+export const championDetailSchema = z.object({
+  seasonId: z.string().min(1),
+  championId: z.string().min(1),
+});
+
+export const teamDraftPreferencesSchema = z.object({
+  seasonId: z.string().min(1),
+  teamId: z.string().min(1),
+});
+
 export const fetchFromRiotSchema = z.object({
   playerId: z.string().min(1),
   count: z.number().int().positive().max(20).default(5),
