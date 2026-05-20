@@ -198,3 +198,149 @@ export async function markDraftResumed(draftId: string): Promise<void> {
     data: { status: 'IN_PROGRESS' },
   });
 }
+
+export interface NextGameStateRow {
+  blueNextGameVote: boolean;
+  redNextGameVote: boolean;
+  nextGameLockedAt: number | null;
+  nextGameDraftId: string | null;
+  canStartNextGame: boolean;
+}
+
+function maxGamesForFormat(format: 'BO1' | 'BO3' | 'BO5'): number {
+  return format === 'BO5' ? 5 : format === 'BO3' ? 3 : 1;
+}
+
+function winsToClinch(format: 'BO1' | 'BO3' | 'BO5'): number {
+  return format === 'BO5' ? 3 : format === 'BO3' ? 2 : 1;
+}
+
+/**
+ * Compute the next-game state for a draft. Returns null if the draft itself is
+ * missing. `canStartNextGame` is true iff the parent has a winner, the series
+ * is not decided, and the format allows another game.
+ */
+export async function readNextGameState(draftId: string): Promise<NextGameStateRow | null> {
+  const draft = await prisma.draft.findUnique({
+    where: { id: draftId },
+    select: {
+      matchId: true,
+      gameNumber: true,
+      format: true,
+      winnerSide: true,
+      winnerTeamId: true,
+      blueTeamId: true,
+      redTeamId: true,
+      blueNextGameVote: true,
+      redNextGameVote: true,
+      nextGameLockedAt: true,
+    },
+  });
+  if (!draft) return null;
+
+  const sibling = await prisma.draft.findFirst({
+    where: {
+      matchId: draft.matchId,
+      gameNumber: draft.gameNumber + 1,
+      status: { not: 'CANCELLED' },
+    },
+    select: { id: true },
+  });
+
+  let canStartNextGame = false;
+  if (draft.winnerSide && draft.gameNumber < maxGamesForFormat(draft.format)) {
+    const siblings = await prisma.draft.findMany({
+      where: {
+        matchId: draft.matchId,
+        status: { not: 'CANCELLED' },
+        winnerTeamId: { not: null },
+      },
+      select: { winnerTeamId: true },
+    });
+    const wins = new Map<string, number>();
+    for (const s of siblings) {
+      if (!s.winnerTeamId) continue;
+      wins.set(s.winnerTeamId, (wins.get(s.winnerTeamId) ?? 0) + 1);
+    }
+    const clinch = winsToClinch(draft.format);
+    const seriesDecided = Array.from(wins.values()).some((n) => n >= clinch);
+    canStartNextGame = !seriesDecided;
+  }
+
+  return {
+    blueNextGameVote: draft.blueNextGameVote,
+    redNextGameVote: draft.redNextGameVote,
+    nextGameLockedAt: draft.nextGameLockedAt ? draft.nextGameLockedAt.getTime() : null,
+    nextGameDraftId: sibling?.id ?? null,
+    canStartNextGame,
+  };
+}
+
+/**
+ * Spawn the next Draft row for a BO3/BO5 series. Idempotent: if a non-cancelled
+ * draft already exists for `gameNumber + 1`, returns its id. The losing team
+ * is set as `coinflipWinnerTeamId` so they pick side first on the new draft.
+ */
+export async function createNextGameDraft(parentDraftId: string): Promise<string> {
+  const parent = await prisma.draft.findUnique({
+    where: { id: parentDraftId },
+    select: {
+      matchId: true,
+      seasonId: true,
+      format: true,
+      fearless: true,
+      gameNumber: true,
+      patchVersion: true,
+      blueTeamId: true,
+      redTeamId: true,
+      winnerTeamId: true,
+      winnerSide: true,
+      createdById: true,
+    },
+  });
+  if (!parent) throw new Error('Parent draft not found.');
+  if (!parent.winnerTeamId || !parent.winnerSide) {
+    throw new Error('Parent draft has no locked winner.');
+  }
+  if (parent.gameNumber >= maxGamesForFormat(parent.format)) {
+    throw new Error('Series already at max games.');
+  }
+
+  const existing = await prisma.draft.findFirst({
+    where: {
+      matchId: parent.matchId,
+      gameNumber: parent.gameNumber + 1,
+      status: { not: 'CANCELLED' },
+    },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+
+  const losingTeamId =
+    parent.winnerTeamId === parent.blueTeamId ? parent.redTeamId : parent.blueTeamId;
+
+  // Sides default to the parent layout; if the losing team picks the opposite
+  // side during coinflip, the existing coinflip resolver swaps blue/red atomically.
+  const next = await prisma.draft.create({
+    data: {
+      matchId: parent.matchId,
+      seasonId: parent.seasonId,
+      format: parent.format,
+      fearless: parent.fearless,
+      gameNumber: parent.gameNumber + 1,
+      patchVersion: parent.patchVersion,
+      blueTeamId: parent.blueTeamId,
+      redTeamId: parent.redTeamId,
+      status: 'COINFLIP',
+      coinflipWinnerTeamId: losingTeamId,
+      createdById: parent.createdById,
+    },
+    select: { id: true },
+  });
+
+  logger.info(
+    { parentDraftId, nextDraftId: next.id, gameNumber: parent.gameNumber + 1 },
+    'next game draft spawned',
+  );
+  return next.id;
+}

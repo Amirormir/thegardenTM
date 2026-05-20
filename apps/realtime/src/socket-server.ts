@@ -21,7 +21,11 @@ import { verifyDraftToken, type DraftTokenClaims } from './auth.js';
 import { ControllerError, getState, type DraftController } from './draft-controller.js';
 import { env } from './env.js';
 import { logger } from './logger.js';
-import { markDraftCoinflipStarted } from './persistence.js';
+import {
+  createNextGameDraft,
+  markDraftCoinflipStarted,
+  readNextGameState,
+} from './persistence.js';
 import { saveDraftState, withDraftLock } from './state.js';
 
 interface SocketData {
@@ -183,6 +187,19 @@ async function readCoinflipState(draftId: string) {
     redTeamId: row.redTeamId,
     decision: row.coinflipDecision,
     resolvedAt: row.coinflipResolvedAt ? row.coinflipResolvedAt.getTime() : null,
+  };
+}
+
+async function readNextGamePayload(draftId: string) {
+  const row = await readNextGameState(draftId);
+  if (!row) return null;
+  return {
+    draftId,
+    blueNextGameVote: row.blueNextGameVote,
+    redNextGameVote: row.redNextGameVote,
+    nextGameLockedAt: row.nextGameLockedAt,
+    nextGameDraftId: row.nextGameDraftId,
+    canStartNextGame: row.canStartNextGame,
   };
 }
 
@@ -432,6 +449,86 @@ async function castResultVote(args: {
   };
 }
 
+async function castNextGameVote(args: {
+  draftId: string;
+  role: DraftTokenClaims['role'];
+  teamId: string | null;
+}) {
+  const { draftId, role, teamId } = args;
+
+  return withDraftLock(draftId, async () => {
+    const draft = await prisma.draft.findUnique({
+      where: { id: draftId },
+      select: {
+        blueTeamId: true,
+        redTeamId: true,
+        winnerSide: true,
+        blueNextGameVote: true,
+        redNextGameVote: true,
+        nextGameLockedAt: true,
+      },
+    });
+    if (!draft) throw new ControllerError('NOT_FOUND', 'Draft not found.');
+    if (draft.winnerSide === null) {
+      throw new ControllerError('CONFLICT', 'Result must be locked before voting next game.');
+    }
+
+    const pre = await readNextGameState(draftId);
+    if (!pre) throw new ControllerError('NOT_FOUND', 'Draft not found.');
+    if (!pre.canStartNextGame) {
+      throw new ControllerError('CONFLICT', 'No more games can be started in this series.');
+    }
+
+    let blueVote = draft.blueNextGameVote;
+    let redVote = draft.redNextGameVote;
+    if (role === 'DEV_DUAL_CAPTAIN') {
+      blueVote = true;
+      redVote = true;
+    } else if (teamId && teamId === draft.blueTeamId) {
+      blueVote = true;
+    } else if (teamId && teamId === draft.redTeamId) {
+      redVote = true;
+    } else if (role === 'BLUE_CAPTAIN') {
+      blueVote = true;
+    } else if (role === 'RED_CAPTAIN') {
+      redVote = true;
+    } else {
+      throw new ControllerError('WRONG_SIDE', 'Only captains can vote.');
+    }
+
+    const bothAgreed = blueVote && redVote;
+    const lockedAt = bothAgreed && !draft.nextGameLockedAt ? new Date() : draft.nextGameLockedAt;
+
+    await prisma.draft.update({
+      where: { id: draftId },
+      data: {
+        blueNextGameVote: blueVote,
+        redNextGameVote: redVote,
+        nextGameLockedAt: lockedAt,
+      },
+    });
+
+    let nextGameDraftId = pre.nextGameDraftId;
+    if (bothAgreed && !nextGameDraftId) {
+      try {
+        nextGameDraftId = await createNextGameDraft(draftId);
+      } catch (error) {
+        logger.error({ err: error, draftId }, 'failed to create next game draft');
+        throw new ControllerError('CONFLICT', 'Failed to create next game.');
+      }
+    }
+
+    return {
+      draftId,
+      blueNextGameVote: blueVote,
+      redNextGameVote: redVote,
+      nextGameLockedAt: lockedAt ? lockedAt.getTime() : null,
+      nextGameDraftId,
+      canStartNextGame: pre.canStartNextGame,
+    };
+  });
+}
+
 export interface CreateSocketServerOptions {
   controller: DraftController;
 }
@@ -495,6 +592,9 @@ function bindHandlers(socket: DraftSocket, controller: DraftController, io: Draf
 
       const result = await readResultState(draftId);
       if (result) socket.emit('draft:result_state', result);
+
+      const nextGame = await readNextGamePayload(draftId);
+      if (nextGame) socket.emit('draft:next_game_state', nextGame);
 
       const presence = upsertPresence({
         draftId,
@@ -656,6 +756,35 @@ function bindHandlers(socket: DraftSocket, controller: DraftController, io: Draf
         return;
       }
       logger.warn({ err: error, draftId }, 'vote_result failed');
+      ack(errAck('CONFLICT', (error as Error).message, draftId));
+    }
+  });
+
+  socket.on('draft:vote_next_game', async ({ draftId }, ack) => {
+    if (draftId !== user.draftId) {
+      ack(errAck('FORBIDDEN', 'Wrong draft.', draftId));
+      return;
+    }
+    try {
+      const updated = await castNextGameVote({
+        draftId,
+        role: user.role,
+        teamId: user.teamId,
+      });
+      io.to(room(draftId)).emit('draft:next_game_state', updated);
+      ack({ ok: true });
+    } catch (error) {
+      if (error instanceof ControllerError) {
+        const code =
+          error.code === 'NOT_FOUND'
+            ? 'NOT_FOUND'
+            : error.code === 'WRONG_SIDE'
+              ? 'FORBIDDEN'
+              : 'CONFLICT';
+        ack(errAck(code, error.message, draftId));
+        return;
+      }
+      logger.warn({ err: error, draftId }, 'vote_next_game failed');
       ack(errAck('CONFLICT', (error as Error).message, draftId));
     }
   });

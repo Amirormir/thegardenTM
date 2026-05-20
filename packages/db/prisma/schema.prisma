@@ -530,6 +530,13 @@ model Draft {
   winnerTeam     Team?      @relation("WonDrafts", fields: [winnerTeamId], references: [id], onDelete: SetNull)
   resultLockedAt DateTime?
 
+  // Next-game vote — once the winner is locked in a BO3/BO5, both captains
+  // must confirm to spawn the next game. The losing team gets the coinflip
+  // pick on the new draft.
+  blueNextGameVote Boolean   @default(false)
+  redNextGameVote  Boolean   @default(false)
+  nextGameLockedAt DateTime?
+
   actions      DraftAction[]
   participants DraftParticipant[]
 

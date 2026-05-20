@@ -46,6 +46,11 @@ export interface ClientVoteResultPayload {
   winnerSide: DraftSide;
 }
 
+/** Captain confirms they want to spawn the next game in the series. */
+export interface ClientVoteNextGamePayload {
+  draftId: string;
+}
+
 export interface ClientCoinflipChoicePayload {
   draftId: string;
   decision: CoinflipDecision;
@@ -59,6 +64,10 @@ export interface ClientToServerEvents {
   'draft:tentative': (payload: ClientTentativePayload) => void;
   'draft:vote_result': (
     payload: ClientVoteResultPayload,
+    ack: (response: AckResponse) => void,
+  ) => void;
+  'draft:vote_next_game': (
+    payload: ClientVoteNextGamePayload,
     ack: (response: AckResponse) => void,
   ) => void;
   'draft:coinflip_choice': (
@@ -154,6 +163,23 @@ export interface ServerResultStatePayload {
   resultLockedAt: number | null;
 }
 
+/**
+ * Current state of the next-game vote. Only meaningful once `winnerSide` is
+ * locked and the series isn't decided yet. `nextGameDraftId` is populated once
+ * both captains have voted and the server has created the next Draft row.
+ */
+export interface ServerNextGameStatePayload {
+  draftId: string;
+  blueNextGameVote: boolean;
+  redNextGameVote: boolean;
+  /** Epoch ms when both captains agreed. */
+  nextGameLockedAt: number | null;
+  /** Set once the next Draft has been created. Clients should navigate to it. */
+  nextGameDraftId: string | null;
+  /** Convenience flag for the UI: true iff a next game is possible (gameNumber < format max and series not decided). */
+  canStartNextGame: boolean;
+}
+
 export interface ServerCoinflipResultPayload {
   draftId: string;
   winnerTeamId: string;
@@ -178,6 +204,7 @@ export interface ServerToClientEvents {
   'draft:coinflip_result': (payload: ServerCoinflipResultPayload) => void;
   'draft:coinflip_state': (payload: ServerCoinflipStatePayload) => void;
   'draft:result_state': (payload: ServerResultStatePayload) => void;
+  'draft:next_game_state': (payload: ServerNextGameStatePayload) => void;
   'draft:participant': (payload: ServerParticipantPayload) => void;
   'draft:participant_left': (payload: { draftId: string; userId: string }) => void;
   'draft:completed': (payload: ServerCompletedPayload) => void;

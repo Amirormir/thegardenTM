@@ -15,6 +15,7 @@ import {
   useDraftSocket,
   type CoinflipResult,
   type CoinflipState,
+  type NextGameVoteState,
   type ResultVoteState,
 } from '@/hooks/use-draft-socket';
 import { ChampionIcon } from '@/components/ui/champion-icon';
@@ -98,6 +99,29 @@ export function DraftRoomLive({
       ),
     );
   }, [activeDraftId, socket.resultState?.winnerSide, socket.resultState?.winnerTeamId]);
+
+  useEffect(() => {
+    const nextId = socket.nextGameState?.nextGameDraftId ?? null;
+    if (!nextId) return;
+    setSiblingsState((prev) => {
+      if (prev.some((s) => s.id === nextId)) return prev;
+      const current = prev.find((s) => s.id === activeDraftId);
+      if (!current) return prev;
+      return [
+        ...prev,
+        {
+          id: nextId,
+          gameNumber: current.gameNumber + 1,
+          status: 'COINFLIP',
+          blueTeam: current.blueTeam,
+          redTeam: current.redTeam,
+          winnerSide: null,
+          winnerTeamId: null,
+        },
+      ];
+    });
+    router.refresh();
+  }, [activeDraftId, router, socket.nextGameState?.nextGameDraftId]);
 
   useEffect(() => {
     const coinflip = socket.coinflipState;
@@ -261,13 +285,26 @@ export function DraftRoomLive({
           ) : status === 'CANCELLED' ? (
             <Banner tone="danger">Cette draft a ete annulee.</Banner>
           ) : status === 'COMPLETED' ? (
-            <ResultPanel
-              resultState={effectiveResultState}
-              role={socket.role}
-              blueTeam={activeBlue}
-              redTeam={activeRed}
-              voteResult={socket.voteResult}
-            />
+            <div className="flex flex-col gap-3">
+              <ResultPanel
+                resultState={effectiveResultState}
+                role={socket.role}
+                blueTeam={activeBlue}
+                redTeam={activeRed}
+                voteResult={socket.voteResult}
+              />
+              {effectiveResultState?.winnerSide && socket.nextGameState?.canStartNextGame ? (
+                <NextGamePanel
+                  nextGameState={socket.nextGameState}
+                  role={socket.role}
+                  teamId={socket.teamId}
+                  blueTeam={activeBlue}
+                  redTeam={activeRed}
+                  voteNextGame={socket.voteNextGame}
+                  onNavigate={(id) => switchTo(id)}
+                />
+              ) : null}
+            </div>
           ) : (
             <CurrentStepBanner
               currentSide={currentSide}
@@ -936,6 +973,136 @@ function ResultPanel({
         </div>
       ) : (
         <p className="text-sm text-foreground-muted">En attente du vote des capitaines.</p>
+      )}
+    </section>
+  );
+}
+
+function NextGamePanel({
+  nextGameState,
+  role,
+  teamId,
+  blueTeam,
+  redTeam,
+  voteNextGame,
+  onNavigate,
+}: {
+  nextGameState: NextGameVoteState;
+  role: ReturnType<typeof useDraftSocket>['role'];
+  teamId: ReturnType<typeof useDraftSocket>['teamId'];
+  blueTeam: TeamLite;
+  redTeam: TeamLite;
+  voteNextGame: ReturnType<typeof useDraftSocket>['voteNextGame'];
+  onNavigate: (draftId: string) => void;
+}) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { blueNextGameVote, redNextGameVote, nextGameDraftId } = nextGameState;
+  const isCaptain =
+    role === 'BLUE_CAPTAIN' || role === 'RED_CAPTAIN' || role === 'DEV_DUAL_CAPTAIN';
+  const userSide: 'BLUE' | 'RED' | null =
+    role === 'DEV_DUAL_CAPTAIN'
+      ? null
+      : teamId === blueTeam.id
+        ? 'BLUE'
+        : teamId === redTeam.id
+          ? 'RED'
+          : role === 'BLUE_CAPTAIN'
+            ? 'BLUE'
+            : role === 'RED_CAPTAIN'
+              ? 'RED'
+              : null;
+  const hasVoted =
+    role === 'DEV_DUAL_CAPTAIN'
+      ? blueNextGameVote && redNextGameVote
+      : userSide === 'BLUE'
+        ? blueNextGameVote
+        : userSide === 'RED'
+          ? redNextGameVote
+          : false;
+
+  async function cast() {
+    setError(null);
+    setPending(true);
+    const ack = await voteNextGame();
+    setPending(false);
+    if (!ack.ok && ack.error) {
+      setError(ack.error.message);
+    }
+  }
+
+  if (nextGameDraftId) {
+    return (
+      <div
+        className="flex flex-wrap items-center justify-between gap-3 border bg-surface px-5 py-4"
+        style={{ borderColor: 'var(--accent)' }}
+      >
+        <div className="flex items-center gap-3">
+          <span
+            className="inline-flex h-2 w-2 rounded-full"
+            style={{ background: 'var(--accent)' }}
+          />
+          <span className="label-mono" style={{ color: 'var(--accent)' }}>
+            Game suivante prete
+          </span>
+          <span className="text-sm text-foreground-muted">
+            L'equipe perdante choisit son cote (coin flip).
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate(nextGameDraftId)}
+          className="inline-flex items-center gap-2 border border-accent/60 bg-accent/10 px-4 py-2 text-sm text-foreground transition-colors duration-150 hover:bg-accent/20"
+          style={{ borderColor: 'var(--accent)' }}
+        >
+          Aller a la game suivante
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <section className="flex flex-col gap-4 border border-hairline bg-surface px-5 py-5">
+      <header className="flex items-center justify-between">
+        <p className="label-mono">§ Lancer la game suivante</p>
+        <span className="label-mono text-foreground-muted">
+          Les deux capitaines doivent confirmer
+        </span>
+      </header>
+
+      <div className="grid grid-cols-2 gap-3">
+        <ReadyTile label={blueTeam.name} color="var(--accent)" ready={blueNextGameVote} />
+        <ReadyTile label={redTeam.name} color="var(--loss)" ready={redNextGameVote} />
+      </div>
+
+      {error ? <Banner tone="danger">{error}</Banner> : null}
+
+      {isCaptain ? (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={cast}
+            disabled={pending || hasVoted}
+            className={cn(
+              'inline-flex items-center gap-2 border px-4 py-2 text-sm transition-colors duration-150',
+              hasVoted
+                ? 'border-accent bg-accent/20 text-foreground'
+                : 'border-accent/40 bg-accent/5 text-foreground hover:bg-accent/15',
+              (pending || hasVoted) && 'cursor-default opacity-80',
+            )}
+            style={{ borderColor: 'var(--accent)' }}
+          >
+            <span className="label-mono" style={{ color: 'var(--accent)' }}>
+              {hasVoted ? 'Pret' : 'Confirmer'}
+            </span>
+            <span>Passer a la game suivante</span>
+          </button>
+        </div>
+      ) : (
+        <p className="text-sm text-foreground-muted">
+          En attente de la confirmation des capitaines.
+        </p>
       )}
     </section>
   );

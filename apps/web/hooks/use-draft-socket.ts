@@ -51,6 +51,14 @@ export interface ResultVoteState {
   resultLockedAt: number | null;
 }
 
+export interface NextGameVoteState {
+  blueNextGameVote: boolean;
+  redNextGameVote: boolean;
+  nextGameLockedAt: number | null;
+  nextGameDraftId: string | null;
+  canStartNextGame: boolean;
+}
+
 export interface CoinflipState {
   winnerTeamId: string | null;
   blueTeamId: string;
@@ -81,6 +89,8 @@ export interface UseDraftSocketResult {
   coinflipResult: CoinflipResult | null;
   /** Post-draft result vote state. Null until the realtime server has emitted it. */
   resultState: ResultVoteState | null;
+  /** BO3/BO5 next-game vote state. Null until the server has emitted it (only emitted once a winner is locked). */
+  nextGameState: NextGameVoteState | null;
   timerDeadline: number | null;
   participants: ParticipantEntry[];
   error: ServerErrorPayload | null;
@@ -94,6 +104,8 @@ export interface UseDraftSocketResult {
   submitCoinflipChoice: (decision: CoinflipDecision) => Promise<AckResponse>;
   /** Captain-only: cast a vote on which side won the played game. */
   voteResult: (winnerSide: DraftSide) => Promise<AckResponse>;
+  /** Captain-only: confirm spawning the next game in the series. */
+  voteNextGame: () => Promise<AckResponse>;
 }
 
 type DraftClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -122,6 +134,7 @@ export function useDraftSocket(draftId: string): UseDraftSocketResult {
   const [coinflipState, setCoinflipState] = useState<CoinflipState | null>(null);
   const [coinflipResult, setCoinflipResult] = useState<CoinflipResult | null>(null);
   const [resultState, setResultState] = useState<ResultVoteState | null>(null);
+  const [nextGameState, setNextGameState] = useState<NextGameVoteState | null>(null);
   const [timerDeadline, setTimerDeadline] = useState<number | null>(null);
   const [participants, setParticipants] = useState<ParticipantEntry[]>([]);
   const [error, setError] = useState<ServerErrorPayload | null>(null);
@@ -138,6 +151,7 @@ export function useDraftSocket(draftId: string): UseDraftSocketResult {
     setCoinflipState(null);
     setCoinflipResult(null);
     setResultState(null);
+    setNextGameState(null);
     setTimerDeadline(null);
     setParticipants([]);
     setError(null);
@@ -267,6 +281,16 @@ export function useDraftSocket(draftId: string): UseDraftSocketResult {
         });
       });
 
+      socket.on('draft:next_game_state', (payload) => {
+        setNextGameState({
+          blueNextGameVote: payload.blueNextGameVote,
+          redNextGameVote: payload.redNextGameVote,
+          nextGameLockedAt: payload.nextGameLockedAt,
+          nextGameDraftId: payload.nextGameDraftId,
+          canStartNextGame: payload.canStartNextGame,
+        });
+      });
+
       socket.on('draft:timer', ({ deadline }) => {
         setTimerDeadline(deadline);
       });
@@ -387,6 +411,23 @@ export function useDraftSocket(draftId: string): UseDraftSocketResult {
     [draftId],
   );
 
+  const voteNextGame = useCallback(
+    (): Promise<AckResponse> => {
+      return new Promise((resolve) => {
+        const socket = socketRef.current;
+        if (!socket) {
+          resolve({
+            ok: false,
+            error: { draftId, code: 'CONFLICT', message: 'Non connecté.' },
+          });
+          return;
+        }
+        socket.emit('draft:vote_next_game', { draftId }, resolve);
+      });
+    },
+    [draftId],
+  );
+
   const submitCoinflipChoice = useCallback(
     (decision: CoinflipDecision): Promise<AckResponse> => {
       return new Promise((resolve) => {
@@ -415,6 +456,7 @@ export function useDraftSocket(draftId: string): UseDraftSocketResult {
     coinflipState,
     coinflipResult,
     resultState,
+    nextGameState,
     timerDeadline,
     participants,
     error,
@@ -423,5 +465,6 @@ export function useDraftSocket(draftId: string): UseDraftSocketResult {
     setTentative,
     submitCoinflipChoice,
     voteResult,
+    voteNextGame,
   };
 }
