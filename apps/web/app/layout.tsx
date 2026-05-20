@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { ReactNode } from 'react';
 import { AppProviders } from './providers';
 import './globals.css';
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
     >
       <body>
         <AppProviders>{children}</AppProviders>
+        <SpeedInsights />
       </body>
     </html>
   );

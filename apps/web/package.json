@@ -22,6 +22,7 @@
     "@trpc/react-query": "11.15.1",
     "@trpc/server": "11.15.1",
     "@upstash/redis": "1.37.0",
+    "@vercel/speed-insights": "^2.0.0",
     "axios": "1.13.6",
     "bcryptjs": "3.0.3",
     "bottleneck": "2.19.5",
