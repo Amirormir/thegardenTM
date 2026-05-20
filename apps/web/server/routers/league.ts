@@ -193,6 +193,14 @@ export const leagueRouter = createTRPCRouter({
     }
 
     await ctx.prisma.$transaction(async (tx) => {
+      // Season is referenced with onDelete: Restrict by Match, Trophy and Draft.
+      // Clear them first; deleting matches cascades to MatchGame, PlayerMatchStats,
+      // Draft (and its actions/participants), so the explicit draft sweep is just
+      // a safety net for orphans.
+      await tx.trophy.deleteMany({ where: { seasonId: input.id } });
+      await tx.match.deleteMany({ where: { seasonId: input.id } });
+      await tx.draft.deleteMany({ where: { seasonId: input.id } });
+
       await tx.season.delete({ where: { id: input.id } });
       await tx.auditLog.create({
         data: buildAuditLogInput({
