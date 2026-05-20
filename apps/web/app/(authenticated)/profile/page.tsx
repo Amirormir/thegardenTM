@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/trpc/react';
+import { resolveAccountAvatarUrl } from '@/lib/utils/account-avatar';
 import { cn } from '@/lib/utils/cn';
 
 interface FeedbackState {
@@ -60,7 +61,8 @@ export default function ProfilePage() {
 
   const user = meQuery.data;
   const avatarSrc = image || user?.image || null;
-  const showAvatarImage = Boolean(avatarSrc) && !avatarLoadFailed;
+  const resolvedAvatarSrc = resolveAccountAvatarUrl(avatarSrc);
+  const showAvatarImage = Boolean(resolvedAvatarSrc) && !avatarLoadFailed;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-16 md:gap-20">
@@ -80,7 +82,7 @@ export default function ProfilePage() {
             <div className="placeholder-diag relative h-24 w-24 shrink-0 overflow-hidden">
               {showAvatarImage ? (
                 <img
-                  src={avatarSrc ?? undefined}
+                  src={resolvedAvatarSrc ?? undefined}
                   alt="Avatar"
                   loading="lazy"
                   decoding="async"

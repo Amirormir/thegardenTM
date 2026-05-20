@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { GardenLogo } from './garden-logo';
 import { NotificationBell } from './notification-bell';
+import { resolveAccountAvatarUrl } from '@/lib/utils/account-avatar';
 import { cn } from '@/lib/utils/cn';
 import { isPublicRegistrationEnabled } from '@/lib/runtime-flags';
 
@@ -87,7 +88,8 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
 
   const userName = currentUser?.name ?? 'Invite';
   const userRole = currentUser?.role ?? 'USER';
-  const showAvatar = Boolean(currentUser?.image) && !avatarLoadFailed;
+  const avatarSrc = resolveAccountAvatarUrl(currentUser?.image);
+  const showAvatar = Boolean(avatarSrc) && !avatarLoadFailed;
 
   const navItems = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -185,7 +187,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
               >
                 {showAvatar ? (
                   <img
-                    src={currentUser.image ?? undefined}
+                    src={avatarSrc ?? undefined}
                     alt={userName}
                     loading="lazy"
                     decoding="async"
@@ -334,7 +336,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
                       <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-hairline bg-surface text-foreground-dim">
                         {showAvatar ? (
                           <img
-                            src={currentUser.image ?? undefined}
+                            src={avatarSrc ?? undefined}
                             alt={userName}
                             loading="lazy"
                             decoding="async"

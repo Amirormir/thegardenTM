@@ -13,6 +13,7 @@
     "db:migrate": "node scripts/with-root-env.mjs prisma migrate dev --schema prisma/schema.prisma",
     "db:seed": "node scripts/with-root-env.mjs tsx prisma/seed.ts",
     "db:seed:draft": "node scripts/with-root-env.mjs tsx scripts/seed-test-draft.ts",
+    "db:create-captains": "node scripts/with-root-env.mjs tsx scripts/create-captain-accounts.ts",
     "db:clean-test": "node scripts/with-root-env.mjs tsx scripts/clean-test-drafts.ts",
     "db:studio": "node scripts/with-root-env.mjs prisma studio --schema prisma/schema.prisma",
     "lint": "eslint .",

@@ -2,6 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { UserRole } from '@nexus/db';
 import bcrypt from 'bcryptjs';
 import {
+  userAdminUpdateSchema,
   userAssignTeamSchema,
   userRegisterSchema,
   userRemoveTeamSchema,
@@ -85,6 +86,64 @@ export const userRouter = createTRPCRouter({
         data,
         select: { id: true, name: true, email: true, image: true, role: true },
       });
+    }),
+
+  adminUpdate: adminProcedure
+    .input(userAdminUpdateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.prisma.user.findUnique({
+        where: { id: input.userId },
+        select: { id: true, name: true, image: true },
+      });
+
+      if (!existing) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Utilisateur introuvable.' });
+      }
+
+      const data: { name?: string; image?: string | null } = {};
+
+      if (input.name !== undefined) {
+        data.name = input.name;
+      }
+
+      if (input.image !== undefined) {
+        data.image = input.image === '' ? null : input.image;
+      }
+
+      if (Object.keys(data).length === 0) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Aucune mise a jour fournie.',
+        });
+      }
+
+      const updated = await ctx.prisma.user.update({
+        where: { id: input.userId },
+        data,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+          captainOfTeamId: true,
+        },
+      });
+
+      await ctx.prisma.auditLog.create({
+        data: buildAuditLogInput({
+          userId: ctx.session.user.id,
+          action: 'UPDATE_PROFILE',
+          entity: 'User',
+          entityId: input.userId,
+          details: {
+            before: existing,
+            after: { name: updated.name, image: updated.image },
+          },
+        }),
+      });
+
+      return updated;
     }),
 
   getAll: adminProcedure.query(({ ctx }) =>

@@ -1,10 +1,11 @@
 'use client';
 
-import { Loader2, Shield, ShieldAlert, User, UserCog, X } from 'lucide-react';
-import { useState } from 'react';
+import { Loader2, Save, Shield, ShieldAlert, User, UserCog, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
@@ -48,6 +49,7 @@ export function AdminUsersManager() {
   const utils = api.useUtils();
   const usersQuery = api.user.getAll.useQuery();
   const teamsQuery = api.team.getAll.useQuery();
+  const adminUpdate = api.user.adminUpdate.useMutation();
   const updateRole = api.user.updateRole.useMutation();
   const assignTeam = api.user.assignTeam.useMutation();
   const removeTeam = api.user.removeTeam.useMutation();
@@ -55,13 +57,21 @@ export function AdminUsersManager() {
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [editedName, setEditedName] = useState('');
+  const [editedImage, setEditedImage] = useState('');
 
   const users = usersQuery.data ?? [];
   const teams = teamsQuery.data ?? [];
   const selectedUser = users.find((user) => user.id === selectedUserId) ?? null;
   const filteredUsers =
     roleFilter === 'all' ? users : users.filter((user) => user.role === roleFilter);
-  const isPending = updateRole.isPending || assignTeam.isPending || removeTeam.isPending;
+  const isPending =
+    adminUpdate.isPending || updateRole.isPending || assignTeam.isPending || removeTeam.isPending;
+
+  useEffect(() => {
+    setEditedName(selectedUser?.name ?? '');
+    setEditedImage(selectedUser?.image ?? '');
+  }, [selectedUser?.id, selectedUser?.name, selectedUser?.image]);
 
   async function invalidateAll() {
     await Promise.all([
@@ -82,6 +92,25 @@ export function AdminUsersManager() {
       setFeedback({
         type: 'error',
         message: error instanceof Error ? error.message : 'Echec de la mise a jour.',
+      });
+    }
+  }
+
+  async function handleUpdateIdentity(userId: string) {
+    setFeedback(null);
+
+    try {
+      await adminUpdate.mutateAsync({
+        userId,
+        name: editedName.trim(),
+        image: editedImage.trim(),
+      });
+      await invalidateAll();
+      setFeedback({ type: 'success', message: 'Identite du compte mise a jour.' });
+    } catch (error) {
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Echec de la mise a jour du compte.',
       });
     }
   }
@@ -218,6 +247,43 @@ export function AdminUsersManager() {
                 <p className="mt-1 text-xs text-foreground-muted">
                   Inscrit le {formatDateTime(selectedUser.createdAt)}
                 </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
+                Identite
+              </label>
+              <div className="space-y-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] p-4">
+                <Input
+                  value={editedName}
+                  onChange={(event) => setEditedName(event.target.value)}
+                  placeholder="Nom du compte"
+                  maxLength={50}
+                  disabled={isPending}
+                />
+                <Input
+                  value={editedImage}
+                  onChange={(event) => setEditedImage(event.target.value)}
+                  placeholder="https://exemple.com/avatar.png"
+                  type="url"
+                  disabled={isPending}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={isPending}
+                  icon={
+                    isPending ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Save className="h-3 w-3" />
+                    )
+                  }
+                  onClick={() => void handleUpdateIdentity(selectedUser.id)}
+                >
+                  Enregistrer identite
+                </Button>
               </div>
             </div>
 

@@ -11,6 +11,12 @@ export const userUpdateProfileSchema = z.object({
   image: z.string().url().optional().or(z.literal('')),
 });
 
+export const userAdminUpdateSchema = z.object({
+  userId: z.string().min(1),
+  name: z.string().min(1).max(50).optional(),
+  image: z.string().url().optional().or(z.literal('')),
+});
+
 export const userUpdateRoleSchema = z.object({
   userId: z.string().min(1),
   role: z.enum(['USER', 'TEAM_CAPTAIN', 'ADMIN']),
