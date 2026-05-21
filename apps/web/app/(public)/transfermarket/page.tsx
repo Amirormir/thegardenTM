@@ -19,8 +19,11 @@ interface TransfermarketPageProps {
     role?: string | string[];
     sort?: string | string[];
     view?: string | string[];
+    page?: string | string[];
   }>;
 }
+
+const PLAYERS_PAGE_SIZE = 30;
 
 const sortOptions = [
   'marketValue-desc',
@@ -54,11 +57,17 @@ function getViewValue(value: string | undefined): TransferView {
   return 'players';
 }
 
+function getPageValue(value: string | undefined): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+}
+
 function buildTransfermarketHref(options: {
   view: TransferView;
   search?: string | undefined;
   role?: RoleValue | undefined;
   sort?: SortValue | undefined;
+  page?: number | undefined;
 }) {
   const query = new URLSearchParams();
 
@@ -76,6 +85,10 @@ function buildTransfermarketHref(options: {
 
   if (options.sort) {
     query.set('sort', options.sort);
+  }
+
+  if (options.page && options.page > 1) {
+    query.set('page', String(options.page));
   }
 
   const serialized = query.toString();
@@ -123,16 +136,23 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
   const role = getRoleValue(getSearchValue(params.role));
   const sort = getSortValue(getSearchValue(params.sort));
   const view = getViewValue(getSearchValue(params.view));
+  const requestedPage = getPageValue(getSearchValue(params.page));
   const caller = await getServerCaller();
 
-  const players =
+  const playersPage =
     view === 'players'
-      ? await caller.player.getAll({
+      ? await caller.player.getListPaged({
           ...(search ? { search } : {}),
           ...(role ? { role } : {}),
           sort,
+          page: requestedPage,
+          pageSize: PLAYERS_PAGE_SIZE,
         })
-      : [];
+      : null;
+  const players = playersPage?.items ?? [];
+  const playersTotal = playersPage?.total ?? 0;
+  const currentPage = playersPage?.page ?? 1;
+  const pageCount = playersPage?.pageCount ?? 1;
   const costPlayers =
     view === 'cost'
       ? await caller.player.getAll({
@@ -223,8 +243,8 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
           <>
             <KpiBlock
               label="Actifs filtrés"
-              value={players.length.toString().padStart(2, '0')}
-              helper={`Résultat${players.length > 1 ? 's' : ''} pour la recherche actuelle.`}
+              value={playersTotal.toString().padStart(2, '0')}
+              helper={`Résultat${playersTotal > 1 ? 's' : ''} pour la recherche actuelle.`}
             />
             <KpiBlock
               label="Top asset"
@@ -304,7 +324,10 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
         </section>
       ) : null}
 
-      {view === 'players' && players.length >= 3 && sort === 'marketValue-desc' ? (
+      {view === 'players' &&
+      currentPage === 1 &&
+      players.length >= 3 &&
+      sort === 'marketValue-desc' ? (
         <section>
           <p className="label-mono">Podium du marché</p>
           <h2 className="mt-3 display-md text-foreground">Les trois plus grosses cotes.</h2>
@@ -317,19 +340,70 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
       {view === 'players' && players.length > 0 ? (
         <section>
           <p className="label-mono">
-            {players.length >= 3 && sort === 'marketValue-desc' ? 'Reste du marché' : 'Marché'}
+            {currentPage === 1 && players.length >= 3 && sort === 'marketValue-desc'
+              ? 'Reste du marché'
+              : 'Marché'}
           </p>
           <h2 className="mt-3 display-md text-foreground">
-            {players.length.toString().padStart(2, '0')} joueur{players.length > 1 ? 's' : ''}{' '}
-            suivi{players.length > 1 ? 's' : ''}.
+            {playersTotal.toString().padStart(2, '0')} joueur{playersTotal > 1 ? 's' : ''}{' '}
+            suivi{playersTotal > 1 ? 's' : ''}.
           </h2>
           <div className="mt-8 grid gap-px border-t border-hairline bg-hairline md:grid-cols-2 xl:grid-cols-3">
-            {(players.length >= 3 && sort === 'marketValue-desc' ? players.slice(3) : players).map(
-              (player) => (
-                <PlayerCard key={player.id} player={player} />
-              ),
-            )}
+            {(currentPage === 1 && players.length >= 3 && sort === 'marketValue-desc'
+              ? players.slice(3)
+              : players
+            ).map((player) => (
+              <PlayerCard key={player.id} player={player} />
+            ))}
           </div>
+          {pageCount > 1 ? (
+            <nav
+              aria-label="Pagination"
+              className="mt-10 flex items-center justify-between border-t border-hairline pt-6"
+            >
+              <p className="label-mono text-foreground-muted">
+                Page {currentPage.toString().padStart(2, '0')} / {pageCount.toString().padStart(2, '0')}
+              </p>
+              <div className="flex items-center gap-3">
+                {currentPage > 1 ? (
+                  <Link
+                    href={buildTransfermarketHref({
+                      view: 'players',
+                      search,
+                      role,
+                      sort,
+                      page: currentPage - 1,
+                    })}
+                    className="border border-hairline bg-surface px-4 py-2 text-sm text-foreground transition-colors duration-150 hover:bg-surface-hover"
+                  >
+                    ← Précédent
+                  </Link>
+                ) : (
+                  <span className="border border-hairline bg-surface px-4 py-2 text-sm text-foreground-muted opacity-50">
+                    ← Précédent
+                  </span>
+                )}
+                {currentPage < pageCount ? (
+                  <Link
+                    href={buildTransfermarketHref({
+                      view: 'players',
+                      search,
+                      role,
+                      sort,
+                      page: currentPage + 1,
+                    })}
+                    className="border border-hairline bg-surface px-4 py-2 text-sm text-foreground transition-colors duration-150 hover:bg-surface-hover"
+                  >
+                    Suivant →
+                  </Link>
+                ) : (
+                  <span className="border border-hairline bg-surface px-4 py-2 text-sm text-foreground-muted opacity-50">
+                    Suivant →
+                  </span>
+                )}
+              </div>
+            </nav>
+          ) : null}
         </section>
       ) : null}
 

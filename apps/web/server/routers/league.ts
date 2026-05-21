@@ -5,12 +5,21 @@ import {
   seasonDeleteSchema,
   seasonUpdateSchema,
 } from '@/lib/validators/stats';
+import { buildStatsCacheKey, withStatsCache } from '@/lib/cache/stats-cache';
 import { buildAuditLogInput } from '@/server/utils/audit';
 import { buildStandings } from '@/server/utils/standings';
 import { adminProcedure, createTRPCRouter, publicProcedure } from '@/server/trpc';
 
+const STANDINGS_CACHE_TTL_SECONDS = 120;
+
 export const leagueRouter = createTRPCRouter({
-  getStandings: publicProcedure.query(({ ctx }) => buildStandings(ctx.prisma)),
+  getStandings: publicProcedure.query(({ ctx }) =>
+    withStatsCache({
+      key: buildStatsCacheKey('league', 'standings'),
+      ttlSeconds: STANDINGS_CACHE_TTL_SECONDS,
+      compute: () => buildStandings(ctx.prisma),
+    }),
+  ),
 
   getCurrentSeason: publicProcedure.query(({ ctx }) =>
     ctx.prisma.season.findFirst({

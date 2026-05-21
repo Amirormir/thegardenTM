@@ -11,6 +11,7 @@ import {
   playerDeleteSchema,
   playerIdSchema,
   playerListQuerySchema,
+  playerPagedQuerySchema,
   playerTrophyCreateSchema,
   playerTrophyDeleteSchema,
   playerTrophyUpdateSchema,
@@ -23,6 +24,126 @@ import { adminProcedure, createTRPCRouter, publicProcedure } from '@/server/trpc
 
 const FREE_AGENT_NAME = 'Free Agent';
 const FREE_AGENT_SHORT_CODE = 'FA';
+
+const PLAYER_LIST_SELECT = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  gameName: true,
+  tagLine: true,
+  imageUrl: true,
+  role: true,
+  secondaryRoles: true,
+  marketValue: true,
+  salary: true,
+  cost: true,
+  teamId: true,
+  team: {
+    select: {
+      name: true,
+      shortCode: true,
+      logoUrl: true,
+    },
+  },
+  marketValueHistory: {
+    orderBy: [{ changedAt: 'desc' }, { id: 'desc' }],
+    take: 1,
+    select: {
+      previousValue: true,
+      newValue: true,
+    },
+  },
+} satisfies Prisma.PlayerSelect;
+
+type PlayerListSort =
+  | 'marketValue-desc'
+  | 'marketValue-asc'
+  | 'salary-desc'
+  | 'salary-asc'
+  | 'name-asc';
+
+function buildPlayerListWhere(input: {
+  search?: string | undefined;
+  role?: PlayerRole | undefined;
+}): Prisma.PlayerWhereInput {
+  const search = input.search?.trim();
+  return {
+    isActive: true,
+    AND: [
+      ...(input.role
+        ? [
+            {
+              OR: [{ role: input.role }, { secondaryRoles: { has: input.role } }],
+            },
+          ]
+        : []),
+      ...(search
+        ? [
+            {
+              OR: [
+                { gameName: { contains: search, mode: 'insensitive' as const } },
+                { firstName: { contains: search, mode: 'insensitive' as const } },
+                { lastName: { contains: search, mode: 'insensitive' as const } },
+                { tagLine: { contains: search, mode: 'insensitive' as const } },
+                {
+                  team: {
+                    name: { contains: search, mode: 'insensitive' as const },
+                  },
+                },
+                {
+                  team: {
+                    shortCode: { contains: search, mode: 'insensitive' as const },
+                  },
+                },
+              ],
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+function buildPlayerListOrderBy(
+  sort: PlayerListSort | undefined,
+): Prisma.PlayerOrderByWithRelationInput[] {
+  const primary: Prisma.PlayerOrderByWithRelationInput[] =
+    sort === 'marketValue-asc'
+      ? [{ marketValue: 'asc' }]
+      : sort === 'salary-desc'
+        ? [{ salary: 'desc' }]
+        : sort === 'salary-asc'
+          ? [{ salary: 'asc' }]
+          : sort === 'name-asc'
+            ? [{ firstName: 'asc' }, { gameName: 'asc' }]
+            : [{ marketValue: 'desc' }];
+
+  return [...primary, { id: 'asc' }];
+}
+
+type RawListedPlayer = Prisma.PlayerGetPayload<{ select: typeof PLAYER_LIST_SELECT }>;
+
+function mapListedPlayer(player: RawListedPlayer) {
+  return {
+    id: player.id,
+    displayName: resolveStoredPlayerDisplayName(player),
+    firstName: player.firstName,
+    lastName: player.lastName,
+    gameName: player.gameName,
+    tagLine: player.tagLine,
+    imageUrl: player.imageUrl,
+    role: player.role,
+    secondaryRoles: player.secondaryRoles,
+    marketValue: player.marketValue,
+    marketValueDelta:
+      player.marketValueHistory[0]?.newValue !== undefined
+        ? player.marketValueHistory[0].newValue - player.marketValueHistory[0].previousValue
+        : 0,
+    salary: player.salary,
+    cost: player.cost,
+    teamId: player.teamId,
+    ...toTeamDisplay(player.team),
+  };
+}
 
 function normalizeSecondaryRoles(
   roles: PlayerRole[] | undefined,
@@ -133,112 +254,52 @@ async function rebuildPlayerMarketValueHistory(tx: Prisma.TransactionClient, pla
 
 export const playerRouter = createTRPCRouter({
   getAll: publicProcedure.input(playerListQuerySchema.optional()).query(async ({ ctx, input }) => {
-    const search = input?.search?.trim();
-    const where: Prisma.PlayerWhereInput = {
-      isActive: true,
-      AND: [
-        ...(input?.role
-          ? [
-              {
-                OR: [{ role: input.role }, { secondaryRoles: { has: input.role } }],
-              },
-            ]
-          : []),
-        ...(search
-          ? [
-              {
-                OR: [
-                  { gameName: { contains: search, mode: 'insensitive' as const } },
-                  { firstName: { contains: search, mode: 'insensitive' as const } },
-                  { lastName: { contains: search, mode: 'insensitive' as const } },
-                  { tagLine: { contains: search, mode: 'insensitive' as const } },
-                  {
-                    team: {
-                      name: { contains: search, mode: 'insensitive' as const },
-                    },
-                  },
-                  {
-                    team: {
-                      shortCode: { contains: search, mode: 'insensitive' as const },
-                    },
-                  },
-                ],
-              },
-            ]
-          : []),
-      ],
-    };
-
-    const orderBy =
-      input?.sort === 'marketValue-asc'
-        ? [{ marketValue: 'asc' as const }]
-        : input?.sort === 'salary-desc'
-          ? [{ salary: 'desc' as const }]
-          : input?.sort === 'salary-asc'
-            ? [{ salary: 'asc' as const }]
-            : input?.sort === 'name-asc'
-              ? [{ firstName: 'asc' as const }, { gameName: 'asc' as const }]
-              : [{ marketValue: 'desc' as const }];
-
+    const where = buildPlayerListWhere({
+      search: input?.search,
+      role: input?.role,
+    });
+    const orderBy = buildPlayerListOrderBy(input?.sort);
     const limit = input?.limit ?? PLAYER_LIST_DEFAULT_LIMIT;
     const cursor = input?.cursor;
 
     const players = await ctx.prisma.player.findMany({
       where,
-      orderBy: [...orderBy, { id: 'asc' as const }],
+      orderBy,
       take: limit,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gameName: true,
-        tagLine: true,
-        imageUrl: true,
-        role: true,
-        secondaryRoles: true,
-        marketValue: true,
-        salary: true,
-        cost: true,
-        teamId: true,
-        team: {
-          select: {
-            name: true,
-            shortCode: true,
-            logoUrl: true,
-          },
-        },
-        marketValueHistory: {
-          orderBy: [{ changedAt: 'desc' }, { id: 'desc' }],
-          take: 1,
-          select: {
-            previousValue: true,
-            newValue: true,
-          },
-        },
-      },
+      select: PLAYER_LIST_SELECT,
     });
 
-    return players.map((player) => ({
-      id: player.id,
-      displayName: resolveStoredPlayerDisplayName(player),
-      firstName: player.firstName,
-      lastName: player.lastName,
-      gameName: player.gameName,
-      tagLine: player.tagLine,
-      imageUrl: player.imageUrl,
-      role: player.role,
-      secondaryRoles: player.secondaryRoles,
-      marketValue: player.marketValue,
-      marketValueDelta:
-        player.marketValueHistory[0]?.newValue !== undefined
-          ? player.marketValueHistory[0].newValue - player.marketValueHistory[0].previousValue
-          : 0,
-      salary: player.salary,
-      cost: player.cost,
-      teamId: player.teamId,
-      ...toTeamDisplay(player.team),
-    }));
+    return players.map(mapListedPlayer);
+  }),
+
+  getListPaged: publicProcedure.input(playerPagedQuerySchema).query(async ({ ctx, input }) => {
+    const where = buildPlayerListWhere({
+      search: input.search,
+      role: input.role,
+    });
+    const orderBy = buildPlayerListOrderBy(input.sort);
+
+    const [total, players] = await ctx.prisma.$transaction([
+      ctx.prisma.player.count({ where }),
+      ctx.prisma.player.findMany({
+        where,
+        orderBy,
+        skip: (input.page - 1) * input.pageSize,
+        take: input.pageSize,
+        select: PLAYER_LIST_SELECT,
+      }),
+    ]);
+
+    const pageCount = Math.max(1, Math.ceil(total / input.pageSize));
+
+    return {
+      items: players.map(mapListedPlayer),
+      total,
+      page: input.page,
+      pageSize: input.pageSize,
+      pageCount,
+    };
   }),
 
   getById: publicProcedure.input(playerIdSchema).query(async ({ ctx, input }) => {

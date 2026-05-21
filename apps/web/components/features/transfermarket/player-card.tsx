@@ -1,4 +1,5 @@
 import type { PlayerListItem } from '@nexus/types';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { PlayerLink } from '@/components/ui/player-link';
@@ -39,11 +40,12 @@ export function PlayerCard({ player }: PlayerCardProps) {
       <div className="mt-5 flex items-start gap-4">
         <div className="placeholder-diag h-16 w-16 shrink-0 overflow-hidden">
           {player.imageUrl ? (
-            <img
+            <Image
               src={player.imageUrl}
               alt={player.displayName}
-              loading="lazy"
-              decoding="async"
+              width={64}
+              height={64}
+              sizes="64px"
               className="h-full w-full object-cover"
             />
           ) : (

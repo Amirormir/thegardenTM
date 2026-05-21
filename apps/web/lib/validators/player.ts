@@ -44,6 +44,8 @@ export const playerByTeamSchema = z.object({
 
 export const PLAYER_LIST_MAX_LIMIT = 200;
 export const PLAYER_LIST_DEFAULT_LIMIT = 100;
+export const PLAYER_PAGE_SIZE = 30;
+export const PLAYER_PAGE_MAX_SIZE = 60;
 
 export const playerListQuerySchema = z.object({
   search: z.string().trim().min(1).max(50).optional(),
@@ -53,6 +55,16 @@ export const playerListQuerySchema = z.object({
     .optional(),
   limit: z.number().int().positive().max(PLAYER_LIST_MAX_LIMIT).optional(),
   cursor: z.string().min(1).optional(),
+});
+
+export const playerPagedQuerySchema = z.object({
+  search: z.string().trim().min(1).max(50).optional(),
+  role: playerRoleSchema.optional(),
+  sort: z
+    .enum(['marketValue-desc', 'marketValue-asc', 'salary-desc', 'salary-asc', 'name-asc'])
+    .optional(),
+  page: z.number().int().min(1).default(1),
+  pageSize: z.number().int().min(1).max(PLAYER_PAGE_MAX_SIZE).default(PLAYER_PAGE_SIZE),
 });
 
 const playerBaseInputSchema = z.object({

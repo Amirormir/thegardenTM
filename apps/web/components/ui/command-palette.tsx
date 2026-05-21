@@ -31,25 +31,33 @@ export function CommandPalette() {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = useSession();
+
+  const [open, setOpen] = useState(false);
+  const [hasOpened, setHasOpened] = useState(false);
+  const [query, setQuery] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
+
   const playersQuery = api.player.getAll.useQuery(
     {},
     {
+      enabled: hasOpened,
       staleTime: 60_000,
     },
   );
   const teamsQuery = api.team.getAll.useQuery(undefined, {
+    enabled: hasOpened,
     staleTime: 60_000,
   });
-
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
-        setOpen((current) => !current);
+        setOpen((current) => {
+          const next = !current;
+          if (next) setHasOpened(true);
+          return next;
+        });
       }
 
       if (event.key === 'Escape') {
@@ -58,6 +66,7 @@ export function CommandPalette() {
     }
 
     function handleOpenEvent() {
+      setHasOpened(true);
       setOpen(true);
     }
 

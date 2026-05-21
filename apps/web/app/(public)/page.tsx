@@ -28,24 +28,26 @@ export const revalidate = 60;
 
 export default async function HomePage() {
   const caller = await getServerCaller();
-  const [standings, allMatches, season, players, featuredArticle] = await Promise.all([
-    caller.league.getStandings(),
-    caller.match.getAll(),
-    caller.league.getCurrentSeason(),
-    caller.player.getAll({ sort: 'marketValue-desc' }),
-    caller.article.getFeatured(),
-  ]);
+  const [standings, recentMatches, completedMatchCount, season, players, featuredArticle] =
+    await Promise.all([
+      caller.league.getStandings(),
+      caller.match.getRecent({ limit: 50 }),
+      caller.match.getCompletedCount(),
+      caller.league.getCurrentSeason(),
+      caller.player.getAll({ sort: 'marketValue-desc' }),
+      caller.article.getFeatured(),
+    ]);
 
   const topPlayers = players.slice(0, 10);
-  const completedMatches = [...allMatches]
+  const completedRecent = [...recentMatches]
     .filter((match) => match.isCompleted)
     .sort(
       (left, right) =>
         new Date(right.playedAt ?? right.scheduledAt).getTime() -
         new Date(left.playedAt ?? left.scheduledAt).getTime(),
     );
-  const recentResults = completedMatches.slice(0, 3);
-  const recentForm = computeRecentForm(standings, allMatches);
+  const recentResults = completedRecent.slice(0, 3);
+  const recentForm = computeRecentForm(standings, recentMatches);
   const totalMarketValue = players.reduce((sum, player) => sum + player.marketValue, 0);
   const topTeam = standings[0]
     ? {
@@ -59,7 +61,7 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col gap-24 md:gap-28">
       <Hero
-        completedMatchCount={completedMatches.length}
+        completedMatchCount={completedMatchCount}
         playerCount={players.length}
         seasonName={season?.name ?? null}
         teamCount={standings.length}

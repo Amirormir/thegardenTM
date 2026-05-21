@@ -54,3 +54,13 @@ export async function withStatsCache<T>(options: {
 
   return data;
 }
+
+export async function invalidateStatsCache(...keys: string[]): Promise<void> {
+  const client = getRedisClient();
+  if (!client || keys.length === 0) return;
+  try {
+    await client.del(...keys);
+  } catch {
+    // Invalidation failures must not break mutations.
+  }
+}

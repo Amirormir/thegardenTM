@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowDown } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
@@ -82,12 +83,13 @@ export function Hero({
           >
             {featuredArticle.coverImageUrl ? (
               <div className="relative aspect-[16/9] w-full overflow-hidden border border-hairline bg-surface">
-                <img
+                <Image
                   src={featuredArticle.coverImageUrl}
                   alt={featuredArticle.title}
-                  loading="eager"
-                  decoding="async"
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  fill
+                  priority
+                  sizes="(min-width: 1024px) 60vw, 100vw"
+                  className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                 />
               </div>
             ) : null}
@@ -187,11 +189,11 @@ export function Hero({
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="placeholder-diag h-12 w-12 shrink-0 overflow-hidden border border-hairline bg-surface">
                     {player.imageUrl ? (
-                      <img
+                      <Image
                         src={player.imageUrl}
                         alt={player.displayName}
-                        loading="lazy"
-                        decoding="async"
+                        width={48}
+                        height={48}
                         className="h-full w-full object-cover"
                       />
                     ) : (

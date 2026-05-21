@@ -25,13 +25,13 @@ function computeRecentForm(
 
 export default async function LeaguePage() {
   const caller = await getServerCaller();
-  const [standings, allMatches] = await Promise.all([
+  const [standings, recentSource] = await Promise.all([
     caller.league.getStandings(),
-    caller.match.getAll(),
+    caller.match.getRecent({ limit: 50 }),
   ]);
 
-  const recentForm = computeRecentForm(standings, allMatches);
-  const completedMatches = [...allMatches]
+  const recentForm = computeRecentForm(standings, recentSource);
+  const completedMatches = [...recentSource]
     .filter((m) => m.isCompleted)
     .sort(
       (a, b) =>

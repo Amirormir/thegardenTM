@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server';
+import { z } from 'zod';
 import {
   matchByTeamSchema,
   matchCreateSchema,
@@ -7,46 +8,63 @@ import {
   recordResultSchema,
 } from '@/lib/validators/match';
 import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
+import { buildStatsCacheKey, invalidateStatsCache } from '@/lib/cache/stats-cache';
 import { buildAuditLogInput } from '@/server/utils/audit';
 import { adminProcedure, createTRPCRouter, publicProcedure } from '@/server/trpc';
+
+const matchListSelect = {
+  id: true,
+  format: true,
+  scheduledAt: true,
+  playedAt: true,
+  isCompleted: true,
+  homeScore: true,
+  awayScore: true,
+  homeTeam: {
+    select: {
+      id: true,
+      name: true,
+      shortCode: true,
+      logoUrl: true,
+    },
+  },
+  awayTeam: {
+    select: {
+      id: true,
+      name: true,
+      shortCode: true,
+      logoUrl: true,
+    },
+  },
+  season: {
+    select: {
+      id: true,
+      name: true,
+      isCurrent: true,
+    },
+  },
+} as const;
 
 export const matchRouter = createTRPCRouter({
   getAll: publicProcedure.query(({ ctx }) =>
     ctx.prisma.match.findMany({
       orderBy: { scheduledAt: 'desc' },
-      select: {
-        id: true,
-        format: true,
-        scheduledAt: true,
-        playedAt: true,
-        isCompleted: true,
-        homeScore: true,
-        awayScore: true,
-        homeTeam: {
-          select: {
-            id: true,
-            name: true,
-            shortCode: true,
-            logoUrl: true,
-          },
-        },
-        awayTeam: {
-          select: {
-            id: true,
-            name: true,
-            shortCode: true,
-            logoUrl: true,
-          },
-        },
-        season: {
-          select: {
-            id: true,
-            name: true,
-            isCurrent: true,
-          },
-        },
-      },
+      select: matchListSelect,
     }),
+  ),
+
+  getRecent: publicProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(100).default(30) }))
+    .query(({ ctx, input }) =>
+      ctx.prisma.match.findMany({
+        orderBy: { scheduledAt: 'desc' },
+        take: input.limit,
+        select: matchListSelect,
+      }),
+    ),
+
+  getCompletedCount: publicProcedure.query(({ ctx }) =>
+    ctx.prisma.match.count({ where: { isCompleted: true } }),
   ),
 
   getById: publicProcedure.input(matchIdSchema).query(async ({ ctx, input }) => {
@@ -344,7 +362,7 @@ export const matchRouter = createTRPCRouter({
       }
     }
 
-    return ctx.prisma.$transaction(async (tx) => {
+    const result = await ctx.prisma.$transaction(async (tx) => {
       await tx.matchGame.deleteMany({
         where: { matchId: input.matchId },
       });
@@ -454,5 +472,9 @@ export const matchRouter = createTRPCRouter({
 
       return match;
     });
+
+    await invalidateStatsCache(buildStatsCacheKey('league', 'standings'));
+
+    return result;
   }),
 });
