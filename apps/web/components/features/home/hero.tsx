@@ -4,6 +4,7 @@ import { ArrowDown } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { PlayerLink } from '@/components/ui/player-link';
 import { TeamInline } from '@/components/ui/team-inline';
+import { getOptimizedRemoteImageUrl } from '@/lib/utils/optimized-image';
 import { getPlayerInitials } from '@/lib/utils/player-display';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format';
@@ -84,7 +85,10 @@ export function Hero({
             {featuredArticle.coverImageUrl ? (
               <div className="relative aspect-[16/9] w-full overflow-hidden border border-hairline bg-surface">
                 <Image
-                  src={featuredArticle.coverImageUrl}
+                  src={
+                    getOptimizedRemoteImageUrl(featuredArticle.coverImageUrl, { width: 1600 }) ??
+                    featuredArticle.coverImageUrl
+                  }
                   alt={featuredArticle.title}
                   fill
                   priority
@@ -190,7 +194,7 @@ export function Hero({
                   <div className="placeholder-diag h-12 w-12 shrink-0 overflow-hidden border border-hairline bg-surface">
                     {player.imageUrl ? (
                       <Image
-                        src={player.imageUrl}
+                        src={getOptimizedRemoteImageUrl(player.imageUrl, { width: 96 }) ?? player.imageUrl}
                         alt={player.displayName}
                         width={48}
                         height={48}

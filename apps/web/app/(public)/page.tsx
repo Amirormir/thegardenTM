@@ -1,85 +1,26 @@
-import type { TeamStanding } from '@nexus/types';
 import Link from 'next/link';
 import { FightMatchCard } from '@/components/features/league/fight-match-card';
 import { StandingsStack } from '@/components/features/league/standings-stack';
 import { Hero } from '@/components/features/home/hero';
 import { buttonVariants } from '@/components/ui/button';
-import { getServerCaller } from '@/server/caller';
-
-function computeRecentForm(
-  standings: TeamStanding[],
-  matches: { homeTeam: { id: string }; awayTeam: { id: string }; homeScore: number; awayScore: number; isCompleted: boolean }[],
-): Record<string, ('W' | 'L')[]> {
-  const completed = matches.filter((m) => m.isCompleted);
-  const form: Record<string, ('W' | 'L')[]> = {};
-  for (const team of standings) {
-    form[team.id] = completed
-      .filter((m) => m.homeTeam.id === team.id || m.awayTeam.id === team.id)
-      .slice(0, 5)
-      .map((m) => {
-        const isHome = m.homeTeam.id === team.id;
-        return (isHome ? m.homeScore > m.awayScore : m.awayScore > m.homeScore) ? 'W' : 'L';
-      });
-  }
-  return form;
-}
+import { getHomePageSnapshot } from '@/server/public/page-data';
 
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const caller = await getServerCaller();
-  const [standings, recentMatches, completedMatchCount, season, players, featuredArticle] =
-    await Promise.all([
-      caller.league.getStandings(),
-      caller.match.getRecent({ limit: 50 }),
-      caller.match.getCompletedCount(),
-      caller.league.getCurrentSeason(),
-      caller.player.getAll({ sort: 'marketValue-desc' }),
-      caller.article.getFeatured(),
-    ]);
-
-  const topPlayers = players.slice(0, 10);
-  const completedRecent = [...recentMatches]
-    .filter((match) => match.isCompleted)
-    .sort(
-      (left, right) =>
-        new Date(right.playedAt ?? right.scheduledAt).getTime() -
-        new Date(left.playedAt ?? left.scheduledAt).getTime(),
-    );
-  const recentResults = completedRecent.slice(0, 3);
-  const recentForm = computeRecentForm(standings, recentMatches);
-  const totalMarketValue = players.reduce((sum, player) => sum + player.marketValue, 0);
-  const topTeam = standings[0]
-    ? {
-        name: standings[0].name,
-        logoUrl: standings[0].logoUrl,
-        shortCode: standings[0].shortCode,
-        points: standings[0].points,
-      }
-    : null;
+  const snapshot = await getHomePageSnapshot();
 
   return (
     <div className="flex flex-col gap-24 md:gap-28">
       <Hero
-        completedMatchCount={completedMatchCount}
-        playerCount={players.length}
-        seasonName={season?.name ?? null}
-        teamCount={standings.length}
-        topPlayers={topPlayers}
-        topTeam={topTeam}
-        totalMarketValue={totalMarketValue}
-        featuredArticle={
-          featuredArticle
-            ? {
-                slug: featuredArticle.slug,
-                title: featuredArticle.title,
-                excerpt: featuredArticle.excerpt,
-                coverImageUrl: featuredArticle.coverImageUrl,
-                authorName: featuredArticle.author.name,
-                publishedAt: featuredArticle.publishedAt,
-              }
-            : null
-        }
+        completedMatchCount={snapshot.completedMatchCount}
+        playerCount={snapshot.playerCount}
+        seasonName={snapshot.seasonName}
+        teamCount={snapshot.standings.length}
+        topPlayers={snapshot.topPlayers}
+        topTeam={snapshot.topTeam}
+        totalMarketValue={snapshot.totalMarketValue}
+        featuredArticle={snapshot.featuredArticle}
       />
 
       <section id="home-overview" className="scroll-mt-28">
@@ -113,8 +54,11 @@ export default async function HomePage() {
             <p className="label-mono">Classement</p>
             <h3 className="mt-3 display-md text-foreground">Le haut du tableau.</h3>
             <div className="mt-6">
-              {standings.length > 0 ? (
-                <StandingsStack standings={standings} recentForm={recentForm} />
+              {snapshot.standings.length > 0 ? (
+                <StandingsStack
+                  standings={snapshot.standings}
+                  recentForm={snapshot.recentForm}
+                />
               ) : (
                 <p className="border-y border-hairline py-8 text-sm text-foreground-muted">
                   Aucune donnée de classement pour le moment.
@@ -132,9 +76,9 @@ export default async function HomePage() {
             </p>
 
             <div className="mt-6 flex flex-col">
-              {recentResults.length > 0 ? (
-                recentResults.map((match, i) => (
-                  <FightMatchCard key={match.id} match={match} index={i} />
+              {snapshot.recentResults.length > 0 ? (
+                snapshot.recentResults.map((match, index) => (
+                  <FightMatchCard key={match.id} match={match} index={index} />
                 ))
               ) : (
                 <div className="border-y border-hairline py-8">

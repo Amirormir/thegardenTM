@@ -18,7 +18,7 @@ import { GamePlayerBars } from '@/components/features/league/game-player-bars';
 import { GameMvpCard } from '@/components/features/league/game-mvp-card';
 import { cn } from '@/lib/utils/cn';
 import { formatDateTime } from '@/lib/utils/format';
-import { getServerCaller } from '@/server/caller';
+import { getPublicCaller } from '@/server/public/caller';
 
 interface MatchDetailPageProps {
   params: Promise<{
@@ -44,7 +44,7 @@ export default async function MatchDetailPage({
 }: MatchDetailPageProps) {
   const { matchId } = await params;
   const search = await searchParams;
-  const caller = await getServerCaller();
+  const caller = await getPublicCaller();
 
   let match: Awaited<ReturnType<typeof caller.match.getById>>;
   try {

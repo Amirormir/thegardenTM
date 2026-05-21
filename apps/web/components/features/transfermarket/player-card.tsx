@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { PlayerLink } from '@/components/ui/player-link';
 import { TeamInline } from '@/components/ui/team-inline';
+import { getOptimizedRemoteImageUrl } from '@/lib/utils/optimized-image';
 import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCurrency } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
@@ -41,7 +42,7 @@ export function PlayerCard({ player }: PlayerCardProps) {
         <div className="placeholder-diag h-16 w-16 shrink-0 overflow-hidden">
           {player.imageUrl ? (
             <Image
-              src={player.imageUrl}
+              src={getOptimizedRemoteImageUrl(player.imageUrl, { width: 128 }) ?? player.imageUrl}
               alt={player.displayName}
               width={64}
               height={64}

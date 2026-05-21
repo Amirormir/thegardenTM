@@ -435,7 +435,7 @@ export function useDraftSocket(draftId: string): UseDraftSocketResult {
         if (!socket) {
           resolve({
             ok: false,
-            error: { draftId, code: 'CONFLICT', message: 'Non connectÃ©.' },
+            error: { draftId, code: 'CONFLICT', message: 'Non connecté.' },
           });
           return;
         }

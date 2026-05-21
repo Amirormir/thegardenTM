@@ -1,10 +1,8 @@
-'use client';
-
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import { TeamAvatar } from '@/components/ui/team-avatar';
 import { cn } from '@/lib/utils/cn';
 import { formatCompactDate } from '@/lib/utils/format';
+import { FightMatchLiveStatus } from './fight-match-live-status';
 
 export interface FightMatchCardProps {
   match: {
@@ -74,13 +72,6 @@ function MatchSide({ team, score, isWinner, isCompleted, align }: SideProps) {
 }
 
 export function FightMatchCard({ match }: FightMatchCardProps) {
-  const [isLive, setIsLive] = useState(false);
-  useEffect(() => {
-    if (!match.isCompleted) {
-      setIsLive(new Date(match.scheduledAt).getTime() <= Date.now());
-    }
-  }, [match.isCompleted, match.scheduledAt]);
-
   const homeWins = match.isCompleted && match.homeScore > match.awayScore;
   const awayWins = match.isCompleted && match.awayScore > match.homeScore;
   const displayDate = match.playedAt ?? match.scheduledAt;
@@ -116,16 +107,7 @@ export function FightMatchCard({ match }: FightMatchCardProps) {
       </div>
 
       <div className="border-t border-hairline px-5 py-2 text-center label-mono">
-        {isLive ? (
-          <span className="inline-flex items-center gap-2 text-accent">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
-            En direct
-          </span>
-        ) : match.isCompleted ? (
-          <span>Final</span>
-        ) : (
-          <span>Programmé</span>
-        )}
+        <FightMatchLiveStatus isCompleted={match.isCompleted} scheduledAt={match.scheduledAt} />
       </div>
     </Link>
   );

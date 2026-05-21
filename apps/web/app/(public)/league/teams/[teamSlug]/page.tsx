@@ -1,12 +1,14 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { CSSProperties } from 'react';
+import { TeamDraftPreferencesPanel } from '@/components/features/stats/team-draft-preferences-panel';
 import { Badge } from '@/components/ui/badge';
 import { PlayerLink } from '@/components/ui/player-link';
-import { TeamDraftPreferencesPanel } from '@/components/features/stats/team-draft-preferences-panel';
+import { getOptimizedRemoteImageUrl } from '@/lib/utils/optimized-image';
 import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCompactDate, formatCurrency, formatDateTime } from '@/lib/utils/format';
-import { getServerCaller } from '@/server/caller';
+import { getTeamPageSnapshot } from '@/server/public/page-data';
 
 export const revalidate = 60;
 
@@ -14,16 +16,6 @@ interface TeamDetailPageProps {
   params: Promise<{
     teamSlug: string;
   }>;
-}
-
-function isNotFoundError(error: unknown): error is { code: string } {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    typeof error.code === 'string' &&
-    error.code === 'NOT_FOUND'
-  );
 }
 
 const roleOrder = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'] as const;
@@ -41,9 +33,7 @@ function KpiBlock({
     <div className="border-t border-hairline pt-5">
       <p className="label-mono">{label}</p>
       <div className="mt-3 display-md text-foreground tabular-nums">{value}</div>
-      {helper ? (
-        <div className="mt-2 text-sm leading-6 text-foreground-dim">{helper}</div>
-      ) : null}
+      {helper ? <div className="mt-2 text-sm leading-6 text-foreground-dim">{helper}</div> : null}
     </div>
   );
 }
@@ -52,7 +42,7 @@ function SidebarFact({ label, value }: { label: string; value: React.ReactNode }
   return (
     <div className="flex items-baseline justify-between gap-4 border-t border-hairline py-3 first:border-t-0 first:pt-0">
       <span className="label-mono">{label}</span>
-      <span className="font-display text-lg tracking-tight tabular-nums text-foreground text-right">
+      <span className="text-right font-display text-lg tracking-tight tabular-nums text-foreground">
         {value}
       </span>
     </div>
@@ -61,25 +51,13 @@ function SidebarFact({ label, value }: { label: string; value: React.ReactNode }
 
 export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
   const { teamSlug } = await params;
-  const caller = await getServerCaller();
+  const snapshot = await getTeamPageSnapshot(teamSlug);
 
-  const [team, standings, schedule, seasons, currentSeason] = await Promise.all([
-    caller.team.getBySlug({ slug: teamSlug }).catch((error: unknown) => {
-      if (isNotFoundError(error)) {
-        notFound();
-      }
-
-      throw error;
-    }),
-    caller.league.getStandings(),
-    caller.league.getSchedule(),
-    caller.league.getAllSeasons(),
-    caller.league.getCurrentSeason(),
-  ]);
-
-  if (!team) {
+  if (!snapshot) {
     notFound();
   }
+
+  const { team, standings, schedule, seasons, currentSeason } = snapshot;
 
   const sortedPlayers = [...team.players].sort((left, right) => {
     const leftIndex = roleOrder.indexOf(left.role as (typeof roleOrder)[number]);
@@ -93,19 +71,16 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
   });
 
   const standing = standings.find((entry) => entry.id === team.id) ?? null;
-  const standingPlace = standing
-    ? standings.findIndex((entry) => entry.id === team.id) + 1
-    : null;
+  const standingPlace = standing ? standings.findIndex((entry) => entry.id === team.id) + 1 : null;
   const totalMarketValue = sortedPlayers.reduce((sum, player) => sum + player.marketValue, 0);
   const totalSalary = sortedPlayers.reduce((sum, player) => sum + player.salary, 0);
   const salaryRemaining = team.salaryBudgetCap - totalSalary;
   const salaryUsedPercent =
-    team.salaryBudgetCap > 0 ? Math.min(100, Math.round((totalSalary / team.salaryBudgetCap) * 100)) : 0;
-  const teamMatches = schedule.filter(
-    (match) => match.homeTeam.id === team.id || match.awayTeam.id === team.id,
-  );
-  const completedMatches = teamMatches.filter((match) => match.isCompleted).slice(-3).reverse();
-  const upcomingMatches = teamMatches.filter((match) => !match.isCompleted).slice(0, 3);
+    team.salaryBudgetCap > 0
+      ? Math.min(100, Math.round((totalSalary / team.salaryBudgetCap) * 100))
+      : 0;
+  const completedMatches = schedule.filter((match) => match.isCompleted).slice(-3).reverse();
+  const upcomingMatches = schedule.filter((match) => !match.isCompleted).slice(0, 3);
 
   return (
     <div className="flex flex-col gap-20 md:gap-24">
@@ -115,13 +90,16 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         <div className="mt-8 grid gap-10 lg:grid-cols-[auto_1fr] lg:items-end lg:gap-12">
           <div className="placeholder-diag h-40 w-40 shrink-0 overflow-hidden lg:h-48 lg:w-48">
             {team.logoUrl ? (
-              <img
-                src={team.logoUrl}
-                alt={team.name}
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-cover"
-              />
+              <div className="relative h-full w-full">
+                <Image
+                  src={getOptimizedRemoteImageUrl(team.logoUrl, { width: 512 }) ?? team.logoUrl}
+                  alt={team.name}
+                  fill
+                  priority
+                  sizes="(min-width: 1024px) 12rem, 10rem"
+                  className="object-cover"
+                />
+              </div>
             ) : (
               <div className="flex h-full w-full items-center justify-center font-display text-5xl tracking-tight text-foreground-dim">
                 {team.shortCode.slice(0, 3).toUpperCase()}
@@ -135,9 +113,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
               <Badge variant="A">
                 {sortedPlayers.length} joueur{sortedPlayers.length > 1 ? 's' : ''}
               </Badge>
-              {standingPlace ? (
-                <Badge variant="S">#{standingPlace} ligue</Badge>
-              ) : null}
+              {standingPlace ? <Badge variant="S">#{standingPlace} ligue</Badge> : null}
             </div>
 
             <h1 className="mt-4 display-xl text-foreground">{team.name}</h1>
@@ -189,7 +165,10 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
             <p className="mt-3 display-md text-foreground tabular-nums">
               {formatCurrency(team.salaryBudgetCap)}
             </p>
-            <div className="mt-5 percentile-bar" style={{ '--percentile': `${salaryUsedPercent}%` } as CSSProperties} />
+            <div
+              className="mt-5 percentile-bar"
+              style={{ '--percentile': `${salaryUsedPercent}%` } as CSSProperties}
+            />
             <div className="mt-4 space-y-0">
               <SidebarFact label="Masse salariale" value={formatCurrency(totalSalary)} />
               <SidebarFact label="Marge libre" value={formatCurrency(salaryRemaining)} />
@@ -199,9 +178,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
           </div>
 
           <div className="border border-hairline bg-surface p-5">
-            <p className="label-mono">
-              {team.captains.length > 1 ? 'Capitaines' : 'Capitaine'}
-            </p>
+            <p className="label-mono">{team.captains.length > 1 ? 'Capitaines' : 'Capitaine'}</p>
             <div className="mt-4 space-y-3">
               {team.captains.length > 0 ? (
                 team.captains.map((captain) => (
@@ -291,12 +268,12 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                   .join(' / ') || 'Profil public transfermarket'}
               </p>
 
-              <div className="mt-auto pt-5 border-t border-hairline">
+              <div className="mt-auto border-t border-hairline pt-5">
                 <Link
                   href={`/transfermarket/${player.id}`}
                   className="label-mono text-foreground-dim transition-colors duration-150 hover:text-accent"
                 >
-                  Voir la fiche transfermarket →
+                  Voir la fiche transfermarket â†’
                 </Link>
               </div>
             </article>
@@ -306,19 +283,19 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
 
       <section className="grid gap-12 xl:grid-cols-2 xl:gap-16">
         <div>
-          <p className="label-mono">§ 02 · À venir</p>
+        <p className="label-mono">§ 02 · À venir</p>
           <h2 className="mt-3 display-md text-foreground">Prochains matchs.</h2>
           <div className="mt-8 border-t border-hairline">
             {upcomingMatches.length > 0 ? (
               upcomingMatches.map((match) => (
                 <div
                   key={match.id}
-                  className="border-b border-hairline px-1 py-5 flex items-center justify-between gap-4"
+                  className="flex items-center justify-between gap-4 border-b border-hairline px-1 py-5"
                 >
                   <div className="min-w-0">
                     <p className="font-display text-2xl tracking-tight text-foreground">
-                      {match.homeTeam.shortCode} <span className="text-foreground-muted">·</span>{' '}
-                      {match.awayTeam.shortCode}
+                      {match.homeTeam.shortCode}{' '}
+                      <span className="text-foreground-muted">·</span> {match.awayTeam.shortCode}
                     </p>
                     <p className="mt-1 label-mono tabular-nums">
                       {formatDateTime(match.scheduledAt)}
@@ -336,8 +313,8 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
         </div>
 
         <div>
-          <p className="label-mono">§ 03 · Derniers résultats</p>
-          <h2 className="mt-3 display-md text-foreground">À chaud.</h2>
+        <p className="label-mono">§ 03 · Derniers résultats</p>
+        <h2 className="mt-3 display-md text-foreground">À chaud.</h2>
           <div className="mt-8 border-t border-hairline">
             {completedMatches.length > 0 ? (
               completedMatches.map((match) => {
@@ -345,15 +322,16 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                 const teamScore = isHome ? match.homeScore : match.awayScore;
                 const oppScore = isHome ? match.awayScore : match.homeScore;
                 const win = teamScore > oppScore;
+
                 return (
                   <div
                     key={match.id}
-                    className="border-b border-hairline px-1 py-5 flex items-center justify-between gap-4"
+                    className="flex items-center justify-between gap-4 border-b border-hairline px-1 py-5"
                   >
                     <div className="min-w-0">
                       <p className="font-display text-2xl tracking-tight text-foreground">
-                        {match.homeTeam.shortCode} <span className="text-foreground-muted">·</span>{' '}
-                        {match.awayTeam.shortCode}
+                        {match.homeTeam.shortCode}{' '}
+                        <span className="text-foreground-muted">·</span> {match.awayTeam.shortCode}
                       </p>
                       <p className="mt-1 label-mono tabular-nums">
                         {formatCompactDate(match.playedAt ?? match.scheduledAt)}

@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import type { TeamStanding } from '@nexus/types';
 import { TeamAvatar } from '@/components/ui/team-avatar';

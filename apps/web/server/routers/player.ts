@@ -1,5 +1,6 @@
 import type { PlayerRole, Prisma } from '@nexus/db';
 import { TRPCError } from '@trpc/server';
+import { z } from 'zod';
 import { getAccountByRiotId } from '@/lib/riot';
 import {
   marketValueHistoryCreateSchema,
@@ -51,6 +52,21 @@ const PLAYER_LIST_SELECT = {
     select: {
       previousValue: true,
       newValue: true,
+    },
+  },
+} satisfies Prisma.PlayerSelect;
+
+const PLAYER_SEARCH_LITE_SELECT = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  gameName: true,
+  tagLine: true,
+  role: true,
+  team: {
+    select: {
+      name: true,
+      shortCode: true,
     },
   },
 } satisfies Prisma.PlayerSelect;
@@ -253,6 +269,36 @@ async function rebuildPlayerMarketValueHistory(tx: Prisma.TransactionClient, pla
 }
 
 export const playerRouter = createTRPCRouter({
+  searchLite: publicProcedure
+    .input(
+      z
+        .object({
+          q: z.string().trim().min(1).max(50).optional(),
+          limit: z.number().int().min(1).max(12).default(8),
+        })
+        .default({ limit: 8 }),
+    )
+    .query(async ({ ctx, input }) => {
+      const players = await ctx.prisma.player.findMany({
+        where: buildPlayerListWhere({
+          search: input.q,
+        }),
+        orderBy: buildPlayerListOrderBy('marketValue-desc'),
+        take: input.limit,
+        select: PLAYER_SEARCH_LITE_SELECT,
+      });
+
+      return players.map((player) => ({
+        id: player.id,
+        displayName: resolveStoredPlayerDisplayName(player),
+        gameName: player.gameName,
+        tagLine: player.tagLine,
+        role: player.role,
+        teamName: player.team?.name ?? FREE_AGENT_NAME,
+        teamShortCode: player.team?.shortCode ?? FREE_AGENT_SHORT_CODE,
+      }));
+    }),
+
   getAll: publicProcedure.input(playerListQuerySchema.optional()).query(async ({ ctx, input }) => {
     const where = buildPlayerListWhere({
       search: input?.search,

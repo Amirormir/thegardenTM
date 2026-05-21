@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { FightMatchCard } from '@/components/features/league/fight-match-card';
 import { cn } from '@/lib/utils/cn';
-import { getServerCaller } from '@/server/caller';
+import { getPublicCaller } from '@/server/public/caller';
 
 export const revalidate = 60;
 
@@ -14,7 +14,7 @@ interface HistoriquePageProps {
 export default async function HistoriquePage({ searchParams }: HistoriquePageProps) {
   const params = await searchParams;
   const selectedSeasonId = typeof params.season === 'string' ? params.season : undefined;
-  const caller = await getServerCaller();
+  const caller = await getPublicCaller();
 
   const seasons = await caller.league.getAllSeasons();
   const currentSeason = seasons.find((s) => s.isCurrent);

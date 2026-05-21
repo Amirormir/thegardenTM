@@ -25,7 +25,7 @@ export function DraftControlBar({ draftId, status, role }: DraftControlBarProps)
   const cancelMut = api.draft.cancel.useMutation();
 
   if (!role || role === 'SPECTATOR') return null;
-  // DEV_DUAL_CAPTAIN is the local-only admin override â€” give it full admin controls.
+  // DEV_DUAL_CAPTAIN is the local-only admin override — give it full admin controls.
   const isAdmin = role === 'ADMIN' || role === 'DEV_DUAL_CAPTAIN';
   const isCaptain = role === 'BLUE_CAPTAIN' || role === 'RED_CAPTAIN';
 
@@ -52,7 +52,7 @@ export function DraftControlBar({ draftId, status, role }: DraftControlBarProps)
   }[] = [
     {
       key: 'start',
-      label: 'DÃ©marrer',
+      label: 'Démarrer',
       icon: Play,
       show: status === 'COINFLIP' && (isAdmin || isCaptain),
       tone: 'primary',
@@ -86,7 +86,7 @@ export function DraftControlBar({ draftId, status, role }: DraftControlBarProps)
   return (
     <div className="flex flex-wrap items-center gap-3 border border-hairline bg-surface px-4 py-3">
       <span className="label-mono text-foreground-muted">
-        {isAdmin ? 'Admin' : 'Capitaine'} Â·
+        {isAdmin ? 'Admin' : 'Capitaine'} ·
       </span>
       {visible.map(({ key, label, icon: Icon, tone }) => (
         <button

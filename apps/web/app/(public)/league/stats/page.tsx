@@ -1,10 +1,10 @@
 import { LeagueStatsView } from '@/components/features/league/league-stats-view';
-import { getServerCaller } from '@/server/caller';
+import { getPublicCaller } from '@/server/public/caller';
 
 export const revalidate = 60;
 
 export default async function LeagueStatsPage() {
-  const caller = await getServerCaller();
+  const caller = await getPublicCaller();
   const [seasons, currentSeason] = await Promise.all([
     caller.league.getAllSeasons(),
     caller.league.getCurrentSeason(),

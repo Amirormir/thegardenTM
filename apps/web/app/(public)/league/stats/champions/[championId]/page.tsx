@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { PlayerLink } from '@/components/ui/player-link';
 import { getChampionSplashUrl } from '@/lib/utils/ddragon';
-import { getServerCaller } from '@/server/caller';
+import { getPublicCaller } from '@/server/public/caller';
 
 export const revalidate = 60;
 
@@ -50,7 +50,7 @@ export default async function ChampionDetailPage({
   const { championId } = await params;
   const { seasonId: querySeasonId } = await searchParams;
 
-  const caller = await getServerCaller();
+  const caller = await getPublicCaller();
   const [seasons, currentSeason] = await Promise.all([
     caller.league.getAllSeasons(),
     caller.league.getCurrentSeason(),

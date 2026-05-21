@@ -640,7 +640,7 @@ export function AdminMatchesManager() {
                         Drafts :{' '}
                         {matchDrafts
                           .map((draft) => `G${draft.gameNumber} ${draft.status}`)
-                          .join(' Â· ')}
+                          .join(' · ')}
                       </p>
                     ) : null}
                   </div>

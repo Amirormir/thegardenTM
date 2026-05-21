@@ -1,5 +1,3 @@
-'use client';
-
 import type { TeamMarketValueEntry } from '@nexus/types';
 import Link from 'next/link';
 import { TeamAvatar } from '@/components/ui/team-avatar';

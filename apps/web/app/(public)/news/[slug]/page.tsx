@@ -1,9 +1,10 @@
-import { TRPCError } from '@trpc/server';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getServerCaller } from '@/server/caller';
 import { renderArticleBody } from '@/lib/utils/article-format';
 import { formatDateTime } from '@/lib/utils/format';
+import { getOptimizedRemoteImageUrl } from '@/lib/utils/optimized-image';
+import { getNewsArticleSnapshot } from '@/server/public/page-data';
 
 export const revalidate = 60;
 
@@ -13,37 +14,30 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
-  const caller = await getServerCaller();
+  const article = await getNewsArticleSnapshot(slug);
 
-  try {
-    const article = await caller.article.getBySlug({ slug });
-    return {
-      title: `${article.title} — The Garden`,
-      description: article.excerpt,
-      openGraph: {
-        title: article.title,
-        description: article.excerpt,
-        ...(article.coverImageUrl ? { images: [{ url: article.coverImageUrl }] } : {}),
-        type: 'article',
-      },
-    };
-  } catch {
+  if (!article) {
     return { title: 'Article introuvable — The Garden' };
   }
+
+  return {
+    title: `${article.title} — The Garden`,
+    description: article.excerpt,
+    openGraph: {
+      title: article.title,
+      description: article.excerpt,
+      ...(article.coverImageUrl ? { images: [{ url: article.coverImageUrl }] } : {}),
+      type: 'article',
+    },
+  };
 }
 
 export default async function NewsArticlePage({ params }: PageProps) {
   const { slug } = await params;
-  const caller = await getServerCaller();
+  const article = await getNewsArticleSnapshot(slug);
 
-  let article;
-  try {
-    article = await caller.article.getBySlug({ slug });
-  } catch (error) {
-    if (error instanceof TRPCError && error.code === 'NOT_FOUND') {
-      notFound();
-    }
-    throw error;
+  if (!article) {
+    notFound();
   }
 
   const blocks = renderArticleBody(article.body);
@@ -74,12 +68,16 @@ export default async function NewsArticlePage({ params }: PageProps) {
 
       {article.coverImageUrl ? (
         <figure className="relative aspect-[16/9] w-full overflow-hidden border border-hairline bg-surface">
-          <img
-            src={article.coverImageUrl}
+          <Image
+            src={
+              getOptimizedRemoteImageUrl(article.coverImageUrl, { width: 1600 }) ??
+              article.coverImageUrl
+            }
             alt={article.title}
-            loading="eager"
-            decoding="async"
-            className="h-full w-full object-cover"
+            fill
+            priority
+            sizes="(min-width: 1024px) 80vw, 100vw"
+            className="object-cover"
           />
         </figure>
       ) : null}
@@ -95,7 +93,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
           href="/news"
           className="label-mono transition-colors duration-150 hover:text-foreground"
         >
-          ← Tous les articles
+          â† Tous les articles
         </Link>
       </footer>
     </article>

@@ -1,6 +1,8 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import { getServerCaller } from '@/server/caller';
 import { formatCompactDate } from '@/lib/utils/format';
+import { getOptimizedRemoteImageUrl } from '@/lib/utils/optimized-image';
+import { getNewsIndexSnapshot } from '@/server/public/page-data';
 
 export const revalidate = 60;
 
@@ -10,11 +12,7 @@ export const metadata = {
 };
 
 export default async function NewsIndexPage() {
-  const caller = await getServerCaller();
-  const { items } = await caller.article.getAll({ limit: 30, includeUnpublished: false });
-
-  const featured = items.find((item) => item.isFeatured) ?? items[0] ?? null;
-  const rest = featured ? items.filter((item) => item.id !== featured.id) : items;
+  const { featured, rest } = await getNewsIndexSnapshot();
 
   return (
     <div className="flex flex-col gap-16 md:gap-20">
@@ -33,12 +31,16 @@ export default async function NewsIndexPage() {
         >
           <div className="relative aspect-[16/10] overflow-hidden border border-hairline bg-surface">
             {featured.coverImageUrl ? (
-              <img
-                src={featured.coverImageUrl}
+              <Image
+                src={
+                  getOptimizedRemoteImageUrl(featured.coverImageUrl, { width: 1600 }) ??
+                  featured.coverImageUrl
+                }
                 alt={featured.title}
-                loading="eager"
-                decoding="async"
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                fill
+                priority
+                sizes="(min-width: 1024px) 52vw, 100vw"
+                className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center label-mono text-foreground-muted">
@@ -78,12 +80,15 @@ export default async function NewsIndexPage() {
                 <Link href={`/news/${article.slug}`} className="group flex flex-col gap-4">
                   <div className="relative aspect-[16/10] overflow-hidden border border-hairline bg-surface">
                     {article.coverImageUrl ? (
-                      <img
-                        src={article.coverImageUrl}
+                      <Image
+                        src={
+                          getOptimizedRemoteImageUrl(article.coverImageUrl, { width: 960 }) ??
+                          article.coverImageUrl
+                        }
                         alt={article.title}
-                        loading="lazy"
-                        decoding="async"
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                        fill
+                        sizes="(min-width: 1280px) 28vw, (min-width: 768px) 44vw, 100vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center label-mono text-foreground-muted">

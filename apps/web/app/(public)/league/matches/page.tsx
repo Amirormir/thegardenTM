@@ -1,10 +1,10 @@
 import { FightMatchCard } from '@/components/features/league/fight-match-card';
-import { getServerCaller } from '@/server/caller';
+import { getPublicCaller } from '@/server/public/caller';
 
 export const revalidate = 60;
 
 export default async function MatchesPage() {
-  const caller = await getServerCaller();
+  const caller = await getPublicCaller();
   const allMatches = await caller.match.getAll();
 
   const completed = allMatches.filter((m) => m.isCompleted);

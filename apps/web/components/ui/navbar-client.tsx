@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
@@ -7,21 +8,11 @@ import { Menu, Search, UserRound, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { GardenLogo } from './garden-logo';
-import { NotificationBell } from './notification-bell';
 import { resolveAccountAvatarUrl } from '@/lib/utils/account-avatar';
 import { cn } from '@/lib/utils/cn';
 import { isPublicRegistrationEnabled } from '@/lib/runtime-flags';
 
-interface NavbarUser {
-  id: string;
-  name?: string | null;
-  image?: string | null;
-  role: string;
-  teamId: string | null;
-}
-
 interface NavbarClientProps {
-  user: NavbarUser | null;
   seasonLabel?: string | null;
 }
 
@@ -47,8 +38,28 @@ function openCommandPalette() {
   window.dispatchEvent(new CustomEvent('nexus:command-palette:open'));
 }
 
-export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
-  const { data: session } = useSession();
+const NotificationBell = dynamic(
+  () => import('./notification-bell').then((module) => module.NotificationBell),
+  {
+    ssr: false,
+    loading: () => <div aria-hidden className="h-9 w-9 border border-hairline bg-surface" />,
+  },
+);
+
+function UserAreaSkeleton() {
+  return (
+    <div className="flex items-center gap-2">
+      <div aria-hidden className="h-9 w-9 border border-hairline bg-surface" />
+      <div
+        aria-hidden
+        className="hidden h-9 w-[132px] border border-hairline bg-surface md:block"
+      />
+    </div>
+  );
+}
+
+export function NavbarClient({ seasonLabel }: NavbarClientProps) {
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -73,7 +84,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
 
   useEffect(() => {
     setAvatarLoadFailed(false);
-  }, [session?.user?.image, user?.image]);
+  }, [session?.user?.image]);
 
   const currentUser = session?.user
     ? {
@@ -83,7 +94,7 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
         role: String(session.user.role),
         teamId: session.user.teamId,
       }
-    : user;
+    : null;
   const showRegistrationLink = isPublicRegistrationEnabled;
 
   const userName = currentUser?.name ?? 'Invite';
@@ -176,10 +187,11 @@ export function NavbarClient({ user, seasonLabel }: NavbarClientProps) {
             <Menu className="h-4 w-4" />
           </button>
 
-          {currentUser ? <NotificationBell /> : null}
-
-          {currentUser ? (
-            <div className="relative">
+          {status === 'loading' ? (
+            <UserAreaSkeleton />
+          ) : currentUser ? (
+            <div className="relative flex items-center gap-3">
+              <NotificationBell />
               <button
                 type="button"
                 onClick={() => setUserMenuOpen((value) => !value)}

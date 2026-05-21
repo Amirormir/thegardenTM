@@ -9,7 +9,7 @@ import { PlayerLink } from '@/components/ui/player-link';
 import { TeamInline } from '@/components/ui/team-inline';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format';
-import { getServerCaller } from '@/server/caller';
+import { getPublicCaller } from '@/server/public/caller';
 
 export const revalidate = 60;
 
@@ -137,7 +137,7 @@ export default async function TransfermarketPage({ searchParams }: Transfermarke
   const sort = getSortValue(getSearchValue(params.sort));
   const view = getViewValue(getSearchValue(params.view));
   const requestedPage = getPageValue(getSearchValue(params.page));
-  const caller = await getServerCaller();
+  const caller = await getPublicCaller();
 
   const playersPage =
     view === 'players'

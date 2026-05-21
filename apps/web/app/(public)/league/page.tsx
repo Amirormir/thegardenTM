@@ -1,44 +1,11 @@
-import type { TeamStanding } from '@nexus/types';
 import { FightMatchCard } from '@/components/features/league/fight-match-card';
 import { StandingsStack } from '@/components/features/league/standings-stack';
-import { getServerCaller } from '@/server/caller';
+import { getLeaguePageSnapshot } from '@/server/public/page-data';
 
 export const revalidate = 60;
 
-function computeRecentForm(
-  standings: TeamStanding[],
-  matches: { homeTeam: { id: string }; awayTeam: { id: string }; homeScore: number; awayScore: number; isCompleted: boolean }[],
-): Record<string, ('W' | 'L')[]> {
-  const completed = matches.filter((m) => m.isCompleted);
-  const form: Record<string, ('W' | 'L')[]> = {};
-  for (const team of standings) {
-    form[team.id] = completed
-      .filter((m) => m.homeTeam.id === team.id || m.awayTeam.id === team.id)
-      .slice(0, 5)
-      .map((m) => {
-        const isHome = m.homeTeam.id === team.id;
-        return (isHome ? m.homeScore > m.awayScore : m.awayScore > m.homeScore) ? 'W' : 'L';
-      });
-  }
-  return form;
-}
-
 export default async function LeaguePage() {
-  const caller = await getServerCaller();
-  const [standings, recentSource] = await Promise.all([
-    caller.league.getStandings(),
-    caller.match.getRecent({ limit: 50 }),
-  ]);
-
-  const recentForm = computeRecentForm(standings, recentSource);
-  const completedMatches = [...recentSource]
-    .filter((m) => m.isCompleted)
-    .sort(
-      (a, b) =>
-        new Date(b.playedAt ?? b.scheduledAt).getTime() -
-        new Date(a.playedAt ?? a.scheduledAt).getTime(),
-    );
-  const recentMatches = completedMatches.slice(0, 3);
+  const snapshot = await getLeaguePageSnapshot();
 
   return (
     <div className="flex flex-col gap-20 md:gap-24">
@@ -55,12 +22,13 @@ export default async function LeaguePage() {
         <div>
           <p className="label-mono">§ Standings</p>
           <h2 className="mt-3 display-md text-foreground">
-            {standings.length.toString().padStart(2, '0')} équipe
-            {standings.length > 1 ? 's' : ''} engagée{standings.length > 1 ? 's' : ''}.
+            {snapshot.standings.length.toString().padStart(2, '0')} équipe
+            {snapshot.standings.length > 1 ? 's' : ''} engagée
+            {snapshot.standings.length > 1 ? 's' : ''}.
           </h2>
           <div className="mt-8">
-            {standings.length > 0 ? (
-              <StandingsStack standings={standings} recentForm={recentForm} />
+            {snapshot.standings.length > 0 ? (
+              <StandingsStack standings={snapshot.standings} recentForm={snapshot.recentForm} />
             ) : (
               <div className="border border-hairline bg-surface px-5 py-6">
                 <p className="text-sm text-foreground-dim">
@@ -75,9 +43,9 @@ export default async function LeaguePage() {
           <p className="label-mono">§ Derniers résultats</p>
           <h2 className="mt-3 display-md text-foreground">À chaud.</h2>
           <div className="mt-8 space-y-5">
-            {recentMatches.length > 0 ? (
-              recentMatches.map((match, i) => (
-                <FightMatchCard key={match.id} match={match} index={i} />
+            {snapshot.recentMatches.length > 0 ? (
+              snapshot.recentMatches.map((match, index) => (
+                <FightMatchCard key={match.id} match={match} index={index} />
               ))
             ) : (
               <div className="border border-hairline bg-surface px-5 py-6">

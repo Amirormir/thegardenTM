@@ -2,6 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { ConversionDirection, UserRole } from '@nexus/db';
 import type { PlayerRole } from '@nexus/db';
 import type { TeamMarketValueEntry } from '@nexus/types';
+import { z } from 'zod';
 import {
   teamBudgetConvertSchema,
   teamBudgetSnapshotSchema,
@@ -102,6 +103,44 @@ function toPublicTeam(team: {
 }
 
 export const teamRouter = createTRPCRouter({
+  searchLite: publicProcedure
+    .input(
+      z
+        .object({
+          q: z.string().trim().min(1).max(50).optional(),
+          limit: z.number().int().min(1).max(12).default(6),
+        })
+        .default({ limit: 6 }),
+    )
+    .query(({ ctx, input }) => {
+      const where = input.q
+        ? {
+            OR: [
+              { name: { contains: input.q, mode: 'insensitive' as const } },
+              { shortCode: { contains: input.q, mode: 'insensitive' as const } },
+              { slug: { contains: input.q, mode: 'insensitive' as const } },
+            ],
+          }
+        : {};
+
+      return ctx.prisma.team.findMany({
+        where,
+        orderBy: [{ name: 'asc' }],
+        take: input.limit,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          shortCode: true,
+          _count: {
+            select: {
+              players: true,
+            },
+          },
+        },
+      });
+    }),
+
   getAll: publicProcedure.query(({ ctx }) =>
     ctx.prisma.team.findMany({
       orderBy: { name: 'asc' },
@@ -186,28 +225,44 @@ export const teamRouter = createTRPCRouter({
     ),
 
   getMarketValueRanking: publicProcedure.query(async ({ ctx }): Promise<TeamMarketValueEntry[]> => {
-    const teams = await ctx.prisma.team.findMany({
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        shortCode: true,
-        logoUrl: true,
-        players: {
-          where: { isActive: true },
-          select: {
-            marketValue: true,
-            salary: true,
-          },
+    const [teams, groupedPlayers] = await Promise.all([
+      ctx.prisma.team.findMany({
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          shortCode: true,
+          logoUrl: true,
         },
-      },
-    });
+      }),
+      ctx.prisma.player.groupBy({
+        by: ['teamId'],
+        where: {
+          isActive: true,
+          teamId: { not: null },
+        },
+        _count: {
+          _all: true,
+        },
+        _sum: {
+          marketValue: true,
+          salary: true,
+        },
+      }),
+    ]);
+
+    const groupedByTeamId = new Map(
+      groupedPlayers
+        .filter((entry) => entry.teamId)
+        .map((entry) => [entry.teamId as string, entry]),
+    );
 
     return teams
       .map((team) => {
-        const totalMarketValue = team.players.reduce((sum, player) => sum + player.marketValue, 0);
-        const totalSalary = team.players.reduce((sum, player) => sum + player.salary, 0);
-        const playerCount = team.players.length;
+        const totals = groupedByTeamId.get(team.id);
+        const totalMarketValue = totals?._sum.marketValue ?? 0;
+        const totalSalary = totals?._sum.salary ?? 0;
+        const playerCount = totals?._count._all ?? 0;
 
         return {
           id: team.id,

@@ -1,11 +1,10 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MarketValueChart } from '@/components/features/charts/market-value-chart';
 import { ChampionPoolGrid } from '@/components/features/transfermarket/champion-pool-grid';
-import { RiotFetchButton } from '@/components/features/transfermarket/riot-fetch-button';
+import { PlayerPublicActions } from '@/components/features/transfermarket/player-public-actions';
 import { TeamLeagueSnapshotCard } from '@/components/features/transfermarket/team-league-snapshot-card';
-import { FreeAgentSignButton } from '@/components/features/transfermarket/free-agent-sign-button';
-import { TransferOfferButton } from '@/components/features/transfermarket/transfer-offer-button';
 import { Badge } from '@/components/ui/badge';
 import { PlayerValue } from '@/components/ui/player-value';
 import { TeamInline } from '@/components/ui/team-inline';
@@ -17,11 +16,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { auth } from '@/lib/auth';
+import { cn } from '@/lib/utils/cn';
+import { getOptimizedRemoteImageUrl } from '@/lib/utils/optimized-image';
 import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCompactDate, formatCurrency, formatDateTime } from '@/lib/utils/format';
-import { cn } from '@/lib/utils/cn';
-import { getServerCaller } from '@/server/caller';
+import { getPublicCaller } from '@/server/public/caller';
 
 export const revalidate = 60;
 
@@ -71,7 +70,7 @@ function SidebarFact({ label, value }: { label: string; value: React.ReactNode }
   return (
     <div className="flex items-baseline justify-between gap-4 border-t border-hairline py-3 first:border-t-0 first:pt-0">
       <span className="label-mono">{label}</span>
-      <span className="font-display text-lg tracking-tight tabular-nums text-foreground text-right">
+      <span className="text-right font-display text-lg tracking-tight tabular-nums text-foreground">
         {value}
       </span>
     </div>
@@ -80,11 +79,7 @@ function SidebarFact({ label, value }: { label: string; value: React.ReactNode }
 
 export default async function PlayerDetailPage({ params }: PlayerDetailPageProps) {
   const { playerId } = await params;
-  const session = await auth();
-  const isAdmin = session?.user?.role === 'ADMIN';
-  const isCaptain = session?.user?.role === 'TEAM_CAPTAIN' || isAdmin;
-  const userTeamId = session?.user?.teamId ?? null;
-  const caller = await getServerCaller();
+  const caller = await getPublicCaller();
 
   const [player, contractHistory, standings, playerStats] = await Promise.all([
     caller.player.getById({ id: playerId }).catch((error: unknown) => {
@@ -141,16 +136,10 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
       ? ((recentTotals.kills + recentTotals.assists) / Math.max(recentTotals.deaths, 1)).toFixed(2)
       : '0.00';
   const averageCs = recentGamesCount > 0 ? Math.round(recentTotals.cs / recentGamesCount) : 0;
-  const averageDamage =
-    recentGamesCount > 0 ? Math.round(recentTotals.damage / recentGamesCount) : 0;
+  const averageDamage = recentGamesCount > 0 ? Math.round(recentTotals.damage / recentGamesCount) : 0;
   const championPool = playerStats.championPool;
   const championPoolCount = championPool.length;
   const riotId = buildPlayerRiotId(player);
-
-  const canOfferTransfer = Boolean(
-    isCaptain && userTeamId && player.teamId && player.teamId !== userTeamId && activeContract,
-  );
-  const canSignFreeAgent = Boolean(isCaptain && userTeamId && !player.teamId);
 
   return (
     <div className="flex flex-col gap-16 md:gap-20">
@@ -160,12 +149,13 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
         <div className="mt-8 grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-10">
           <div className="placeholder-diag relative aspect-[4/5] w-full max-w-[15rem] shrink-0 overflow-hidden border border-hairline bg-surface lg:max-w-[17rem]">
             {player.imageUrl ? (
-              <img
-                src={player.imageUrl}
+              <Image
+                src={getOptimizedRemoteImageUrl(player.imageUrl, { width: 720 }) ?? player.imageUrl}
                 alt={player.displayName}
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-cover"
+                fill
+                priority
+                sizes="(min-width: 1024px) 17rem, 15rem"
+                className="object-cover"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center font-display text-4xl text-foreground-dim">
@@ -214,28 +204,21 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                 href={`/transfermarket/comparison?playerA=${player.id}`}
                 className="text-foreground-dim transition-colors duration-150 hover:text-accent"
               >
-                Comparer ce joueur →
+                Comparer ce joueur â†’
               </Link>
-              {isAdmin ? <RiotFetchButton playerId={playerId} /> : null}
             </div>
+
+            <PlayerPublicActions
+              playerId={player.id}
+              playerTeamId={player.teamId}
+              hasActiveContract={Boolean(activeContract)}
+            />
           </div>
         </div>
-
-        {canOfferTransfer && activeContract ? (
-          <div className="mt-10">
-            <TransferOfferButton playerId={player.id} />
-          </div>
-        ) : null}
-
-        {canSignFreeAgent ? (
-          <div className="mt-10">
-            <FreeAgentSignButton playerId={player.id} />
-          </div>
-        ) : null}
       </header>
 
       <div className="grid gap-16 md:gap-20 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-x-12 lg:gap-y-16">
-        <section className="grid gap-8 sm:grid-cols-2 xl:grid-cols-4 xl:gap-10 lg:col-start-1">
+        <section className="lg:col-start-1 grid gap-8 sm:grid-cols-2 xl:grid-cols-4 xl:gap-10">
           <KpiBlock
             label="KDA récent"
             value={recentKda}
@@ -246,11 +229,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
             value={`${recentWinRate}%`}
             helper={`${recentTotals.wins} victoire${recentTotals.wins > 1 ? 's' : ''} récente${recentTotals.wins > 1 ? 's' : ''}.`}
           />
-          <KpiBlock
-            label="CS moyen"
-            value={averageCs}
-            helper="Moyenne sur les games stockées."
-          />
+          <KpiBlock label="CS moyen" value={averageCs} helper="Moyenne sur les games stockées." />
           <KpiBlock
             label="Damage moyen"
             value={formatCurrency(averageDamage)}
@@ -258,7 +237,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
           />
         </section>
 
-        <aside className="space-y-5 border-t border-hairline pt-8 lg:col-start-2 lg:row-start-1 lg:row-span-6 lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0">
+        <aside className="space-y-5 border-t border-hairline pt-8 lg:col-start-2 lg:row-start-1 lg:row-span-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
           <PlayerValue value={player.marketValue} delta={marketDelta} />
 
           <div className="border border-hairline bg-surface p-5">
@@ -278,14 +257,9 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
               />
               <SidebarFact
                 label="Indemnité"
-                value={
-                  activeContract?.transferFee ? formatCurrency(activeContract.transferFee) : 'N/A'
-                }
+                value={activeContract?.transferFee ? formatCurrency(activeContract.transferFee) : 'N/A'}
               />
-              <SidebarFact
-                label="Salaire"
-                value={formatCurrency(player.salary)}
-              />
+              <SidebarFact label="Salaire" value={formatCurrency(player.salary)} />
               <SidebarFact
                 label="Durée"
                 value={activeContract ? `${activeContract.durationBo3} BO3` : 'N/A'}
@@ -314,30 +288,29 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
           ) : null}
         </aside>
 
-      <section>
-        <p className="label-mono">§ 01 · Trajectoire de valeur</p>
-        <h2 className="mt-3 display-md text-foreground">Évolution de la cote.</h2>
-        <div className="mt-6 border-t border-hairline pt-6">
-          <MarketValueChart history={player.marketValueHistory} />
-        </div>
-      </section>
+        <section>
+          <p className="label-mono">§ 01 · Trajectoire de valeur</p>
+          <h2 className="mt-3 display-md text-foreground">Évolution de la cote.</h2>
+          <div className="mt-6 border-t border-hairline pt-6">
+            <MarketValueChart history={player.marketValueHistory} />
+          </div>
+        </section>
 
-      <section>
-        <p className="label-mono">§ 02 · Pool de champions</p>
-        <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:items-baseline lg:justify-between">
-          <h2 className="display-md text-foreground">Pool de champions.</h2>
-          <p className="label-mono text-foreground-muted">
-            {championPoolCount.toString().padStart(2, '0')} champion
-            {championPoolCount > 1 ? 's' : ''} joué{championPoolCount > 1 ? 's' : ''} ·{' '}
-            {playerStats.summary.games} game{playerStats.summary.games > 1 ? 's' : ''} stockée
-            {playerStats.summary.games > 1 ? 's' : ''}
-          </p>
-        </div>
-        <div className="mt-6">
-          <ChampionPoolGrid champions={championPool} />
-        </div>
-      </section>
-
+        <section>
+          <p className="label-mono">§ 02 · Pool de champions</p>
+          <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:items-baseline lg:justify-between">
+            <h2 className="display-md text-foreground">Pool de champions.</h2>
+            <p className="label-mono text-foreground-muted">
+              {championPoolCount.toString().padStart(2, '0')} champion
+              {championPoolCount > 1 ? 's' : ''} joué{championPoolCount > 1 ? 's' : ''} ·{' '}
+              {playerStats.summary.games} game{playerStats.summary.games > 1 ? 's' : ''} stockée
+              {playerStats.summary.games > 1 ? 's' : ''}
+            </p>
+          </div>
+          <div className="mt-6">
+            <ChampionPoolGrid champions={championPool} />
+          </div>
+        </section>
       </div>
 
       {player.playerTrophies.length > 0 ? (
@@ -421,9 +394,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                         {getContractStatusLabel(contract.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="tabular-nums">
-                      {formatCurrency(contract.salary)}
-                    </TableCell>
+                    <TableCell className="tabular-nums">{formatCurrency(contract.salary)}</TableCell>
                     <TableCell className="tabular-nums">{contract.durationBo3} BO3</TableCell>
                     <TableCell className="tabular-nums">
                       {formatCurrency(contract.releaseClause)}
@@ -497,9 +468,7 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
                     <TableCell className="tabular-nums">
                       {stat.kills} / {stat.deaths} / {stat.assists}
                     </TableCell>
-                    <TableCell className="tabular-nums">
-                      {stat.cs.toLocaleString('fr-FR')}
-                    </TableCell>
+                    <TableCell className="tabular-nums">{stat.cs.toLocaleString('fr-FR')}</TableCell>
                     <TableCell className="tabular-nums">
                       {stat.gold.toLocaleString('fr-FR')}
                     </TableCell>
@@ -544,18 +513,14 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
 
                   return (
                     <TableRow key={entry.id}>
-                      <TableCell className="tabular-nums">
-                        {formatDateTime(entry.changedAt)}
-                      </TableCell>
+                      <TableCell className="tabular-nums">{formatDateTime(entry.changedAt)}</TableCell>
                       <TableCell className="font-display tabular-nums text-foreground">
                         {formatCurrency(entry.newValue)}
                       </TableCell>
                       <TableCell
                         className={cn(
                           'tabular-nums',
-                          positive
-                            ? 'text-[color:var(--win)]'
-                            : 'text-[color:var(--loss)]',
+                          positive ? 'text-[color:var(--win)]' : 'text-[color:var(--loss)]',
                         )}
                       >
                         {positive ? '+' : ''}

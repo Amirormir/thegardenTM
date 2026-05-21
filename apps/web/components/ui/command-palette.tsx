@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Search } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
 
@@ -36,18 +36,28 @@ export function CommandPalette() {
   const [hasOpened, setHasOpened] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const deferredQuery = useDeferredValue(query.trim());
 
-  const playersQuery = api.player.getAll.useQuery(
-    {},
+  const playersQuery = api.player.searchLite.useQuery(
+    {
+      ...(deferredQuery ? { q: deferredQuery } : {}),
+      limit: 8,
+    },
     {
       enabled: hasOpened,
       staleTime: 60_000,
     },
   );
-  const teamsQuery = api.team.getAll.useQuery(undefined, {
-    enabled: hasOpened,
-    staleTime: 60_000,
-  });
+  const teamsQuery = api.team.searchLite.useQuery(
+    {
+      ...(deferredQuery ? { q: deferredQuery } : {}),
+      limit: 6,
+    },
+    {
+      enabled: hasOpened,
+      staleTime: 60_000,
+    },
+  );
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -191,7 +201,7 @@ export function CommandPalette() {
 
   const playerItems = useMemo<PaletteItem[]>(
     () =>
-      (playersQuery.data ?? []).slice(0, 24).map((player) => ({
+      (playersQuery.data ?? []).map((player) => ({
         id: `player-${player.id}`,
         label: player.displayName,
         description: `${player.role} · ${player.teamName}`,
@@ -204,7 +214,7 @@ export function CommandPalette() {
 
   const teamItems = useMemo<PaletteItem[]>(
     () =>
-      (teamsQuery.data ?? []).slice(0, 12).map((team) => ({
+      (teamsQuery.data ?? []).map((team) => ({
         id: `team-${team.id}`,
         label: team.name,
         description: `${team.shortCode} · ${team._count.players} joueurs`,

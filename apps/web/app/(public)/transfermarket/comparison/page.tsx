@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table';
 import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCurrency } from '@/lib/utils/format';
-import { getServerCaller } from '@/server/caller';
+import { getPublicCaller } from '@/server/public/caller';
 
 interface PlayerComparisonPageProps {
   searchParams: Promise<{
@@ -41,7 +41,7 @@ export default async function PlayerComparisonPage({
   searchParams,
 }: PlayerComparisonPageProps) {
   const params = await searchParams;
-  const caller = await getServerCaller();
+  const caller = await getPublicCaller();
   const allPlayers = await caller.player.getAll({ sort: 'marketValue-desc' });
 
   if (allPlayers.length === 0) {
