@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { ContractStatus } from '@nexus/db';
 import {
   matchByTeamSchema,
   matchCreateSchema,
@@ -298,6 +299,7 @@ export const matchRouter = createTRPCRouter({
         homeScore: true,
         awayScore: true,
         winnerTeamId: true,
+        isCompleted: true,
       },
     });
 
@@ -452,6 +454,76 @@ export const matchRouter = createTRPCRouter({
         },
       });
 
+      // Decrement bosRemaining for both teams' active contracts only on the
+      // transition from not-completed -> completed. Re-recording an already
+      // completed match must NOT double-decrement.
+      const teamIdsToTick = !existing.isCompleted
+        ? [existing.homeTeamId, existing.awayTeamId]
+        : [];
+
+      const expiredContractIds: string[] = [];
+
+      if (teamIdsToTick.length > 0) {
+        const activeContracts = await tx.contract.findMany({
+          where: {
+            teamId: { in: teamIdsToTick },
+            status: { in: [ContractStatus.ACTIVE, ContractStatus.LOAN] },
+            bosRemaining: { not: null },
+          },
+          select: {
+            id: true,
+            playerId: true,
+            teamId: true,
+            bosRemaining: true,
+            player: {
+              select: { firstName: true, lastName: true, gameName: true },
+            },
+            team: {
+              select: { name: true, captains: { select: { id: true } } },
+            },
+          },
+        });
+
+        for (const contract of activeContracts) {
+          const next = Math.max(0, (contract.bosRemaining ?? 0) - 1);
+
+          if (next === 0) {
+            await tx.contract.update({
+              where: { id: contract.id },
+              data: {
+                status: ContractStatus.EXPIRED,
+                bosRemaining: 0,
+                terminatedAt: new Date(),
+              },
+            });
+            await tx.player.update({
+              where: { id: contract.playerId },
+              data: { teamId: null, salary: 0 },
+            });
+            expiredContractIds.push(contract.id);
+
+            const displayName = resolveStoredPlayerDisplayName(contract.player);
+            for (const cap of contract.team.captains) {
+              await tx.notification.create({
+                data: {
+                  userId: cap.id,
+                  type: 'CONTRACT_EXPIRED',
+                  title: 'Contrat arrive a echeance',
+                  message: `Le contrat de ${displayName} a atteint son terme (BO restants epuises). Le joueur est desormais free agent.`,
+                  link: '/team/contracts',
+                  metadata: { contractId: contract.id, playerId: contract.playerId },
+                },
+              });
+            }
+          } else {
+            await tx.contract.update({
+              where: { id: contract.id },
+              data: { bosRemaining: next },
+            });
+          }
+        }
+      }
+
       await tx.auditLog.create({
         data: buildAuditLogInput({
           userId: ctx.session.user.id,
@@ -466,15 +538,20 @@ export const matchRouter = createTRPCRouter({
               (total, game) => total + game.playerStats.length,
               0,
             ),
+            contractsTicked: teamIdsToTick.length > 0,
+            expiredContractIds,
           },
         }),
       });
 
-      return match;
+      return { match, expiredContractIds, ticked: teamIdsToTick };
     });
 
-    await invalidateStatsCache(buildStatsCacheKey('league', 'standings'));
+    await invalidateStatsCache(
+      buildStatsCacheKey('league', 'standings'),
+      ...result.ticked.map((teamId) => buildStatsCacheKey('team', 'payroll', teamId)),
+    );
 
-    return result;
+    return result.match;
   }),
 });

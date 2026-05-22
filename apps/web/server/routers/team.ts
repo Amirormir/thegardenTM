@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { ConversionDirection, UserRole } from '@nexus/db';
+import { ContractStatus, ConversionDirection, UserRole } from '@nexus/db';
 import type { PlayerRole } from '@nexus/db';
 import type { TeamMarketValueEntry } from '@nexus/types';
 import { z } from 'zod';
@@ -16,6 +16,7 @@ import {
   teamUpdateSchema,
   teamUpdatePlayerRoleSchema,
 } from '@/lib/validators/team';
+import { payrollProjectionSchema } from '@/lib/validators/contract';
 import { buildAuditLogInput } from '@/server/utils/audit';
 import { buildStandings } from '@/server/utils/standings';
 import { ensureTeamAccess } from '@/server/utils/authz';
@@ -666,6 +667,149 @@ export const teamRouter = createTRPCRouter({
         recentMatches,
         championPool,
         playerStats,
+      };
+    }),
+
+  getPayrollProjection: captainProcedure
+    .input(payrollProjectionSchema)
+    .query(async ({ ctx, input }) => {
+      ensureTeamAccess(ctx.session.user, input.teamId);
+
+      const [team, contracts] = await Promise.all([
+        ctx.prisma.team.findUnique({
+          where: { id: input.teamId },
+          select: { id: true, name: true, salaryBudgetCap: true },
+        }),
+        ctx.prisma.contract.findMany({
+          where: {
+            teamId: input.teamId,
+            status: {
+              in: [
+                ContractStatus.ACTIVE,
+                ContractStatus.LOAN,
+                ContractStatus.PENDING_APPROVAL,
+              ],
+            },
+          },
+          select: {
+            id: true,
+            status: true,
+            salary: true,
+            durationBo3: true,
+            bosRemaining: true,
+            player: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                gameName: true,
+                role: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+      if (!team) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Équipe introuvable.' });
+      }
+
+      // For active/loan contracts use bosRemaining (falling back to durationBo3
+      // when null — legacy contracts created before the projection feature).
+      // For pending contracts use the planned durationBo3 to show the
+      // commitment that would land if admin approves.
+      const enriched = contracts.map((contract) => {
+        const isPending = contract.status === ContractStatus.PENDING_APPROVAL;
+        const remaining = isPending
+          ? contract.durationBo3
+          : contract.bosRemaining ?? contract.durationBo3;
+        const displayName = resolveStoredPlayerDisplayName(contract.player);
+
+        return {
+          id: contract.id,
+          status: contract.status,
+          salary: contract.salary,
+          remaining,
+          isPending,
+          player: {
+            id: contract.player.id,
+            displayName,
+            role: contract.player.role,
+          },
+          totalCommitment: contract.salary * remaining,
+        };
+      });
+
+      const activeEnriched = enriched.filter((c) => !c.isPending);
+      const pendingEnriched = enriched.filter((c) => c.isPending);
+
+      const currentPayroll = activeEnriched.reduce((sum, c) => sum + c.salary, 0);
+      const pendingPayroll = pendingEnriched.reduce((sum, c) => sum + c.salary, 0);
+      const totalWageCommitment = activeEnriched.reduce(
+        (sum, c) => sum + c.totalCommitment,
+        0,
+      );
+      const pendingCommitment = pendingEnriched.reduce(
+        (sum, c) => sum + c.totalCommitment,
+        0,
+      );
+
+      const projection = Array.from({ length: input.horizon }, (_, index) => {
+        const boOffset = index + 1;
+        const activeAtStep = activeEnriched.filter((c) => c.remaining >= boOffset);
+        const pendingAtStep = pendingEnriched.filter((c) => c.remaining >= boOffset);
+        const expiringAtStep = activeEnriched.filter((c) => c.remaining === boOffset);
+
+        return {
+          boOffset,
+          payroll: activeAtStep.reduce((sum, c) => sum + c.salary, 0),
+          payrollWithPending:
+            activeAtStep.reduce((sum, c) => sum + c.salary, 0) +
+            pendingAtStep.reduce((sum, c) => sum + c.salary, 0),
+          contractsActive: activeAtStep.length,
+          expiringAtStep: expiringAtStep.map((c) => ({
+            contractId: c.id,
+            playerId: c.player.id,
+            playerName: c.player.displayName,
+            playerRole: c.player.role,
+            salary: c.salary,
+          })),
+        };
+      });
+
+      const topCommitments = [...activeEnriched]
+        .sort((a, b) => b.totalCommitment - a.totalCommitment)
+        .slice(0, 5)
+        .map((c) => ({
+          contractId: c.id,
+          playerId: c.player.id,
+          playerName: c.player.displayName,
+          playerRole: c.player.role,
+          salary: c.salary,
+          bosRemaining: c.remaining,
+          totalCommitment: c.totalCommitment,
+        }));
+
+      return {
+        teamId: team.id,
+        salaryBudgetCap: team.salaryBudgetCap,
+        currentPayroll,
+        pendingPayroll,
+        salaryRemaining: team.salaryBudgetCap - currentPayroll,
+        totalWageCommitment,
+        pendingCommitment,
+        horizon: input.horizon,
+        projection,
+        topCommitments,
+        pending: pendingEnriched.map((c) => ({
+          contractId: c.id,
+          playerId: c.player.id,
+          playerName: c.player.displayName,
+          playerRole: c.player.role,
+          salary: c.salary,
+          plannedBos: c.remaining,
+          totalCommitment: c.totalCommitment,
+        })),
       };
     }),
 

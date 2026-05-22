@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { BudgetCalculator } from '@/components/features/team/budget-calculator';
 import { BudgetSlider } from '@/components/features/team/budget-slider';
+import { PayrollProjection } from '@/components/features/team/payroll-projection';
 import { TeamTabs } from '@/components/features/team/team-tabs';
 import { TeamAvatar } from '@/components/ui/team-avatar';
 import { auth } from '@/lib/auth';
@@ -48,7 +49,19 @@ export default async function TeamBudgetPage() {
       </section>
 
       <section>
-        <p className="label-mono">§ 02 Simulation</p>
+        <p className="label-mono">§ 02 Projection</p>
+        <h2 className="mt-3 display-md text-foreground">Engagement salarial.</h2>
+        <p className="mt-3 max-w-2xl text-base leading-7 text-foreground-dim">
+          Anticipe l&apos;évolution de ta masse salariale BO par BO, repère les falaises et les
+          contrats les plus coûteux.
+        </p>
+        <div className="mt-8">
+          <PayrollProjection teamId={teamId} />
+        </div>
+      </section>
+
+      <section>
+        <p className="label-mono">§ 03 Simulation</p>
         <h2 className="mt-3 display-md text-foreground">Répartition salariale.</h2>
         <div className="mt-8">
           <BudgetCalculator

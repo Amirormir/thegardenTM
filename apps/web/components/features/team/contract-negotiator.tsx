@@ -68,6 +68,7 @@ export function ContractNegotiator({ teamId, team, player }: ContractNegotiatorP
   const salaryRemainingAfter = team.salaryBudgetCap - projectedPayroll;
   const usagePct = team.salaryBudgetCap > 0 ? (projectedPayroll / team.salaryBudgetCap) * 100 : 0;
   const overCap = salaryRemainingAfter < 0;
+  const totalCommitment = salary * durationBo3;
 
   const tierColor =
     usagePct >= 100 ? 'var(--loss)'
@@ -237,6 +238,14 @@ export function ContractNegotiator({ teamId, team, player }: ContractNegotiatorP
                 className="h-full transition-all duration-300"
                 style={{ width: `${Math.min(100, usagePct)}%`, backgroundColor: tierColor }}
               />
+            </div>
+            <div className="mt-2 flex items-center justify-between border-t border-hairline pt-3">
+              <span className="label-mono text-foreground-muted">
+                Engagement total · {formatCurrency(salary)} × {durationBo3} BO
+              </span>
+              <span className="font-display tabular-nums text-foreground">
+                {formatCurrency(totalCommitment)}
+              </span>
             </div>
           </div>
 

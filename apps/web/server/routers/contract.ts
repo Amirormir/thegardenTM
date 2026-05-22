@@ -41,6 +41,7 @@ export const contractRouter = createTRPCRouter({
         status: true,
         salary: true,
         durationBo3: true,
+        bosRemaining: true,
         releaseClause: true,
         transferFee: true,
         approvedAt: true,
@@ -69,6 +70,7 @@ export const contractRouter = createTRPCRouter({
         status: true,
         salary: true,
         durationBo3: true,
+        bosRemaining: true,
         releaseClause: true,
         transferFee: true,
         approvedAt: true,
@@ -273,6 +275,7 @@ export const contractRouter = createTRPCRouter({
         teamId: true,
         status: true,
         salary: true,
+        durationBo3: true,
       },
     });
 
@@ -320,6 +323,7 @@ export const contractRouter = createTRPCRouter({
         data: {
           status: ContractStatus.ACTIVE,
           approvedAt: new Date(),
+          bosRemaining: existing.durationBo3,
         },
         select: {
           id: true,

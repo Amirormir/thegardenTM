@@ -8,12 +8,24 @@ export const contractStatusSchema = z.enum([
   'LOAN',
 ]);
 
+export const PAYROLL_PROJECTION_MAX_HORIZON = 30;
+
 export const contractPlayerSchema = z.object({
   playerId: z.string().min(1),
 });
 
 export const contractTeamSchema = z.object({
   teamId: z.string().min(1),
+});
+
+export const payrollProjectionSchema = z.object({
+  teamId: z.string().min(1),
+  horizon: z
+    .number()
+    .int()
+    .min(1)
+    .max(PAYROLL_PROJECTION_MAX_HORIZON)
+    .default(20),
 });
 
 export const contractCreateSchema = z.object({

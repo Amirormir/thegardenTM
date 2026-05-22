@@ -284,6 +284,7 @@ export function ContractManager({ teamId }: ContractManagerProps) {
                 <TableHead>Statut</TableHead>
                 <TableHead>Salaire</TableHead>
                 <TableHead>Durée</TableHead>
+                <TableHead>BO restants</TableHead>
                 <TableHead>Clause</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -312,7 +313,24 @@ export function ContractManager({ teamId }: ContractManagerProps) {
                     )}
                   </TableCell>
                   <TableCell className="font-display tabular-nums">{formatCurrency(contract.salary)}</TableCell>
-                  <TableCell className="label-mono tabular-nums">{contract.durationBo3} BO3</TableCell>
+                  <TableCell className="label-mono tabular-nums">{contract.durationBo3} BO</TableCell>
+                  <TableCell className="label-mono tabular-nums">
+                    {contract.status === 'ACTIVE' || contract.status === 'LOAN' ? (
+                      contract.bosRemaining != null ? (
+                        <span
+                          className={cn(
+                            contract.bosRemaining <= 2 ? 'text-[color:var(--loss)]' : 'text-foreground',
+                          )}
+                        >
+                          {contract.bosRemaining} / {contract.durationBo3}
+                        </span>
+                      ) : (
+                        <span className="text-foreground-muted">—</span>
+                      )
+                    ) : (
+                      <span className="text-foreground-muted">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="font-display tabular-nums">{formatCurrency(contract.releaseClause)}</TableCell>
                   <TableCell>
                     {contract.status === 'ACTIVE' || contract.status === 'LOAN' ? (

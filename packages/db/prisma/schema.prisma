@@ -208,6 +208,7 @@ model Contract {
   status           ContractStatus  @default(PENDING_APPROVAL)
   salary           Int
   durationBo3      Int             @default(10)
+  bosRemaining     Int?
   releaseClause    Int
   transferFee      Int?
   approvedAt       DateTime?
@@ -225,6 +226,7 @@ model Contract {
   @@index([playerId, status])
   @@index([teamId, status])
   @@index([status, expiresAt])
+  @@index([teamId, status, bosRemaining])
 }
 
 model Season {
