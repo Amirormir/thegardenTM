@@ -62,6 +62,12 @@ export const contractTerminateSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 
+export const contractAdminTerminateSchema = z.object({
+  id: z.string().min(1),
+  refundAmount: z.number().int().nonnegative().optional(),
+  reason: z.string().max(500).optional(),
+});
+
 // Renewal = expire the current active contract + submit new terms for admin approval
 export const contractRenewSchema = z.object({
   id: z.string().min(1),

@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { ContractStatus, TransferOfferStatus } from '@nexus/db';
 import {
+  contractAdminTerminateSchema,
   contractApproveSchema,
   contractCreateSchema,
   contractPlayerSchema,
@@ -787,6 +788,141 @@ export const contractRouter = createTRPCRouter({
       };
     });
   }),
+
+  adminListActive: adminProcedure.query(async ({ ctx }) => {
+    const contracts = await ctx.prisma.contract.findMany({
+      where: { status: { in: ACTIVE_CONTRACT_STATUSES } },
+      orderBy: [{ approvedAt: 'desc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+        status: true,
+        salary: true,
+        durationBo3: true,
+        bosRemaining: true,
+        releaseClause: true,
+        transferFee: true,
+        approvedAt: true,
+        createdAt: true,
+        player: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            gameName: true,
+            role: true,
+          },
+        },
+        team: {
+          select: {
+            id: true,
+            name: true,
+            shortCode: true,
+            logoUrl: true,
+            transferBudget: true,
+          },
+        },
+      },
+    });
+
+    return contracts.map((contract) => ({
+      ...contract,
+      player: {
+        ...contract.player,
+        displayName: resolveStoredPlayerDisplayName(contract.player),
+      },
+    }));
+  }),
+
+  adminTerminate: adminProcedure
+    .input(contractAdminTerminateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.prisma.contract.findUnique({
+        where: { id: input.id },
+        select: {
+          id: true,
+          playerId: true,
+          teamId: true,
+          status: true,
+          salary: true,
+          transferFee: true,
+        },
+      });
+
+      if (!existing) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Contract not found.' });
+      }
+
+      if (
+        existing.status !== ContractStatus.ACTIVE &&
+        existing.status !== ContractStatus.LOAN
+      ) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Only active or loan contracts can be terminated by admin.',
+        });
+      }
+
+      const refundAmount =
+        input.refundAmount ?? existing.transferFee ?? 0;
+
+      return ctx.prisma.$transaction(async (tx) => {
+        const terminated = await tx.contract.update({
+          where: { id: input.id },
+          data: {
+            status: ContractStatus.TERMINATED,
+            terminatedAt: new Date(),
+            ...(input.reason ? { notes: input.reason } : {}),
+          },
+          select: {
+            id: true,
+            teamId: true,
+            status: true,
+            terminatedAt: true,
+          },
+        });
+
+        const fallbackContract = await tx.contract.findFirst({
+          where: {
+            playerId: existing.playerId,
+            status: { in: ACTIVE_CONTRACT_STATUSES },
+          },
+          orderBy: { updatedAt: 'desc' },
+          select: { teamId: true, salary: true },
+        });
+
+        await tx.player.update({
+          where: { id: existing.playerId },
+          data: {
+            teamId: fallbackContract?.teamId ?? null,
+            salary: fallbackContract?.salary ?? 0,
+          },
+        });
+
+        if (refundAmount > 0) {
+          await tx.team.update({
+            where: { id: existing.teamId },
+            data: { transferBudget: { increment: refundAmount } },
+          });
+        }
+
+        await tx.auditLog.create({
+          data: buildAuditLogInput({
+            userId: ctx.session.user.id,
+            action: 'ADMIN_TERMINATE',
+            entity: 'Contract',
+            entityId: input.id,
+            details: {
+              previousStatus: existing.status,
+              newStatus: terminated.status,
+              refundAmount,
+              reason: input.reason ?? null,
+            },
+          }),
+        });
+
+        return { ...terminated, refundAmount };
+      });
+    }),
 
   terminate: captainProcedure
     .input(contractTerminateSchema)
