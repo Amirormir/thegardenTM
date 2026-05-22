@@ -19,6 +19,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ImageInput } from '@/components/ui/image-input';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/trpc/react';
 import { renderArticleBody } from '@/lib/utils/article-format';
@@ -439,28 +440,12 @@ export function AdminNewsManager() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <label className="label-mono">Image de couverture (URL)</label>
-            <Input
-              type="url"
-              value={draft.coverImageUrl}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, coverImageUrl: event.target.value }))
-              }
-              placeholder="https://res.cloudinary.com/.../cover.jpg"
-            />
-            {draft.coverImageUrl ? (
-              <div className="relative h-48 w-full overflow-hidden border border-hairline bg-surface">
-                <img
-                  src={draft.coverImageUrl}
-                  alt="Aperçu"
-                  loading="lazy"
-                  decoding="async"
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            ) : null}
-          </div>
+          <ImageInput
+            label="Image de couverture"
+            folder="articles"
+            value={draft.coverImageUrl}
+            onChange={(url) => setDraft((current) => ({ ...current, coverImageUrl: url }))}
+          />
 
           <div className="flex flex-col gap-3">
             <label className="label-mono">Chapeau / Extrait</label>

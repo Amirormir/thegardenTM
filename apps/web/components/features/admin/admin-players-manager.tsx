@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ImageInput } from '@/components/ui/image-input';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { api } from '@/lib/trpc/react';
@@ -642,18 +643,13 @@ export function AdminPlayersManager() {
                       </div>
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-[0.06em] text-foreground-dim">
-                      Photo URL
-                    </label>
-                    <Input
-                      placeholder="https://..."
-                      value={draft.imageUrl}
-                      onChange={(event) =>
-                        setDraft((current) => ({ ...current, imageUrl: event.target.value }))
-                      }
-                    />
-                  </div>
+                  <ImageInput
+                    label="Photo"
+                    folder="players"
+                    value={draft.imageUrl}
+                    onChange={(url) => setDraft((current) => ({ ...current, imageUrl: url }))}
+                    hidePreview
+                  />
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
