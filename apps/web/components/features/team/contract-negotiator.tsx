@@ -68,6 +68,8 @@ export function ContractNegotiator({ teamId, team, player }: ContractNegotiatorP
   const salaryRemainingAfter = team.salaryBudgetCap - projectedPayroll;
   const usagePct = team.salaryBudgetCap > 0 ? (projectedPayroll / team.salaryBudgetCap) * 100 : 0;
   const overCap = salaryRemainingAfter < 0;
+  const minSalary = Math.ceil(team.salaryBudgetCap * 0.05);
+  const underMin = salary < minSalary;
   const totalCommitment = salary * durationBo3;
 
   const tierColor =
@@ -189,6 +191,17 @@ export function ContractNegotiator({ teamId, team, player }: ContractNegotiatorP
                 Masse {usagePct.toFixed(0)}%
               </span>
             </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="label-mono text-foreground-muted">
+                Salaire minimum · 5% du plafond
+              </span>
+              <span
+                className="font-display tabular-nums"
+                style={{ color: underMin ? 'var(--loss)' : 'var(--foreground-muted)' }}
+              >
+                {formatCurrency(minSalary)}
+              </span>
+            </div>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
@@ -265,7 +278,7 @@ export function ContractNegotiator({ teamId, team, player }: ContractNegotiatorP
           <div className="flex flex-wrap gap-3">
             <Button
               type="submit"
-              disabled={createContract.isPending || !canSign || overCap}
+              disabled={createContract.isPending || !canSign || overCap || underMin}
               icon={createContract.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
             >
               Soumettre l&apos;offre

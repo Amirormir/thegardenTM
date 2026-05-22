@@ -32,6 +32,12 @@ const BUDGET_RELEVANT_STATUSES: ContractStatus[] = [
   ContractStatus.PENDING_APPROVAL,
 ];
 
+export const MIN_SALARY_RATIO = 0.05;
+
+export function computeMinSalary(salaryBudgetCap: number): number {
+  return Math.ceil(salaryBudgetCap * MIN_SALARY_RATIO);
+}
+
 export const contractRouter = createTRPCRouter({
   getByPlayer: publicProcedure.input(contractPlayerSchema).query(({ ctx, input }) =>
     ctx.prisma.contract.findMany({
@@ -219,6 +225,14 @@ export const contractRouter = createTRPCRouter({
         0,
       );
 
+      const minSalary = computeMinSalary(team.salaryBudgetCap);
+      if (input.salary < minSalary) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Salaire minimum requis: ${minSalary} (5% du plafond salarial de ${team.name}).`,
+        });
+      }
+
       if (currentPayroll + input.salary > team.salaryBudgetCap) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
@@ -311,6 +325,14 @@ export const contractRouter = createTRPCRouter({
       }
 
       const currentPayroll = activeTeamContracts.reduce((sum, c) => sum + c.salary, 0);
+
+      const minSalary = computeMinSalary(team.salaryBudgetCap);
+      if (existing.salary < minSalary) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Salaire sous le minimum requis (${minSalary}, 5% du plafond de ${team.name}). Demande au capitaine de soumettre un nouveau contrat.`,
+        });
+      }
 
       if (currentPayroll + existing.salary > team.salaryBudgetCap) {
         throw new TRPCError({
@@ -636,6 +658,14 @@ export const contractRouter = createTRPCRouter({
       }
 
       const payrollWithoutCurrent = otherContracts.reduce((sum, c) => sum + c.salary, 0);
+
+      const minSalary = computeMinSalary(team.salaryBudgetCap);
+      if (newTerms.salary < minSalary) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Salaire minimum requis: ${minSalary} (5% du plafond salarial de ${team.name}).`,
+        });
+      }
 
       if (payrollWithoutCurrent + newTerms.salary > team.salaryBudgetCap) {
         throw new TRPCError({
