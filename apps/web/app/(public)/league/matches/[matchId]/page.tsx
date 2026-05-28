@@ -66,7 +66,12 @@ export default async function MatchDetailPage({
     <div className="flex flex-col gap-20 md:gap-24">
       <header className="border-b border-hairline pb-10">
         <p className="breadcrumb-mono">
-          § · Matchs · {match.homeTeam.shortCode}–{match.awayTeam.shortCode}
+          §{' · '}
+          <Link href="/league/matches" className="transition-colors hover:text-foreground">
+            Matchs
+          </Link>
+          {' · '}
+          {match.homeTeam.shortCode}–{match.awayTeam.shortCode}
         </p>
 
         <p className="mt-6 label-mono tabular-nums">

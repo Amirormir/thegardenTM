@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  ArrowLeft,
   CalendarRange,
   FileText,
   LayoutDashboard,
@@ -91,6 +92,21 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="mt-8 border-t border-hairline pt-4">
+        <Link
+          href="/"
+          className={cn(
+            'group flex items-center gap-3 border-l-2 border-transparent px-3 py-2.5 text-foreground-dim transition-colors duration-150 hover:bg-surface-hover hover:text-foreground',
+            collapsed && 'justify-center',
+          )}
+        >
+          <ArrowLeft className="h-4 w-4 shrink-0 text-foreground-muted group-hover:text-foreground-dim" />
+          {!collapsed ? (
+            <span className="text-sm tracking-tight">Retour au site</span>
+          ) : null}
+        </Link>
+      </div>
     </aside>
   );
 }

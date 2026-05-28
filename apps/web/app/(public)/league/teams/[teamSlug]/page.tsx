@@ -84,7 +84,14 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
   return (
     <div className="flex flex-col gap-20 md:gap-24">
       <header className="border-b border-hairline pb-10">
-        <p className="breadcrumb-mono">§ · Équipes · {team.shortCode}</p>
+        <p className="breadcrumb-mono">
+          §{' · '}
+          <Link href="/league" className="transition-colors hover:text-foreground">
+            Équipes
+          </Link>
+          {' · '}
+          {team.shortCode}
+        </p>
 
         <div className="mt-8 grid gap-10 lg:grid-cols-[auto_1fr] lg:items-end lg:gap-12">
           <div className="placeholder-diag h-40 w-40 shrink-0 overflow-hidden lg:h-48 lg:w-48">

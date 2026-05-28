@@ -144,7 +144,14 @@ export default async function PlayerDetailPage({ params }: PlayerDetailPageProps
   return (
     <div className="flex flex-col gap-16 md:gap-20">
       <header className="border-b border-hairline pb-10">
-        <p className="breadcrumb-mono">§ · Joueurs · {teamShortCode}</p>
+        <p className="breadcrumb-mono">
+          §{' · '}
+          <Link href="/transfermarket" className="transition-colors hover:text-foreground">
+            Joueurs
+          </Link>
+          {' · '}
+          {teamShortCode}
+        </p>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-10">
           <div className="placeholder-diag relative aspect-[4/5] w-full max-w-[15rem] shrink-0 overflow-hidden border border-hairline bg-surface lg:max-w-[17rem]">

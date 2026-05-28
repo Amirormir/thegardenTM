@@ -13,7 +13,7 @@ export function TeamTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-2 border-b border-hairline">
+    <nav className="flex items-center gap-1 border-b border-hairline">
       {tabs.map((tab) => {
         const active = pathname === tab.href;
         return (
@@ -21,10 +21,10 @@ export function TeamTabs() {
             key={tab.href}
             href={tab.href}
             className={cn(
-              'relative -mb-px inline-flex items-center px-4 py-3 label-mono transition-colors',
+              'relative -mb-px inline-flex items-center px-4 py-3 label-mono transition-colors duration-150',
               active
-                ? 'border-b-2 border-accent text-foreground'
-                : 'border-b-2 border-transparent text-foreground-dim hover:text-foreground',
+                ? 'border-b-2 border-accent bg-surface text-foreground'
+                : 'border-b-2 border-transparent text-foreground-dim hover:bg-surface-hover hover:text-foreground',
             )}
             aria-current={active ? 'page' : undefined}
           >
