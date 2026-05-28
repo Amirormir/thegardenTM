@@ -127,11 +127,29 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
               Vue publique de l&apos;équipe avec roster complet, valorisation, budget et
               accès direct vers chaque fiche transfermarket.
             </p>
+
+            {team.captains.length > 0 ? (
+              <div className="mt-6 flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-hairline pt-5">
+                <span className="label-mono">
+                  {team.captains.length > 1 ? 'Capitaines' : 'Capitaine'}
+                </span>
+                <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+                  {team.captains.map((captain) => (
+                    <span
+                      key={captain.email}
+                      className="font-display text-lg tracking-tight text-foreground"
+                    >
+                      {captain.name ?? 'Sans nom'}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </header>
 
-      <section className="grid gap-10 lg:grid-cols-[1fr_320px] lg:gap-16">
+      <section className="grid gap-10 lg:grid-cols-[1fr_320px] lg:items-start lg:gap-16">
         <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4 md:gap-12">
           <KpiBlock
             label="Record"
@@ -174,24 +192,6 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
               <SidebarFact label="Marge libre" value={formatCurrency(salaryRemaining)} />
               <SidebarFact label="Engagé" value={`${salaryUsedPercent}%`} />
               <SidebarFact label="Budget transfert" value={formatCurrency(team.transferBudget)} />
-            </div>
-          </div>
-
-          <div className="border border-hairline bg-surface p-5">
-            <p className="label-mono">{team.captains.length > 1 ? 'Capitaines' : 'Capitaine'}</p>
-            <div className="mt-4 space-y-3">
-              {team.captains.length > 0 ? (
-                team.captains.map((captain) => (
-                  <div key={captain.email}>
-                    <p className="font-display text-lg tracking-tight text-foreground">
-                      {captain.name ?? 'Sans nom'}
-                    </p>
-                    <p className="mt-1 label-mono lowercase tracking-normal">{captain.email}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-foreground-dim">Aucun capitaine assigné.</p>
-              )}
             </div>
           </div>
         </aside>
