@@ -4,9 +4,8 @@ import { notFound } from 'next/navigation';
 import type { CSSProperties } from 'react';
 import { TeamDraftPreferencesPanel } from '@/components/features/stats/team-draft-preferences-panel';
 import { Badge } from '@/components/ui/badge';
-import { PlayerLink } from '@/components/ui/player-link';
 import { getOptimizedRemoteImageUrl } from '@/lib/utils/optimized-image';
-import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
+import { getPlayerInitials } from '@/lib/utils/player-display';
 import { formatCompactDate, formatCurrency, formatDateTime } from '@/lib/utils/format';
 import { getTeamPageSnapshot } from '@/server/public/page-data';
 
@@ -203,80 +202,53 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
           {sortedPlayers.length.toString().padStart(2, '0')} joueur
           {sortedPlayers.length > 1 ? 's' : ''} sous contrat.
         </h2>
-        <div className="mt-8 grid gap-px border-t border-hairline bg-hairline md:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-8 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
           {sortedPlayers.map((player) => (
-            <article
+            <Link
               key={player.id}
-              className="flex h-full flex-col bg-background px-5 py-5 transition-colors duration-150 hover:bg-surface-hover md:px-6"
+              href={`/transfermarket/${player.id}`}
+              className="group flex flex-col gap-3 transition-opacity hover:opacity-90"
             >
-              <div className="flex items-center gap-2">
-                <Badge variant={player.role}>{player.role}</Badge>
-                {player.secondaryRoles.map((secondaryRole) => (
-                  <Badge key={secondaryRole} variant={secondaryRole}>
-                    {secondaryRole}
+              <div className="placeholder-diag relative aspect-[4/5] w-full overflow-hidden">
+                {player.imageUrl ? (
+                  <img
+                    src={player.imageUrl}
+                    alt={player.displayName}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center font-display text-4xl text-foreground-dim">
+                    {getPlayerInitials(player.displayName)}
+                  </div>
+                )}
+                <span className="absolute left-2 top-2 border border-hairline bg-background/85 px-2 py-0.5 label-mono backdrop-blur-sm">
+                  <Badge variant={player.role} className="!border-0 !p-0">
+                    {player.role}
                   </Badge>
-                ))}
+                </span>
               </div>
 
-              <div className="mt-5 flex items-start gap-4">
-                <div className="placeholder-diag h-16 w-16 shrink-0 overflow-hidden">
-                  {player.imageUrl ? (
-                    <img
-                      src={player.imageUrl}
-                      alt={player.displayName}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center font-display text-base text-foreground-dim">
-                      {getPlayerInitials(player.displayName)}
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <PlayerLink
-                    playerId={player.id}
-                    className="block truncate font-display text-2xl tracking-tight text-foreground"
-                  >
-                    {player.displayName}
-                  </PlayerLink>
-                  <p className="mt-1 truncate label-mono" title={buildPlayerRiotId(player)}>
-                    {buildPlayerRiotId(player)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-hairline pt-4">
-                <div>
-                  <p className="label-mono">Valeur marchande</p>
-                  <p className="mt-1 font-display text-2xl tabular-nums tracking-tight text-foreground">
-                    {formatCurrency(player.marketValue)}
-                  </p>
-                </div>
-                <div>
-                  <p className="label-mono">Salaire</p>
-                  <p className="mt-1 font-display text-2xl tabular-nums tracking-tight text-foreground">
-                    {formatCurrency(player.salary)}
-                  </p>
-                </div>
-              </div>
-
-              <p className="mt-5 text-sm leading-6 text-foreground-dim">
-                {[player.nationality, player.age ? `${player.age} ans` : null]
-                  .filter(Boolean)
-                  .join(' / ') || 'Profil public transfermarket'}
+              <p className="display-md truncate text-lg leading-tight text-foreground">
+                {player.displayName}
               </p>
 
-              <div className="mt-auto border-t border-hairline pt-5">
-                <Link
-                  href={`/transfermarket/${player.id}`}
-                  className="label-mono text-foreground-dim transition-colors duration-150 hover:text-accent"
-                >
-                  Voir la fiche transfermarket â†’
-                </Link>
-              </div>
-            </article>
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-hairline pt-2 text-xs">
+                <div>
+                  <dt className="label-mono text-foreground-muted">Valeur</dt>
+                  <dd className="mt-0.5 font-display tabular-nums text-foreground">
+                    {formatCurrency(player.marketValue)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="label-mono text-foreground-muted">Salaire</dt>
+                  <dd className="mt-0.5 font-display tabular-nums text-foreground">
+                    {formatCurrency(player.salary)}
+                  </dd>
+                </div>
+              </dl>
+            </Link>
           ))}
         </div>
       </section>
