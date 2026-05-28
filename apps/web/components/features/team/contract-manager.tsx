@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, FileText, Loader2, Plus, RefreshCw, XCircle } from 'lucide-react';
+import { Clock, FileText, Loader2, Plus, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -64,12 +64,10 @@ export function ContractManager({ teamId }: ContractManagerProps) {
   const playersQuery = api.player.getAll.useQuery({});
 
   const createContract = api.contract.create.useMutation();
-  const terminateContract = api.contract.terminate.useMutation();
   const renewContract = api.contract.renew.useMutation();
 
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [terminatingId, setTerminatingId] = useState<string | null>(null);
   const [renewingContract, setRenewingContract] = useState<{
     id: string;
     playerId: string;
@@ -125,32 +123,6 @@ export function ContractManager({ teamId }: ContractManagerProps) {
     }
   }
 
-  async function handleTerminate(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!terminatingId) return;
-    setFeedback(null);
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-
-    try {
-      await terminateContract.mutateAsync({
-        id: terminatingId,
-        reason: (formData.get('reason') as string)?.trim() || undefined,
-      });
-      form.reset();
-      setTerminatingId(null);
-      await Promise.all([
-        utils.contract.getByTeam.invalidate(),
-        utils.team.getById.invalidate(),
-        utils.player.getAll.invalidate(),
-      ]);
-      setFeedback({ type: 'success', message: 'Le contrat a été rompu.' });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'La rupture a échoué.';
-      setFeedback({ type: 'error', message });
-    }
-  }
-
   async function handleRenew(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!renewingContract) return;
@@ -190,7 +162,7 @@ export function ContractManager({ teamId }: ContractManagerProps) {
     }
   }
 
-  const mutationPending = createContract.isPending || terminateContract.isPending || renewContract.isPending;
+  const mutationPending = createContract.isPending || renewContract.isPending;
 
   return (
     <div className="flex flex-col gap-10">
@@ -207,7 +179,7 @@ export function ContractManager({ teamId }: ContractManagerProps) {
           variant="secondary"
           size="sm"
           icon={<Plus className="h-4 w-4" />}
-          onClick={() => { setShowCreateForm(true); setTerminatingId(null); }}
+          onClick={() => { setShowCreateForm(true); setRenewingContract(null); }}
         >
           Nouveau contrat
         </Button>
@@ -349,22 +321,11 @@ export function ContractManager({ teamId }: ContractManagerProps) {
                               releaseClause: contract.releaseClause,
                               playerName: contract.player.displayName,
                             });
-                            setTerminatingId(null);
                             setShowCreateForm(false);
                           }}
                           disabled={mutationPending}
                         >
                           Renouveler
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="danger"
-                          size="sm"
-                          icon={<XCircle className="h-3.5 w-3.5" />}
-                          onClick={() => { setTerminatingId(contract.id); setShowCreateForm(false); setRenewingContract(null); }}
-                          disabled={mutationPending}
-                        >
-                          Rompre
                         </Button>
                       </div>
                     ) : (
@@ -460,30 +421,6 @@ export function ContractManager({ teamId }: ContractManagerProps) {
         </div>
       ) : null}
 
-      {terminatingId ? (
-        <div className="border-l-2 border-l-[color:var(--loss)] border-y border-r border-hairline bg-surface p-6">
-          <p className="label-mono text-[color:var(--loss)]">Rompre le contrat</p>
-          <form className="mt-5 grid gap-5 md:grid-cols-[1fr_auto]" onSubmit={handleTerminate}>
-            <div className="flex flex-col gap-2">
-              <label className="label-mono">Motif (optionnel)</label>
-              <Input name="reason" placeholder="Ex: Fin de saison, transfert…" />
-            </div>
-            <div className="flex items-end gap-2">
-              <Button
-                type="submit"
-                variant="danger"
-                disabled={mutationPending}
-                icon={mutationPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-              >
-                Confirmer
-              </Button>
-              <Button type="button" variant="secondary" onClick={() => setTerminatingId(null)}>
-                Annuler
-              </Button>
-            </div>
-          </form>
-        </div>
-      ) : null}
     </div>
   );
 }

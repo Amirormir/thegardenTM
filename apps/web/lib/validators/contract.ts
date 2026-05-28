@@ -56,12 +56,6 @@ export const contractRejectSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 
-export const contractTerminateSchema = z.object({
-  id: z.string().min(1),
-  terminatedAt: z.coerce.date().optional(),
-  reason: z.string().max(500).optional(),
-});
-
 export const contractAdminTerminateSchema = z.object({
   id: z.string().min(1),
   refundAmount: z.number().int().nonnegative().optional(),

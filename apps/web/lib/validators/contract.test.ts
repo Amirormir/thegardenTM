@@ -4,7 +4,6 @@ import {
   contractCreateSchema,
   contractRejectSchema,
   contractStatusSchema,
-  contractTerminateSchema,
   contractUpdateSchema,
 } from './contract';
 
@@ -150,20 +149,3 @@ describe('contractRejectSchema', () => {
   });
 });
 
-describe('contractTerminateSchema', () => {
-  it('accepts id only', () => {
-    const result = contractTerminateSchema.parse({ id: 'c-1' });
-    expect(result.id).toBe('c-1');
-  });
-
-  it('accepts with terminatedAt date', () => {
-    const date = '2026-06-01T00:00:00.000Z';
-    const result = contractTerminateSchema.parse({ id: 'c-1', terminatedAt: date });
-    expect(result.terminatedAt).toBeInstanceOf(Date);
-  });
-
-  it('accepts with reason', () => {
-    const result = contractTerminateSchema.parse({ id: 'c-1', reason: 'End of season' });
-    expect(result.reason).toBe('End of season');
-  });
-});

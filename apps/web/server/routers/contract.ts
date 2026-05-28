@@ -8,7 +8,6 @@ import {
   contractRejectSchema,
   contractRenewSchema,
   contractTeamSchema,
-  contractTerminateSchema,
   contractUpdateSchema,
 } from '@/lib/validators/contract';
 import { buildAuditLogInput } from '@/server/utils/audit';
@@ -954,73 +953,4 @@ export const contractRouter = createTRPCRouter({
       });
     }),
 
-  terminate: captainProcedure
-    .input(contractTerminateSchema)
-    .mutation(async ({ ctx, input }) => {
-      const existing = await ctx.prisma.contract.findUnique({
-        where: { id: input.id },
-        select: {
-          id: true,
-          playerId: true,
-          teamId: true,
-          status: true,
-        },
-      });
-
-      if (!existing) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Contract not found.' });
-      }
-
-      ensureTeamAccess(ctx.session.user, existing.teamId);
-
-      return ctx.prisma.$transaction(async (tx) => {
-        const terminated = await tx.contract.update({
-          where: { id: input.id },
-          data: {
-            status: 'TERMINATED',
-            terminatedAt: input.terminatedAt ?? new Date(),
-            ...(input.reason ? { notes: input.reason } : {}),
-          },
-          select: {
-            id: true,
-            teamId: true,
-            status: true,
-            terminatedAt: true,
-          },
-        });
-
-        const fallbackContract = await tx.contract.findFirst({
-          where: {
-            playerId: existing.playerId,
-            status: { in: ACTIVE_CONTRACT_STATUSES },
-          },
-          orderBy: { updatedAt: 'desc' },
-          select: { teamId: true, salary: true },
-        });
-
-        await tx.player.update({
-          where: { id: existing.playerId },
-          data: {
-            teamId: fallbackContract?.teamId ?? null,
-            salary: fallbackContract?.salary ?? 0,
-          },
-        });
-
-        await tx.auditLog.create({
-          data: buildAuditLogInput({
-            userId: ctx.session.user.id,
-            action: 'TERMINATE',
-            entity: 'Contract',
-            entityId: input.id,
-            details: {
-              previousStatus: existing.status,
-              newStatus: terminated.status,
-              reason: input.reason ?? null,
-            },
-          }),
-        });
-
-        return terminated;
-      });
-    }),
 });
