@@ -1,6 +1,7 @@
 'use client';
 
-import { Camera, Loader2, Save, User } from 'lucide-react';
+import { Camera, Loader2, Save, User, Wallet } from 'lucide-react';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/trpc/react';
 import { resolveAccountAvatarUrl } from '@/lib/utils/account-avatar';
 import { cn } from '@/lib/utils/cn';
+import { formatCompactDate, formatCurrency } from '@/lib/utils/format';
+import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
 
 interface FeedbackState {
   type: 'success' | 'error';
@@ -17,6 +20,7 @@ interface FeedbackState {
 export default function ProfilePage() {
   const { update: updateSession } = useSession();
   const meQuery = api.user.me.useQuery();
+  const walletQuery = api.user.myWallet.useQuery();
   const updateProfile = api.user.updateProfile.useMutation();
 
   const [name, setName] = useState('');
@@ -63,6 +67,8 @@ export default function ProfilePage() {
   const avatarSrc = image || user?.image || null;
   const resolvedAvatarSrc = resolveAccountAvatarUrl(avatarSrc);
   const showAvatarImage = Boolean(resolvedAvatarSrc) && !avatarLoadFailed;
+  const linkedPlayer = user?.linkedPlayer ?? null;
+  const wallet = walletQuery.data;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-16 md:gap-20">
@@ -172,6 +178,86 @@ export default function ProfilePage() {
               ) : null}
             </div>
           </form>
+
+          <div className="flex flex-col gap-6 border-t border-hairline pt-10">
+            <div className="flex items-center gap-3">
+              <Wallet className="h-5 w-5 text-accent" />
+              <h2 className="font-display text-xl tracking-tight text-foreground">Wallet</h2>
+            </div>
+
+            <div className="border border-hairline bg-surface px-6 py-5">
+              <p className="label-mono text-foreground-muted">Solde disponible</p>
+              <p className="mt-2 font-display text-3xl tabular-nums text-foreground">
+                {formatCurrency(wallet?.balance ?? 0)}
+              </p>
+              <p className="mt-2 text-xs leading-6 text-foreground-muted">
+                Crédité automatiquement à chaque BO joué par ta carte liée (salaire par BO).
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <p className="label-mono text-foreground-dim">Dernières transactions</p>
+              {wallet && wallet.transactions.length > 0 ? (
+                <ul className="divide-y divide-hairline border border-hairline">
+                  {wallet.transactions.map((tx) => (
+                    <li
+                      key={tx.id}
+                      className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
+                    >
+                      <div>
+                        <p className="text-foreground">{tx.reason ?? tx.type}</p>
+                        <p className="text-xs text-foreground-muted">
+                          {formatCompactDate(tx.createdAt)}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          'label-mono tabular-nums',
+                          tx.amount >= 0
+                            ? 'text-[color:var(--win)]'
+                            : 'text-[color:var(--loss)]',
+                        )}
+                      >
+                        {tx.amount >= 0 ? '+' : ''}
+                        {formatCurrency(tx.amount)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-foreground-muted">
+                  Aucune transaction pour le moment.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 border-t border-hairline pt-10">
+            <h2 className="font-display text-xl tracking-tight text-foreground">Carte liée</h2>
+            {linkedPlayer ? (
+              <div className="flex items-center justify-between gap-4 border border-hairline bg-surface px-5 py-4">
+                <div>
+                  <p className="font-semibold text-foreground">
+                    {resolveStoredPlayerDisplayName(linkedPlayer)}
+                  </p>
+                  <p className="text-xs text-foreground-muted">
+                    {linkedPlayer.gameName}#{linkedPlayer.tagLine}
+                    {linkedPlayer.team ? ` · ${linkedPlayer.team.name}` : ''}
+                  </p>
+                </div>
+                <Link
+                  href={`/transfermarket/${linkedPlayer.id}`}
+                  className="label-mono text-accent transition hover:text-foreground"
+                >
+                  Voir la carte
+                </Link>
+              </div>
+            ) : (
+              <p className="text-sm text-foreground-muted">
+                Aucune carte liée. Contacte un admin pour relier ton compte à ta carte du marché.
+              </p>
+            )}
+          </div>
         </section>
       )}
     </div>

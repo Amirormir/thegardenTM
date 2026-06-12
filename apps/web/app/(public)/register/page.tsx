@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { GardenLogo } from '@/components/ui/garden-logo';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils/cn';
 import { isPublicRegistrationEnabled } from '@/lib/runtime-flags';
 import { api } from '@/lib/trpc/react';
@@ -26,10 +27,14 @@ function resolvePostLoginTarget(resultUrl: string | null | undefined, fallbackUr
 
 export default function RegisterPage() {
   const register = api.user.register.useMutation();
+  const linkablePlayersQuery = api.player.listLinkable.useQuery(undefined, {
+    enabled: isPublicRegistrationEnabled,
+  });
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [playerId, setPlayerId] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
   );
@@ -47,7 +52,12 @@ export default function RegisterPage() {
     }
 
     try {
-      await register.mutateAsync({ name, email, password });
+      await register.mutateAsync({
+        name,
+        email,
+        password,
+        ...(playerId ? { playerId } : {}),
+      });
       setSigningIn(true);
 
       const result = await signIn('credentials', {
@@ -201,6 +211,33 @@ export default function RegisterPage() {
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
             />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="label-mono" htmlFor="register-player">
+              Carte joueur (optionnel)
+            </label>
+            <Select
+              id="register-player"
+              value={playerId}
+              disabled={isPending || linkablePlayersQuery.isLoading}
+              onChange={(event) => setPlayerId(event.target.value)}
+            >
+              <option value="">Aucune carte</option>
+              {(linkablePlayersQuery.data ?? []).map((player) => {
+                const taken = player.linkedAccountId !== null;
+                return (
+                  <option key={player.id} value={player.id} disabled={taken}>
+                    {player.displayName} · {player.teamShortCode}
+                    {taken ? ' (déjà reliée)' : ''}
+                  </option>
+                );
+              })}
+            </Select>
+            <p className="text-xs leading-6 text-foreground-muted">
+              Relie ton compte à ta carte du marché pour recevoir ton salaire par BO. À la
+              confiance — un admin peut corriger ensuite.
+            </p>
           </div>
 
           <Button

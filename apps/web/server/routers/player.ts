@@ -299,6 +299,31 @@ export const playerRouter = createTRPCRouter({
       }));
     }),
 
+  // Liste des cartes joueurs reliables a un compte. Sert au selecteur de carte
+  // a l'inscription et a la gestion du lien depuis le back-office. Expose le
+  // statut de liaison (linkedAccountId) pour desactiver les cartes deja prises.
+  listLinkable: publicProcedure.query(async ({ ctx }) => {
+    const players = await ctx.prisma.player.findMany({
+      where: { isActive: true },
+      orderBy: [{ firstName: 'asc' }, { gameName: 'asc' }],
+      select: {
+        ...PLAYER_SEARCH_LITE_SELECT,
+        linkedAccount: { select: { id: true } },
+      },
+    });
+
+    return players.map((player) => ({
+      id: player.id,
+      displayName: resolveStoredPlayerDisplayName(player),
+      gameName: player.gameName,
+      tagLine: player.tagLine,
+      role: player.role,
+      teamName: player.team?.name ?? FREE_AGENT_NAME,
+      teamShortCode: player.team?.shortCode ?? FREE_AGENT_SHORT_CODE,
+      linkedAccountId: player.linkedAccount?.id ?? null,
+    }));
+  }),
+
   getAll: publicProcedure.input(playerListQuerySchema.optional()).query(async ({ ctx, input }) => {
     const where = buildPlayerListWhere({
       search: input?.search,

@@ -462,6 +462,7 @@ export const matchRouter = createTRPCRouter({
         : [];
 
       const expiredContractIds: string[] = [];
+      const walletCredits: { userId: string; amount: number; playerId: string }[] = [];
 
       if (teamIdsToTick.length > 0) {
         const activeContracts = await tx.contract.findMany({
@@ -474,9 +475,15 @@ export const matchRouter = createTRPCRouter({
             id: true,
             playerId: true,
             teamId: true,
+            salary: true,
             bosRemaining: true,
             player: {
-              select: { firstName: true, lastName: true, gameName: true },
+              select: {
+                firstName: true,
+                lastName: true,
+                gameName: true,
+                linkedAccount: { select: { id: true, walletBalance: true } },
+              },
             },
             team: {
               select: { name: true, captains: { select: { id: true } } },
@@ -485,6 +492,37 @@ export const matchRouter = createTRPCRouter({
         });
 
         for (const contract of activeContracts) {
+          // Versement du salaire/BO sur le wallet du compte relie a la carte.
+          // Gardé par teamIdsToTick (transition not-completed -> completed),
+          // donc idempotent : ré-enregistrer un BO ne re-paie pas.
+          const linkedAccount = contract.player.linkedAccount;
+          if (linkedAccount && contract.salary > 0) {
+            const balanceAfter = linkedAccount.walletBalance + contract.salary;
+
+            await tx.user.update({
+              where: { id: linkedAccount.id },
+              data: { walletBalance: { increment: contract.salary } },
+            });
+
+            await tx.walletTransaction.create({
+              data: {
+                userId: linkedAccount.id,
+                amount: contract.salary,
+                balanceAfter,
+                type: 'SALARY_BO',
+                reason: 'Salaire BO',
+                matchId: input.matchId,
+                playerId: contract.playerId,
+              },
+            });
+
+            walletCredits.push({
+              userId: linkedAccount.id,
+              amount: contract.salary,
+              playerId: contract.playerId,
+            });
+          }
+
           const next = Math.max(0, (contract.bosRemaining ?? 0) - 1);
 
           if (next === 0) {
@@ -540,6 +578,7 @@ export const matchRouter = createTRPCRouter({
             ),
             contractsTicked: teamIdsToTick.length > 0,
             expiredContractIds,
+            walletCredits,
           },
         }),
       });

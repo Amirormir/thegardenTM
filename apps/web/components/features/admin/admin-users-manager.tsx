@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Save, Shield, ShieldAlert, User, UserCog, X } from 'lucide-react';
+import { IdCard, Loader2, Save, Shield, ShieldAlert, User, UserCog, Wallet, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
-import { formatDateTime } from '@/lib/utils/format';
+import { formatCurrency, formatDateTime } from '@/lib/utils/format';
 
 interface FeedbackState {
   type: 'success' | 'error';
@@ -49,10 +49,12 @@ export function AdminUsersManager() {
   const utils = api.useUtils();
   const usersQuery = api.user.getAll.useQuery();
   const teamsQuery = api.team.getAll.useQuery();
+  const linkablePlayersQuery = api.player.listLinkable.useQuery();
   const adminUpdate = api.user.adminUpdate.useMutation();
   const updateRole = api.user.updateRole.useMutation();
   const assignTeam = api.user.assignTeam.useMutation();
   const removeTeam = api.user.removeTeam.useMutation();
+  const linkPlayer = api.user.linkPlayer.useMutation();
 
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -62,11 +64,16 @@ export function AdminUsersManager() {
 
   const users = usersQuery.data ?? [];
   const teams = teamsQuery.data ?? [];
+  const linkablePlayers = linkablePlayersQuery.data ?? [];
   const selectedUser = users.find((user) => user.id === selectedUserId) ?? null;
   const filteredUsers =
     roleFilter === 'all' ? users : users.filter((user) => user.role === roleFilter);
   const isPending =
-    adminUpdate.isPending || updateRole.isPending || assignTeam.isPending || removeTeam.isPending;
+    adminUpdate.isPending ||
+    updateRole.isPending ||
+    assignTeam.isPending ||
+    removeTeam.isPending ||
+    linkPlayer.isPending;
 
   useEffect(() => {
     setEditedName(selectedUser?.name ?? '');
@@ -78,7 +85,26 @@ export function AdminUsersManager() {
       utils.user.getAll.invalidate(),
       utils.team.getAll.invalidate(),
       utils.team.getById.invalidate(),
+      utils.player.listLinkable.invalidate(),
     ]);
+  }
+
+  async function handleLinkPlayer(userId: string, playerId: string | null) {
+    setFeedback(null);
+
+    try {
+      await linkPlayer.mutateAsync({ userId, playerId });
+      await invalidateAll();
+      setFeedback({
+        type: 'success',
+        message: playerId ? 'Carte joueur reliee.' : 'Carte joueur deliee.',
+      });
+    } catch (error) {
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Echec de la liaison.',
+      });
+    }
   }
 
   async function handleUpdateRole(userId: string, role: string) {
@@ -355,6 +381,81 @@ export function AdminUsersManager() {
                 Assigner une equipe promouvra automatiquement un utilisateur au role chef
                 d&apos;equipe. Plusieurs capitaines par equipe sont possibles.
               </p>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-xs uppercase tracking-[0.06em] text-foreground-dim">
+                <IdCard className="h-3.5 w-3.5" />
+                Carte joueur liee
+              </label>
+
+              {selectedUser.linkedPlayer ? (
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3">
+                  <div>
+                    <p className="font-semibold text-white">
+                      {selectedUser.linkedPlayer.gameName}#{selectedUser.linkedPlayer.tagLine}
+                    </p>
+                    <p className="text-xs text-foreground-dim">
+                      {selectedUser.linkedPlayer.team?.shortCode ?? 'Free Agent'}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    disabled={isPending}
+                    icon={
+                      isPending ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <X className="h-3 w-3" />
+                      )
+                    }
+                    onClick={() => handleLinkPlayer(selectedUser.id, null)}
+                  >
+                    Delier
+                  </Button>
+                </div>
+              ) : (
+                <Select
+                  value=""
+                  disabled={isPending || linkablePlayersQuery.isLoading}
+                  onChange={(event) => {
+                    if (event.target.value) {
+                      void handleLinkPlayer(selectedUser.id, event.target.value);
+                    }
+                  }}
+                >
+                  <option value="">Aucune carte</option>
+                  {linkablePlayers.map((player) => {
+                    const taken = player.linkedAccountId !== null;
+                    return (
+                      <option key={player.id} value={player.id} disabled={taken}>
+                        {player.displayName} ({player.teamShortCode})
+                        {taken ? ' — deja reliee' : ''}
+                      </option>
+                    );
+                  })}
+                </Select>
+              )}
+
+              <p className="text-xs text-foreground-dim">
+                Le joueur peut choisir sa carte a l&apos;inscription. Seul un admin peut la
+                corriger ensuite.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-xs uppercase tracking-[0.06em] text-foreground-dim">
+                <Wallet className="h-3.5 w-3.5" />
+                Wallet
+              </label>
+              <div className="rounded-2xl border border-white/[0.05] bg-white/[0.035] px-4 py-3">
+                <p className="font-display text-2xl tabular-nums text-white">
+                  {formatCurrency(selectedUser.walletBalance)}
+                </p>
+                <p className="text-xs text-foreground-dim">Solde credite par BO joue.</p>
+              </div>
             </div>
 
             {selectedUser.role === 'TEAM_CAPTAIN' && !selectedUser.captainOfTeam ? (

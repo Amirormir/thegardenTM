@@ -101,6 +101,10 @@ model User {
   role                UserRole             @default(USER)
   captainOfTeamId     String?
   captainOfTeam       Team?                @relation("TeamCaptains", fields: [captainOfTeamId], references: [id], onDelete: SetNull)
+  walletBalance       Int                  @default(0)
+  linkedPlayerId      String?              @unique
+  linkedPlayer        Player?              @relation("PlayerAccount", fields: [linkedPlayerId], references: [id], onDelete: SetNull)
+  walletTransactions  WalletTransaction[]
   accounts            Account[]
   sessions            Session[]
   auditLogs           AuditLog[]
@@ -187,6 +191,7 @@ model Player {
   isActive           Boolean              @default(true)
   teamId             String?
   team               Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  linkedAccount      User?                @relation("PlayerAccount")
   contracts          Contract[]
   marketValueHistory MarketValueHistory[]
   playerMatchStats   PlayerMatchStats[]
@@ -479,6 +484,22 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, isRead, createdAt])
+}
+
+model WalletTransaction {
+  id           String   @id @default(cuid())
+  userId       String
+  amount       Int
+  balanceAfter Int
+  type         String
+  reason       String?
+  matchId      String?
+  playerId     String?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([matchId])
 }
 
 model Champion {

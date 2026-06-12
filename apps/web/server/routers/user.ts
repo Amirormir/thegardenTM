@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import {
   userAdminUpdateSchema,
   userAssignTeamSchema,
+  userLinkPlayerSchema,
   userRegisterSchema,
   userRemoveTeamSchema,
   userUpdateProfileSchema,
@@ -36,6 +37,30 @@ export const userRouter = createTRPCRouter({
         });
       }
 
+      // Lien carte joueur optionnel choisi a l'inscription (a la confiance).
+      // On valide la carte AVANT la creation : si elle est introuvable ou deja
+      // prise, l'inscription echoue et aucun compte n'est cree.
+      if (input.playerId) {
+        const player = await ctx.prisma.player.findUnique({
+          where: { id: input.playerId },
+          select: { id: true, isActive: true, linkedAccount: { select: { id: true } } },
+        });
+
+        if (!player || !player.isActive) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'La carte joueur selectionnee est introuvable.',
+          });
+        }
+
+        if (player.linkedAccount) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'Cette carte joueur est deja reliee a un autre compte.',
+          });
+        }
+      }
+
       const passwordHash = await bcrypt.hash(input.password, 12);
 
       const user = await ctx.prisma.user.create({
@@ -44,6 +69,7 @@ export const userRouter = createTRPCRouter({
           email: input.email,
           passwordHash,
           role: UserRole.USER,
+          ...(input.playerId ? { linkedPlayerId: input.playerId } : {}),
         },
         select: { id: true, name: true, email: true },
       });
@@ -61,12 +87,53 @@ export const userRouter = createTRPCRouter({
         image: true,
         role: true,
         createdAt: true,
+        walletBalance: true,
         captainOfTeam: {
           select: { id: true, name: true, shortCode: true, logoUrl: true },
+        },
+        linkedPlayer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            gameName: true,
+            tagLine: true,
+            imageUrl: true,
+            role: true,
+            team: { select: { name: true, shortCode: true, logoUrl: true } },
+          },
         },
       },
     }),
   ),
+
+  myWallet: protectedProcedure.query(async ({ ctx }) => {
+    const [user, transactions] = await Promise.all([
+      ctx.prisma.user.findUnique({
+        where: { id: ctx.session.user.id },
+        select: { walletBalance: true },
+      }),
+      ctx.prisma.walletTransaction.findMany({
+        where: { userId: ctx.session.user.id },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          amount: true,
+          balanceAfter: true,
+          type: true,
+          reason: true,
+          matchId: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    return {
+      balance: user?.walletBalance ?? 0,
+      transactions,
+    };
+  }),
 
   updateProfile: protectedProcedure
     .input(userUpdateProfileSchema)
@@ -156,11 +223,22 @@ export const userRouter = createTRPCRouter({
         image: true,
         role: true,
         captainOfTeamId: true,
+        walletBalance: true,
         captainOfTeam: {
           select: {
             id: true,
             name: true,
             shortCode: true,
+          },
+        },
+        linkedPlayer: {
+          select: {
+            id: true,
+            gameName: true,
+            tagLine: true,
+            firstName: true,
+            lastName: true,
+            team: { select: { shortCode: true } },
           },
         },
         createdAt: true,
@@ -289,6 +367,74 @@ export const userRouter = createTRPCRouter({
           entity: 'User',
           entityId: input.userId,
           details: { previousTeamId: user.captainOfTeamId },
+        }),
+      });
+
+      return updated;
+    }),
+
+  linkPlayer: adminProcedure
+    .input(userLinkPlayerSchema)
+    .mutation(async ({ ctx, input }) => {
+      const user = await ctx.prisma.user.findUnique({
+        where: { id: input.userId },
+        select: { id: true, linkedPlayerId: true },
+      });
+
+      if (!user) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Utilisateur introuvable.' });
+      }
+
+      // Delier la carte du compte.
+      if (input.playerId === null) {
+        const updated = await ctx.prisma.user.update({
+          where: { id: input.userId },
+          data: { linkedPlayerId: null },
+          select: { id: true, linkedPlayerId: true },
+        });
+
+        await ctx.prisma.auditLog.create({
+          data: buildAuditLogInput({
+            userId: ctx.session.user.id,
+            action: 'UNLINK_PLAYER',
+            entity: 'User',
+            entityId: input.userId,
+            details: { previousPlayerId: user.linkedPlayerId },
+          }),
+        });
+
+        return updated;
+      }
+
+      const player = await ctx.prisma.player.findUnique({
+        where: { id: input.playerId },
+        select: { id: true, linkedAccount: { select: { id: true } } },
+      });
+
+      if (!player) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Carte joueur introuvable.' });
+      }
+
+      if (player.linkedAccount && player.linkedAccount.id !== input.userId) {
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: 'Cette carte joueur est deja reliee a un autre compte.',
+        });
+      }
+
+      const updated = await ctx.prisma.user.update({
+        where: { id: input.userId },
+        data: { linkedPlayerId: input.playerId },
+        select: { id: true, linkedPlayerId: true },
+      });
+
+      await ctx.prisma.auditLog.create({
+        data: buildAuditLogInput({
+          userId: ctx.session.user.id,
+          action: 'LINK_PLAYER',
+          entity: 'User',
+          entityId: input.userId,
+          details: { previousPlayerId: user.linkedPlayerId, newPlayerId: input.playerId },
         }),
       });
 
