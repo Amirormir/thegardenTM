@@ -5,7 +5,12 @@ export const revalidate = 60;
 
 export default async function MatchesPage() {
   const caller = await getPublicCaller();
-  const allMatches = await caller.match.getAll();
+  const [allMatches, oddsList] = await Promise.all([
+    caller.match.getAll(),
+    caller.odds.getForSplit(),
+  ]);
+
+  const oddsByMatch = new Map(oddsList.map((entry) => [entry.matchId, entry]));
 
   const completed = allMatches.filter((m) => m.isCompleted);
   const upcoming = allMatches.filter((m) => !m.isCompleted);
@@ -54,9 +59,18 @@ export default async function MatchesPage() {
             {upcoming.length > 1 ? 's' : ''} programmé{upcoming.length > 1 ? 's' : ''}.
           </h2>
           <div className="mt-8 grid gap-5 xl:grid-cols-2">
-            {upcoming.map((match, i) => (
-              <FightMatchCard key={match.id} match={match} index={i} />
-            ))}
+            {upcoming.map((match, i) => {
+              const matchOdds = oddsByMatch.get(match.id);
+              return (
+                <FightMatchCard
+                  key={match.id}
+                  match={match}
+                  index={i}
+                  oddsHome={matchOdds?.oddsHome ?? null}
+                  oddsAway={matchOdds?.oddsAway ?? null}
+                />
+              );
+            })}
           </div>
         </section>
       ) : null}

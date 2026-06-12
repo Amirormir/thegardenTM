@@ -16,6 +16,7 @@ import { TeamAvatar } from '@/components/ui/team-avatar';
 import { GameStatBars } from '@/components/features/league/game-stat-bars';
 import { GamePlayerBars } from '@/components/features/league/game-player-bars';
 import { GameMvpCard } from '@/components/features/league/game-mvp-card';
+import { MatchBetSlip } from '@/components/features/betting/match-bet-slip';
 import { cn } from '@/lib/utils/cn';
 import { formatDateTime } from '@/lib/utils/format';
 import { getPublicCaller } from '@/server/public/caller';
@@ -138,6 +139,10 @@ export default async function MatchDetailPage({
         {match.notes ? (
           <p className="mt-8 max-w-2xl text-base leading-7 text-foreground-dim">{match.notes}</p>
         ) : null}
+
+        <div className="mt-10 max-w-md">
+          <MatchBetSlip matchId={match.id} />
+        </div>
       </header>
 
       {selectedGame ? (

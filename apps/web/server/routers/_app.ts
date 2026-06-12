@@ -1,6 +1,7 @@
 import { createTRPCRouter } from '@/server/trpc';
 import { adminRouter } from './admin';
 import { articleRouter } from './article';
+import { betRouter } from './bet';
 import { championRouter } from './champion';
 import { contractRouter } from './contract';
 import { customRouter } from './custom';
@@ -9,6 +10,7 @@ import { leagueRouter } from './league';
 import { leagueSettingsRouter } from './league-settings';
 import { matchRouter } from './match';
 import { notificationRouter } from './notification';
+import { oddsRouter } from './odds';
 import { playerRouter } from './player';
 import { statsRouter } from './stats';
 import { teamRouter } from './team';
@@ -18,6 +20,7 @@ import { userRouter } from './user';
 export const appRouter = createTRPCRouter({
   admin: adminRouter,
   article: articleRouter,
+  bet: betRouter,
   champion: championRouter,
   contract: contractRouter,
   custom: customRouter,
@@ -26,6 +29,7 @@ export const appRouter = createTRPCRouter({
   leagueSettings: leagueSettingsRouter,
   match: matchRouter,
   notification: notificationRouter,
+  odds: oddsRouter,
   player: playerRouter,
   stats: statsRouter,
   team: teamRouter,

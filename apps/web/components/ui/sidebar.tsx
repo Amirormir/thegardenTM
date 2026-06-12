@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   ArrowLeft,
   CalendarRange,
+  Dices,
   FileText,
   LayoutDashboard,
   Menu,
@@ -27,6 +28,7 @@ const items = [
   { href: '/admin/matches', label: 'Matches', icon: Swords },
   { href: '/admin/contracts', label: 'Contracts', icon: FileText },
   { href: '/admin/league', label: 'League', icon: CalendarRange },
+  { href: '/admin/betting', label: 'Betting', icon: Dices },
   { href: '/admin/news', label: 'News', icon: Newspaper },
   { href: '/admin/champions', label: 'Champions', icon: Sparkles },
 ];

@@ -2,6 +2,7 @@ import { unstable_cache } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { adminProcedure, createTRPCRouter } from '@/server/trpc';
 import { auditLogSchema } from '@/lib/validators/stats';
+import { bettingAdminRouter } from './betting-admin';
 
 const DASHBOARD_STATS_TTL_SECONDS = 60;
 
@@ -56,4 +57,6 @@ export const adminRouter = createTRPCRouter({
   ),
 
   getDashboardStats: adminProcedure.query(() => getCachedDashboardStats()),
+
+  betting: bettingAdminRouter,
 });

@@ -91,6 +91,13 @@ enum DraftParticipantRole {
   ADMIN
 }
 
+enum BetStatus {
+  PENDING
+  WON
+  LOST
+  VOID
+}
+
 model User {
   id                  String               @id @default(cuid())
   name                String?
@@ -113,6 +120,7 @@ model User {
   articles            Article[]            @relation("ArticleAuthor")
   createdDrafts       Draft[]              @relation("DraftCreatedBy")
   draftParticipations DraftParticipant[]
+  bets                Bet[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -162,6 +170,8 @@ model Team {
   outgoingTransfers TransferOffer[]    @relation("BuyingTeam")
   incomingTransfers TransferOffer[]    @relation("SellingTeam")
   budgetConversions BudgetConversion[]
+  teamRatings       TeamRating[]
+  betsSelected      Bet[]              @relation("BetSelectedTeam")
   blueDrafts           Draft[]         @relation("BlueTeamDrafts")
   redDrafts            Draft[]         @relation("RedTeamDrafts")
   coinflipWinnerDrafts Draft[]         @relation("CoinflipWinnerTeamDrafts")
@@ -242,9 +252,11 @@ model Season {
   isCurrent Boolean  @default(false)
   startDate DateTime
   endDate   DateTime
-  matches   Match[]
-  trophies  Trophy[]
-  drafts    Draft[]
+  matches       Match[]
+  trophies      Trophy[]
+  drafts        Draft[]
+  teamRatings   TeamRating[]
+  bettingConfig BettingConfig?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -271,6 +283,8 @@ model Match {
   winnerTeam   Team?       @relation("WinnerTeam", fields: [winnerTeamId], references: [id], onDelete: SetNull)
   games        MatchGame[]
   drafts       Draft[]
+  odds         MatchOdds?
+  bets         Bet[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -495,11 +509,76 @@ model WalletTransaction {
   reason       String?
   matchId      String?
   playerId     String?
+  betId        String?
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
 
   @@index([userId, createdAt])
   @@index([matchId])
+  @@index([betId])
+}
+
+model TeamRating {
+  id          String   @id @default(cuid())
+  teamId      String
+  seasonId    String
+  seedRating  Float
+  rating      Float
+  gamesPlayed Int      @default(0)
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  season      Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([teamId, seasonId])
+  @@index([seasonId])
+}
+
+model MatchOdds {
+  id         String   @id @default(cuid())
+  matchId    String   @unique
+  match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  probHome   Float
+  probAway   Float
+  oddsHome   Float
+  oddsAway   Float
+  margin     Float
+  computedAt DateTime @updatedAt
+}
+
+model Bet {
+  id              String    @id @default(cuid())
+  userId          String
+  matchId         String
+  selectedTeamId  String
+  stake           Int
+  oddsAtBet       Float
+  potentialPayout Int
+  status          BetStatus @default(PENDING)
+  placedAt        DateTime  @default(now())
+  settledAt       DateTime?
+  walletTxId      String?
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match           Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  selectedTeam    Team      @relation("BetSelectedTeam", fields: [selectedTeamId], references: [id], onDelete: Restrict)
+
+  @@index([userId, status])
+  @@index([matchId, status])
+}
+
+model BettingConfig {
+  seasonId          String   @id
+  season            Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  margin            Float    @default(0.06)
+  k                 Float    @default(24)
+  warmupGames       Int      @default(2)
+  seedRatingMin     Float    @default(1300)
+  seedRatingMax     Float    @default(1700)
+  probClampMin      Float    @default(0.10)
+  probClampMax      Float    @default(0.90)
+  minStake          Int      @default(1)
+  maxStake          Int?
+  allowSelfTeamBets Boolean  @default(true)
+  updatedAt         DateTime @updatedAt
 }
 
 model Champion {

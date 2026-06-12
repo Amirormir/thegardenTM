@@ -222,6 +222,9 @@ export function NavbarClient({ seasonLabel }: NavbarClientProps) {
                   <UserMenuLink href="/profile" onClick={() => setUserMenuOpen(false)}>
                     Mon profil
                   </UserMenuLink>
+                  <UserMenuLink href="/bets" onClick={() => setUserMenuOpen(false)}>
+                    Mes paris
+                  </UserMenuLink>
                   <UserMenuLink href="/notifications" onClick={() => setUserMenuOpen(false)}>
                     Notifications
                   </UserMenuLink>
@@ -368,6 +371,9 @@ export function NavbarClient({ seasonLabel }: NavbarClientProps) {
                     </div>
                     <UserMenuLink href="/profile" onClick={() => setMobileOpen(false)}>
                       Mon profil
+                    </UserMenuLink>
+                    <UserMenuLink href="/bets" onClick={() => setMobileOpen(false)}>
+                      Mes paris
                     </UserMenuLink>
                     <UserMenuLink href="/notifications" onClick={() => setMobileOpen(false)}>
                       Notifications

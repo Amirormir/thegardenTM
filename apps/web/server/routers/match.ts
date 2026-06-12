@@ -11,6 +11,10 @@ import {
 import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
 import { buildStatsCacheKey, invalidateStatsCache } from '@/lib/cache/stats-cache';
 import { buildAuditLogInput } from '@/server/utils/audit';
+import { resolveBettingConfig } from '@/server/utils/betting/config';
+import { updateElo, winProbability } from '@/server/utils/betting/odds-engine';
+import { recomputeOdds, recomputeOddsForTeams } from '@/server/utils/betting/recompute';
+import { creditWallet } from '@/server/utils/wallet';
 import { adminProcedure, createTRPCRouter, publicProcedure } from '@/server/trpc';
 
 const matchListSelect = {
@@ -226,6 +230,9 @@ export const matchRouter = createTRPCRouter({
         }),
       });
 
+      // Calcule les cotes si les deux equipes ont un rating sur la saison.
+      await recomputeOdds(tx, created.id);
+
       return created;
     });
 
@@ -285,6 +292,9 @@ export const matchRouter = createTRPCRouter({
         }),
       });
 
+      // Les equipes ou l'horaire ont pu changer -> recalcul des cotes (self-skip si verrouille).
+      await recomputeOdds(tx, id);
+
       return updated;
     });
   }),
@@ -294,6 +304,7 @@ export const matchRouter = createTRPCRouter({
       where: { id: input.matchId },
       select: {
         id: true,
+        seasonId: true,
         homeTeamId: true,
         awayTeamId: true,
         homeScore: true,
@@ -562,6 +573,93 @@ export const matchRouter = createTRPCRouter({
         }
       }
 
+      // --- Paris : reglement + evolution des ratings + recalcul des cotes ---
+      // Uniquement sur la transition not-completed -> completed (idempotent) et
+      // si le vainqueur du BO est connu.
+      const winnerTeamId = input.winnerTeamId ?? null;
+      let betsSettled = 0;
+      const ratingUpdates: { teamId: string; before: number; after: number }[] = [];
+
+      if (!existing.isCompleted && winnerTeamId) {
+        const pendingBets = await tx.bet.findMany({
+          where: { matchId: input.matchId, status: 'PENDING' },
+          select: { id: true, userId: true, selectedTeamId: true, potentialPayout: true },
+        });
+
+        for (const bet of pendingBets) {
+          const won = bet.selectedTeamId === winnerTeamId;
+          if (won) {
+            await creditWallet(tx, {
+              userId: bet.userId,
+              amount: bet.potentialPayout,
+              type: 'BET_WON',
+              reason: 'Gain pari',
+              matchId: input.matchId,
+              betId: bet.id,
+            });
+          }
+          await tx.bet.update({
+            where: { id: bet.id },
+            data: { status: won ? 'WON' : 'LOST', settledAt: new Date() },
+          });
+          betsSettled += 1;
+        }
+
+        // Evolution Elo des deux equipes (E = proba pre-match, depuis les ratings courants).
+        const config = await resolveBettingConfig(tx, existing.seasonId);
+        const teamRatings = await tx.teamRating.findMany({
+          where: {
+            seasonId: existing.seasonId,
+            teamId: { in: [existing.homeTeamId, existing.awayTeamId] },
+          },
+          select: { id: true, teamId: true, rating: true, gamesPlayed: true },
+        });
+        const homeRating = teamRatings.find((r) => r.teamId === existing.homeTeamId);
+        const awayRating = teamRatings.find((r) => r.teamId === existing.awayTeamId);
+
+        if (homeRating && awayRating) {
+          const expectedHome = winProbability(homeRating.rating, awayRating.rating);
+          const homeScored = winnerTeamId === existing.homeTeamId ? 1 : 0;
+
+          const newHome = updateElo({
+            rating: homeRating.rating,
+            expected: expectedHome,
+            score: homeScored === 1 ? 1 : 0,
+            k: config.k,
+            gamesPlayed: homeRating.gamesPlayed,
+            warmupGames: config.warmupGames,
+          });
+          const newAway = updateElo({
+            rating: awayRating.rating,
+            expected: 1 - expectedHome,
+            score: homeScored === 1 ? 0 : 1,
+            k: config.k,
+            gamesPlayed: awayRating.gamesPlayed,
+            warmupGames: config.warmupGames,
+          });
+
+          await tx.teamRating.update({
+            where: { id: homeRating.id },
+            data: { rating: newHome, gamesPlayed: { increment: 1 } },
+          });
+          await tx.teamRating.update({
+            where: { id: awayRating.id },
+            data: { rating: newAway, gamesPlayed: { increment: 1 } },
+          });
+
+          ratingUpdates.push(
+            { teamId: homeRating.teamId, before: homeRating.rating, after: newHome },
+            { teamId: awayRating.teamId, before: awayRating.rating, after: newAway },
+          );
+
+          // Les cotes des matchs a venir des deux equipes evoluent.
+          await recomputeOddsForTeams(tx, existing.seasonId, [
+            existing.homeTeamId,
+            existing.awayTeamId,
+          ]);
+        }
+      }
+
       await tx.auditLog.create({
         data: buildAuditLogInput({
           userId: ctx.session.user.id,
@@ -579,6 +677,8 @@ export const matchRouter = createTRPCRouter({
             contractsTicked: teamIdsToTick.length > 0,
             expiredContractIds,
             walletCredits,
+            betsSettled,
+            ratingUpdates,
           },
         }),
       });

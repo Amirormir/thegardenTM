@@ -17,6 +17,8 @@ export interface FightMatchCardProps {
     awayTeam: { name: string; shortCode: string; logoUrl?: string | null };
   };
   index?: number;
+  oddsHome?: number | null;
+  oddsAway?: number | null;
 }
 
 interface SideProps {
@@ -71,10 +73,14 @@ function MatchSide({ team, score, isWinner, isCompleted, align }: SideProps) {
   );
 }
 
-export function FightMatchCard({ match }: FightMatchCardProps) {
+export function FightMatchCard({ match, oddsHome, oddsAway }: FightMatchCardProps) {
   const homeWins = match.isCompleted && match.homeScore > match.awayScore;
   const awayWins = match.isCompleted && match.awayScore > match.homeScore;
   const displayDate = match.playedAt ?? match.scheduledAt;
+  const showOdds =
+    !match.isCompleted &&
+    typeof oddsHome === 'number' &&
+    typeof oddsAway === 'number';
 
   return (
     <Link
@@ -105,6 +111,19 @@ export function FightMatchCard({ match }: FightMatchCardProps) {
           align="right"
         />
       </div>
+
+      {showOdds ? (
+        <div className="grid grid-cols-2 gap-px border-t border-hairline bg-hairline label-mono">
+          <div className="flex items-center justify-between gap-2 bg-background px-5 py-2">
+            <span className="text-foreground-muted">{match.homeTeam.shortCode}</span>
+            <span className="font-mono tabular-nums text-foreground">{oddsHome?.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2 bg-background px-5 py-2">
+            <span className="text-foreground-muted">{match.awayTeam.shortCode}</span>
+            <span className="font-mono tabular-nums text-foreground">{oddsAway?.toFixed(2)}</span>
+          </div>
+        </div>
+      ) : null}
 
       <div className="border-t border-hairline px-5 py-2 text-center label-mono">
         <FightMatchLiveStatus isCompleted={match.isCompleted} scheduledAt={match.scheduledAt} />
