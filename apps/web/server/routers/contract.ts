@@ -19,6 +19,7 @@ import {
   publicProcedure,
 } from '@/server/trpc';
 import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
+import { getTransferFloor } from '@/lib/utils/transfer-rules';
 
 const ACTIVE_CONTRACT_STATUSES: ContractStatus[] = [
   ContractStatus.ACTIVE,
@@ -162,6 +163,7 @@ export const contractRouter = createTRPCRouter({
             id: true,
             gameName: true,
             teamId: true,
+            marketValue: true,
           },
         }),
         tx.contract.findMany({
@@ -239,13 +241,16 @@ export const contractRouter = createTRPCRouter({
         });
       }
 
+      // La clause liberatoire ne peut pas etre fixee sous 50% de la valeur marchande.
+      const releaseClause = Math.max(input.releaseClause, getTransferFloor(player.marketValue));
+
       const created = await tx.contract.create({
         data: {
           playerId: input.playerId,
           teamId: input.teamId,
           salary: input.salary,
           durationBo3: input.durationBo3,
-          releaseClause: input.releaseClause,
+          releaseClause,
           status: ContractStatus.PENDING_APPROVAL,
           ...(input.transferFee !== undefined ? { transferFee: input.transferFee } : {}),
           ...(input.notes ? { notes: input.notes } : {}),
@@ -534,6 +539,16 @@ export const contractRouter = createTRPCRouter({
     return ctx.prisma.$transaction(async (tx) => {
       const nextSalary = data.salary ?? existing.salary;
 
+      // La clause liberatoire ne peut pas etre fixee sous 50% de la valeur marchande.
+      let nextReleaseClause = data.releaseClause;
+      if (nextReleaseClause !== undefined) {
+        const player = await tx.player.findUnique({
+          where: { id: existing.playerId },
+          select: { marketValue: true },
+        });
+        nextReleaseClause = Math.max(nextReleaseClause, getTransferFloor(player?.marketValue ?? 0));
+      }
+
       if (data.salary !== undefined && (existing.status === 'ACTIVE' || existing.status === 'LOAN')) {
         const [team, activeTeamContracts] = await Promise.all([
           tx.team.findUnique({
@@ -569,7 +584,7 @@ export const contractRouter = createTRPCRouter({
         data: {
           ...(data.salary !== undefined ? { salary: data.salary } : {}),
           ...(data.durationBo3 !== undefined ? { durationBo3: data.durationBo3 } : {}),
-          ...(data.releaseClause !== undefined ? { releaseClause: data.releaseClause } : {}),
+          ...(nextReleaseClause !== undefined ? { releaseClause: nextReleaseClause } : {}),
           ...(data.transferFee !== undefined ? { transferFee: data.transferFee } : {}),
           ...(data.notes ? { notes: data.notes } : {}),
         },
@@ -637,7 +652,7 @@ export const contractRouter = createTRPCRouter({
 
     return ctx.prisma.$transaction(async (tx) => {
       // Budget check: payroll without the expiring contract + new salary <= salary cap
-      const [team, otherContracts] = await Promise.all([
+      const [team, otherContracts, player] = await Promise.all([
         tx.team.findUnique({
           where: { id: existing.teamId },
           select: { id: true, name: true, salaryBudgetCap: true },
@@ -649,6 +664,10 @@ export const contractRouter = createTRPCRouter({
             NOT: { id },
           },
           select: { salary: true },
+        }),
+        tx.player.findUnique({
+          where: { id: existing.playerId },
+          select: { marketValue: true },
         }),
       ]);
 
@@ -682,6 +701,12 @@ export const contractRouter = createTRPCRouter({
         },
       });
 
+      // La clause liberatoire ne peut pas etre fixee sous 50% de la valeur marchande.
+      const releaseClause = Math.max(
+        newTerms.releaseClause,
+        getTransferFloor(player?.marketValue ?? 0),
+      );
+
       // Create the renewed contract — goes back through admin approval
       const renewed = await tx.contract.create({
         data: {
@@ -689,7 +714,7 @@ export const contractRouter = createTRPCRouter({
           teamId: existing.teamId,
           salary: newTerms.salary,
           durationBo3: newTerms.durationBo3,
-          releaseClause: newTerms.releaseClause,
+          releaseClause,
           status: ContractStatus.PENDING_APPROVAL,
           ...(newTerms.transferFee !== undefined ? { transferFee: newTerms.transferFee } : {}),
           ...(newTerms.notes ? { notes: newTerms.notes } : {}),
@@ -709,7 +734,7 @@ export const contractRouter = createTRPCRouter({
             teamId: renewed.teamId,
             newSalary: newTerms.salary,
             newDurationBo3: newTerms.durationBo3,
-            newReleaseClause: newTerms.releaseClause,
+            newReleaseClause: releaseClause,
           },
         }),
       });

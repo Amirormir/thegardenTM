@@ -15,6 +15,7 @@ import { api } from '@/lib/trpc/react';
 import { buildPlayerRiotId, getPlayerInitials } from '@/lib/utils/player-display';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatDateTime } from '@/lib/utils/format';
+import { getCostBaseValue } from '@/lib/utils/transfer-rules';
 import type { AppRouter } from '@/server/routers/_app';
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
@@ -761,9 +762,18 @@ export function AdminPlayersManager() {
                     </label>
                     <Select
                       value={draft.cost}
-                      onChange={(event) =>
-                        setDraft((current) => ({ ...current, cost: event.target.value }))
-                      }
+                      onChange={(event) => {
+                        const nextCost = event.target.value;
+                        // Le changement de cost prefille la valeur marchande avec la
+                        // valeur de base du palier (reste modifiable ensuite).
+                        setDraft((current) => ({
+                          ...current,
+                          cost: nextCost,
+                          marketValue: getCostBaseValue(
+                            Number.parseInt(nextCost, 10),
+                          ).toString(),
+                        }));
+                      }}
                     >
                       {[1, 2, 3, 4, 5].map((value) => (
                         <option key={value} value={value.toString()}>

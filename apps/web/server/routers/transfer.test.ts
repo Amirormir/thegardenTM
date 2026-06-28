@@ -207,6 +207,23 @@ describe('transfer router', () => {
       ).rejects.toThrow('Budget transfert insuffisant');
     });
 
+    it('rejects an offer below 50% of the player market value', async () => {
+      setupCreateMocks();
+      // marketValue 2,000,000 → plancher 1,000,000. Offre 500,000 sous le minimum.
+      (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'player-1',
+        gameName: 'TestPlayer',
+        teamId: 'team-2',
+        marketValue: 2000000,
+        contracts: [{ id: 'c-1', teamId: 'team-2', releaseClause: 1000000 }],
+      });
+
+      const { caller } = createCaptainCaller('team-1', prisma);
+      await expect(
+        caller.transfer.create({ ...validInput, offeredFee: 500000 }),
+      ).rejects.toThrow('minimum autorise');
+    });
+
     it('rejects player without active contract', async () => {
       setupCreateMocks();
       (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({

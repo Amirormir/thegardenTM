@@ -1,4 +1,5 @@
 import type { PlayerRole, Prisma } from '@nexus/db';
+import { ContractStatus } from '@nexus/db';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { getAccountByRiotId } from '@/lib/riot';
@@ -20,6 +21,7 @@ import {
   updateMarketValueSchema,
 } from '@/lib/validators/player';
 import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
+import { getTransferFloor } from '@/lib/utils/transfer-rules';
 import { buildAuditLogInput } from '@/server/utils/audit';
 import { adminProcedure, createTRPCRouter, publicProcedure } from '@/server/trpc';
 
@@ -260,6 +262,20 @@ async function rebuildPlayerMarketValueHistory(tx: Prisma.TransactionClient, pla
     data: {
       marketValue: previousValue,
     },
+  });
+
+  // La clause liberatoire ne peut jamais etre inferieure a 50% de la valeur
+  // marchande. A chaque changement de valeur, on releve les clauses sous le
+  // plancher (jamais l'inverse : une baisse de valeur ne diminue pas une clause
+  // deja superieure).
+  const clauseFloor = getTransferFloor(previousValue);
+  await tx.contract.updateMany({
+    where: {
+      playerId,
+      status: { in: [ContractStatus.ACTIVE, ContractStatus.LOAN, ContractStatus.PENDING_APPROVAL] },
+      releaseClause: { lt: clauseFloor },
+    },
+    data: { releaseClause: clauseFloor },
   });
 
   return {

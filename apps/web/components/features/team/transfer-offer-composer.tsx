@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format';
+import { getTransferFloor } from '@/lib/utils/transfer-rules';
 import { OfferPlayerCard } from './offer-player-card';
 
 interface Player {
@@ -48,12 +49,14 @@ export function TransferOfferComposer({ buyerTeam, player }: TransferOfferCompos
   const createOffer = api.transfer.create.useMutation();
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
 
-  const suggestedFee = Math.max(player.marketValue, 1);
+  const minFee = getTransferFloor(player.marketValue);
+  const suggestedFee = Math.max(player.marketValue, minFee, 1);
   const [offeredFee, setOfferedFee] = useState<number>(suggestedFee);
   const [message, setMessage] = useState<string>('');
 
   const playerDisplayName = player.displayName ?? player.gameName;
   const triggersClause = offeredFee >= player.releaseClause;
+  const belowMin = offeredFee < minFee;
   const budgetAfter = buyerTeam.transferBudget - offeredFee;
   const overBudget = budgetAfter < 0;
 
@@ -136,7 +139,7 @@ export function TransferOfferComposer({ buyerTeam, player }: TransferOfferCompos
             <label className="label-mono text-foreground-muted">Indemnité de transfert</label>
             <Input
               type="number"
-              min={0}
+              min={minFee}
               value={offeredFee}
               onChange={(e) => setOfferedFee(Math.max(0, Number.parseInt(e.target.value || '0', 10)))}
               className="!h-auto !border-0 !bg-transparent !px-0 !py-0 font-display !text-4xl tabular-nums !text-foreground focus:!ring-0"
@@ -152,6 +155,19 @@ export function TransferOfferComposer({ buyerTeam, player }: TransferOfferCompos
               >
                 {triggersClause ? 'Déclenche le transfert' : 'Sous la clause'}
               </span>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="label-mono text-foreground-muted">
+                Minimum · {formatCurrency(minFee)} (50% valeur)
+              </span>
+              {belowMin ? (
+                <span
+                  className="font-display tabular-nums"
+                  style={{ color: 'var(--loss)' }}
+                >
+                  Sous le minimum autorisé
+                </span>
+              ) : null}
             </div>
           </div>
 
@@ -198,7 +214,7 @@ export function TransferOfferComposer({ buyerTeam, player }: TransferOfferCompos
           <div className="flex flex-wrap gap-3">
             <Button
               type="submit"
-              disabled={createOffer.isPending || overBudget}
+              disabled={createOffer.isPending || overBudget || belowMin}
               icon={
                 createOffer.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

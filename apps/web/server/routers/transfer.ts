@@ -9,6 +9,7 @@ import {
   transferOffersByTeamSchema,
   transferStartContractSchema,
 } from '@/lib/validators/transfer';
+import { getTransferFloor } from '@/lib/utils/transfer-rules';
 import { buildAuditLogInput } from '@/server/utils/audit';
 import { ensureTeamAccess } from '@/server/utils/authz';
 import {
@@ -217,6 +218,7 @@ export const transferRouter = createTRPCRouter({
               lastName: true,
               gameName: true,
               teamId: true,
+              marketValue: true,
               contracts: {
                 where: { status: { in: ACTIVE_CONTRACT_STATUSES } },
                 take: 1,
@@ -259,6 +261,15 @@ export const transferRouter = createTRPCRouter({
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: "Ce joueur n'a pas de contrat actif.",
+          });
+        }
+
+        // Prix plancher du transfert : au moins 50% de la valeur marchande.
+        const minFee = getTransferFloor(player.marketValue);
+        if (input.offeredFee < minFee) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Offre sous le minimum autorise (${minFee}, soit 50% de la valeur marchande de ${player.marketValue}).`,
           });
         }
 
@@ -642,7 +653,9 @@ export const transferRouter = createTRPCRouter({
             offeredFee: true,
             status: true,
             linkedContractId: true,
-            player: { select: { id: true, firstName: true, lastName: true, gameName: true } },
+            player: {
+              select: { id: true, firstName: true, lastName: true, gameName: true, marketValue: true },
+            },
             fromTeam: {
               select: {
                 id: true,
@@ -690,13 +703,16 @@ export const transferRouter = createTRPCRouter({
           });
         }
 
+        // La clause liberatoire ne peut pas etre fixee sous 50% de la valeur marchande.
+        const releaseClause = Math.max(input.releaseClause, getTransferFloor(offer.player.marketValue));
+
         const contract = await tx.contract.create({
           data: {
             playerId: offer.playerId,
             teamId: offer.fromTeamId,
             salary: input.salary,
             durationBo3: input.durationBo3,
-            releaseClause: input.releaseClause,
+            releaseClause,
             transferFee: offer.offeredFee,
             status: ContractStatus.PENDING_APPROVAL,
             notes: input.notes ?? `Transfert depuis ${offer.toTeam.name}.`,
@@ -736,7 +752,7 @@ export const transferRouter = createTRPCRouter({
               playerId: offer.playerId,
               salary: input.salary,
               durationBo3: input.durationBo3,
-              releaseClause: input.releaseClause,
+              releaseClause,
             },
           }),
         });

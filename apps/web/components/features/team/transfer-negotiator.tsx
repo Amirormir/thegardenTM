@@ -11,6 +11,7 @@ import { PlayerLink } from '@/components/ui/player-link';
 import { api } from '@/lib/trpc/react';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatDateTime } from '@/lib/utils/format';
+import { getTransferFloor } from '@/lib/utils/transfer-rules';
 
 type OfferStatus =
   | 'PENDING'
@@ -111,7 +112,10 @@ export function TransferNegotiator({ teamId, offer }: TransferNegotiatorProps) {
 
   const [salary, setSalary] = useState<number>(Math.max(0, offer.player.salary || offer.player.marketValue));
   const [durationBo3, setDurationBo3] = useState<number>(10);
-  const [releaseClause, setReleaseClause] = useState<number>(Math.max(1, offer.offeredFee * 2));
+  const clauseFloor = getTransferFloor(offer.player.marketValue);
+  const [releaseClause, setReleaseClause] = useState<number>(
+    Math.max(clauseFloor, 1, offer.offeredFee * 2),
+  );
   const [notes, setNotes] = useState<string>('');
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
 
@@ -291,11 +295,14 @@ export function TransferNegotiator({ teamId, offer }: TransferNegotiatorProps) {
                 <label className="label-mono">Clause libératoire</label>
                 <Input
                   type="number"
-                  min={1}
+                  min={clauseFloor}
                   value={releaseClause}
                   onChange={(e) => setReleaseClause(Math.max(1, Number.parseInt(e.target.value || '1', 10)))}
                   required
                 />
+                <span className="label-mono text-foreground-muted">
+                  Minimum · {formatCurrency(clauseFloor)} (50% valeur)
+                </span>
               </div>
               <div className="flex flex-col gap-2">
                 <label className="label-mono">Notes</label>
