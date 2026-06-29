@@ -48,7 +48,7 @@ export function LoginForm({
 }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [pendingProvider, setPendingProvider] = useState<'credentials' | 'discord' | null>(null);
+  const [pendingProvider, setPendingProvider] = useState<'credentials' | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'error'; message: string } | null>(
     error ? { type: 'error', message: resolveFeedbackMessage(error) ?? 'La connexion a échoué.' } : null,
   );
@@ -88,12 +88,6 @@ export function LoginForm({
       });
       setPendingProvider(null);
     }
-  }
-
-  function handleDiscordSignIn() {
-    setFeedback(null);
-    setPendingProvider('discord');
-    void signIn('discord', { callbackUrl: safeCallbackUrl });
   }
 
   return (
@@ -154,7 +148,7 @@ export function LoginForm({
 
         <h2 className="mt-4 display-md text-foreground">Se connecter proprement.</h2>
         <p className="mt-3 text-sm leading-6 text-foreground-dim">
-          Identifiants classiques ou Discord pour les comptes déjà validés.
+          Identifiants email et mot de passe.
         </p>
 
         {feedback ? (
@@ -214,26 +208,6 @@ export function LoginForm({
             {pendingProvider === 'credentials' ? 'Connexion en cours…' : 'Se connecter'}
           </Button>
         </form>
-
-        <div className="mt-6 border-t border-hairline pt-6">
-          <Button
-            type="button"
-            variant="secondary"
-            size="lg"
-            className="w-full"
-            disabled={pendingProvider !== null}
-            onClick={handleDiscordSignIn}
-            icon={
-              pendingProvider === 'discord' ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ShieldCheck className="h-4 w-4" />
-              )
-            }
-          >
-            {pendingProvider === 'discord' ? 'Redirection…' : 'Continuer avec Discord'}
-          </Button>
-        </div>
 
         <div className="mt-6 text-sm leading-6 text-foreground-dim">
           {publicRegistrationEnabled ? (

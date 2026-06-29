@@ -4,10 +4,8 @@ import bcrypt from 'bcryptjs';
 import NextAuth from 'next-auth';
 import type { Adapter } from 'next-auth/adapters';
 import Credentials from 'next-auth/providers/credentials';
-import Discord from 'next-auth/providers/discord';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { isPublicRegistrationEnabled } from '@/lib/runtime-flags';
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -64,10 +62,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     : {}),
   providers: [
-    Discord({
-      clientId: process.env.DISCORD_CLIENT_ID ?? '',
-      clientSecret: process.env.DISCORD_CLIENT_SECRET ?? '',
-    }),
     Credentials({
       name: 'Credentials',
       credentials: {
@@ -116,22 +110,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    signIn: async ({ user, account }) => {
-      if (isPublicRegistrationEnabled || account?.provider === 'credentials') {
-        return true;
-      }
-
-      if (!user.email) {
-        return false;
-      }
-
-      const existingUser = await prisma.user.findUnique({
-        where: { email: user.email },
-        select: { id: true },
-      });
-
-      return Boolean(existingUser);
-    },
     jwt: async ({ token, user, trigger }) => {
       const ACCESS_REFRESH_MS = 5 * 60 * 1000;
       const now = Date.now();
