@@ -10,6 +10,36 @@ export class ReplayImportError extends Error {
   }
 }
 
+interface UploadTicket {
+  uploadUrl: string;
+  token: string;
+  exp: number;
+}
+
+async function fetchUploadTicket(): Promise<UploadTicket> {
+  let response: Response;
+  try {
+    response = await fetch('/api/admin/replays/ticket', { method: 'POST' });
+  } catch (cause) {
+    console.error('[replay-client] ticket fetch threw', cause);
+    throw new ReplayImportError("Impossible de préparer l'upload du replay.");
+  }
+
+  if (!response.ok) {
+    let detail = `Erreur ${response.status}`;
+    const raw = await response.text();
+    try {
+      const body = JSON.parse(raw) as { error?: string };
+      detail = body.error ?? detail;
+    } catch {
+      if (raw && raw.length < 200) detail = `${detail}: ${raw}`;
+    }
+    throw new ReplayImportError(detail, response.status);
+  }
+
+  return (await response.json()) as UploadTicket;
+}
+
 export async function importReplay(file: File): Promise<ParsedReplay> {
   console.log('[replay-client] importReplay start', {
     name: file.name,
@@ -21,19 +51,27 @@ export async function importReplay(file: File): Promise<ParsedReplay> {
     throw new ReplayImportError('Le fichier doit être un .rofl.');
   }
 
+  // 1) Demander un ticket signe a Vercel (admin-only, rate-limite).
+  const ticket = await fetchUploadTicket();
+
+  // 2) Uploader le fichier DIRECTEMENT au microservice Railway, sans transiter
+  //    par Vercel (limite de 4,5 Mo des fonctions serverless).
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('file', file, file.name);
 
   let response: Response;
   try {
-    response = await fetch('/api/admin/replays/parse', {
+    response = await fetch(ticket.uploadUrl, {
       method: 'POST',
       body: formData,
+      ...(ticket.token
+        ? { headers: { Authorization: `Bearer ${ticket.token}` } }
+        : {}),
     });
   } catch (cause) {
-    console.error('[replay-client] fetch threw', cause);
+    console.error('[replay-client] upload fetch threw', cause);
     throw new ReplayImportError(
-      'Impossible de joindre le service de replay. Est-il bien démarré ?',
+      'Impossible de joindre le service de replay. Est-il bien démarré et accessible ?',
     );
   }
 
@@ -50,7 +88,6 @@ export async function importReplay(file: File): Promise<ParsedReplay> {
       const body = JSON.parse(raw) as { detail?: string; error?: string };
       detail = body.detail ?? body.error ?? detail;
     } catch {
-      // not JSON — keep status code message
       if (raw && raw.length < 200) detail = `${detail}: ${raw}`;
     }
     throw new ReplayImportError(detail, response.status);
