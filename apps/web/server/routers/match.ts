@@ -838,7 +838,11 @@ export const matchRouter = createTRPCRouter({
       });
 
       return { match, expiredContractIds, ticked: teamIdsToTick };
-    });
+    },
+    // Cette transaction enchaine beaucoup d'ecritures (games, stats, valeurs,
+    // contrats, wallets, paris, Elo). Le defaut Prisma de 5s est trop court des
+    // qu'il y a de la latence reseau -> on laisse 30s.
+    { timeout: 30_000, maxWait: 15_000 });
 
     await invalidateStatsCache(
       buildStatsCacheKey('league', 'standings'),
