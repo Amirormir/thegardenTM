@@ -59,6 +59,16 @@ describe('replay upload ticket', () => {
     ).toBe('https://replay-service.up.railway.app/replays');
   });
 
+  it('accepts a Railway hostname without protocol in production', () => {
+    expect(
+      resolveReplayUploadTarget({
+        serviceUrl: 'replay-service-production-f71c.up.railway.app',
+        requestHost: 'thegarden-tm-web.vercel.app',
+        isProduction: true,
+      }).uploadUrl,
+    ).toBe('https://replay-service-production-f71c.up.railway.app/replays');
+  });
+
   it('does not append the replay path twice', () => {
     expect(
       resolveReplayUploadTarget({
@@ -97,5 +107,15 @@ describe('replay upload ticket', () => {
         isProduction: false,
       }).uploadUrl,
     ).toBe('http://127.0.0.1:8000/replays');
+  });
+
+  it('uses http for a local hostname without protocol in development', () => {
+    expect(
+      resolveReplayUploadTarget({
+        serviceUrl: 'localhost:8000',
+        requestHost: 'localhost:3004',
+        isProduction: false,
+      }).uploadUrl,
+    ).toBe('http://localhost:8000/replays');
   });
 });

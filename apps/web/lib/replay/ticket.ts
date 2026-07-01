@@ -43,6 +43,24 @@ function isLoopbackHost(hostname: string) {
   );
 }
 
+function hasUrlScheme(value: string) {
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(value);
+}
+
+function hasHttpProtocol(value: string) {
+  return /^https?:\/\//i.test(value);
+}
+
+function normalizeReplayServiceUrl(value: string) {
+  if (hasUrlScheme(value)) {
+    return value;
+  }
+
+  const host = normalizeHost(value);
+  const protocol = host && isLoopbackHost(host) ? 'http' : 'https';
+  return `${protocol}://${value}`;
+}
+
 function appendReplayPath(serviceUrl: URL) {
   const uploadUrl = new URL(serviceUrl.toString());
   const basePath = uploadUrl.pathname.replace(/\/+$/, '');
@@ -62,15 +80,18 @@ export function resolveReplayUploadTarget({
   isProduction?: boolean;
 }) {
   const rawServiceUrl = serviceUrl?.trim() || DEFAULT_REPLAY_SERVICE_URL;
+  const normalizedServiceUrl = normalizeReplayServiceUrl(rawServiceUrl);
 
   let parsed: URL;
   try {
-    parsed = new URL(rawServiceUrl);
+    parsed = new URL(normalizedServiceUrl);
   } catch {
-    throw new ReplayUploadConfigError('REPLAY_SERVICE_URL doit etre une URL absolue valide.');
+    throw new ReplayUploadConfigError(
+      'REPLAY_SERVICE_URL doit etre une URL ou un hostname valide.',
+    );
   }
 
-  if (!['http:', 'https:'].includes(parsed.protocol)) {
+  if (!hasHttpProtocol(normalizedServiceUrl)) {
     throw new ReplayUploadConfigError('REPLAY_SERVICE_URL doit utiliser http ou https.');
   }
 
@@ -102,7 +123,7 @@ export function resolveReplayUploadTarget({
   }
 
   return {
-    serviceUrl: rawServiceUrl,
+    serviceUrl: normalizedServiceUrl,
     uploadUrl: appendReplayPath(parsed),
   };
 }
