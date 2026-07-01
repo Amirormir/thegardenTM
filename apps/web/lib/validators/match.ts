@@ -29,9 +29,14 @@ export const matchUpdateSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+const playerRoleSchema = z.enum(['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']);
+
 const recordedPlayerStatSchema = z.object({
   playerId: z.string().min(1),
   side: z.enum(['BLUE', 'RED']),
+  // Rôle joué dans CETTE game (par position, admin-corrigible côté UI). Sert de
+  // clé pour les baselines et l'adversaire de même rôle de la note (§4.1/§4.3).
+  role: playerRoleSchema,
   champion: z.string().min(1).max(60),
   kills: z.number().int().nonnegative(),
   deaths: z.number().int().nonnegative(),
@@ -44,10 +49,24 @@ const recordedPlayerStatSchema = z.object({
   csPerMin: z.number().nonnegative(),
   goldPerMin: z.number().nonnegative(),
   damagePerMin: z.number().nonnegative(),
-  killParticipation: z.number().min(0).max(1),
+  killParticipation: z.number().min(0).max(1.5),
   damageShare: z.number().min(0).max(1),
   goldShare: z.number().min(0).max(1),
+  // Champs bruts additionnels requis par la note (#9 tank).
+  damageTakenPerMin: z.number().nonnegative().default(0),
+  rawDamageTaken: z.number().int().nonnegative().default(0),
+  rawSelfMitigated: z.number().int().nonnegative().default(0),
   items: z.array(z.number().int().nonnegative()).length(7),
+});
+
+// Totaux d'équipe d'une game (or + objectifs), pour les sous-scores obj/dom.
+// Optionnels : sans eux, la note de la game n'est pas calculée (elle reste null).
+const recordedTeamStatsSchema = z.object({
+  totalGold: z.number().int().nonnegative(),
+  dragonKills: z.number().int().nonnegative(),
+  baronKills: z.number().int().nonnegative(),
+  turretKills: z.number().int().nonnegative(),
+  inhibitorKills: z.number().int().nonnegative(),
 });
 
 const recordedGameSchema = z
@@ -60,6 +79,10 @@ const recordedGameSchema = z
     playedAt: z.coerce.date().optional(),
     durationSeconds: z.number().int().positive().optional(),
     playerStats: z.array(recordedPlayerStatSchema).max(10).default([]),
+    // Snapshot des totaux d'équipe par camp (issu du replay).
+    teamStats: z
+      .object({ blue: recordedTeamStatsSchema, red: recordedTeamStatsSchema })
+      .optional(),
   })
   .superRefine((game, context) => {
     if (game.blueTeamId === game.redTeamId) {

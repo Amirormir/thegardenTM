@@ -11,6 +11,8 @@ import {
 import { resolveStoredPlayerDisplayName } from '@/lib/utils/player-display';
 import { buildStatsCacheKey, invalidateStatsCache } from '@/lib/cache/stats-cache';
 import { buildAuditLogInput } from '@/server/utils/audit';
+import { computeGameNotes, type GameRatingStat } from '@/server/utils/rating';
+import { applyNote } from '@/lib/rating/value-engine';
 import { resolveBettingConfig } from '@/server/utils/betting/config';
 import { updateElo, winProbability } from '@/server/utils/betting/odds-engine';
 import { recomputeOdds, recomputeOddsForTeams } from '@/server/utils/betting/recompute';
@@ -349,6 +351,9 @@ export const matchRouter = createTRPCRouter({
       {
         id: string;
         teamId: string | null;
+        marketValue: number;
+        baseline: number;
+        volatility: number;
       }
     >();
 
@@ -360,6 +365,9 @@ export const matchRouter = createTRPCRouter({
         select: {
           id: true,
           teamId: true,
+          marketValue: true,
+          baseline: true,
+          volatility: true,
         },
       });
 
@@ -375,12 +383,37 @@ export const matchRouter = createTRPCRouter({
       }
     }
 
+    // Le moteur de valeur ne s'applique qu'à la 1re complétion du match
+    // (transition not-completed -> completed), comme les salaires/paris, pour
+    // rester idempotent : ré-enregistrer un résultat ne re-déplace pas la valeur.
+    const isFirstCompletion = !existing.isCompleted;
+    const engineStates = new Map<
+      string,
+      { value: number; baseline: number; volatility: number }
+    >();
+    for (const [id, player] of playersById) {
+      engineStates.set(id, {
+        value: player.marketValue,
+        baseline: player.baseline,
+        volatility: player.volatility,
+      });
+    }
+    // playerId -> ligne d'audit finale, écrasée par la dernière game notée (la
+    // valeur/baseline/volatility persistée reflète l'état APRÈS toutes les games).
+    const valueApplications = new Map<
+      string,
+      { valueBefore: number; valueAfter: number; note: number }
+    >();
+
     const result = await ctx.prisma.$transaction(async (tx) => {
       await tx.matchGame.deleteMany({
         where: { matchId: input.matchId },
       });
 
-      for (const game of input.games) {
+      // Ordre chronologique : le moteur de valeur enchaîne les games d'un BO.
+      const orderedGames = [...input.games].sort((a, b) => a.gameNumber - b.gameNumber);
+
+      for (const game of orderedGames) {
         const createdGame = await tx.matchGame.create({
           data: {
             matchId: input.matchId,
@@ -391,6 +424,20 @@ export const matchRouter = createTRPCRouter({
             ...(game.winnerTeamId ? { winnerTeamId: game.winnerTeamId } : {}),
             ...(game.playedAt ? { playedAt: game.playedAt } : {}),
             ...(game.durationSeconds ? { durationSeconds: game.durationSeconds } : {}),
+            ...(game.teamStats
+              ? {
+                  blueTotalGold: game.teamStats.blue.totalGold,
+                  redTotalGold: game.teamStats.red.totalGold,
+                  blueDragonKills: game.teamStats.blue.dragonKills,
+                  blueBaronKills: game.teamStats.blue.baronKills,
+                  blueTurretKills: game.teamStats.blue.turretKills,
+                  blueInhibitorKills: game.teamStats.blue.inhibitorKills,
+                  redDragonKills: game.teamStats.red.dragonKills,
+                  redBaronKills: game.teamStats.red.baronKills,
+                  redTurretKills: game.teamStats.red.turretKills,
+                  redInhibitorKills: game.teamStats.red.inhibitorKills,
+                }
+              : {}),
           },
           select: {
             id: true,
@@ -398,7 +445,7 @@ export const matchRouter = createTRPCRouter({
         });
 
         if (game.playerStats.length > 0) {
-          const playerStatsData = game.playerStats.map((stat) => {
+          const rows = game.playerStats.map((stat) => {
             const teamId = stat.side === 'BLUE' ? game.blueTeamId : game.redTeamId;
             const player = playersById.get(stat.playerId);
 
@@ -416,10 +463,14 @@ export const matchRouter = createTRPCRouter({
               });
             }
 
+            const playerResult =
+              game.winnerTeamId === teamId ? ('WIN' as const) : ('LOSS' as const);
+
             return {
               playerId: stat.playerId,
               matchGameId: createdGame.id,
               teamId,
+              role: stat.role,
               champion: stat.champion,
               kills: stat.kills,
               deaths: stat.deaths,
@@ -429,7 +480,7 @@ export const matchRouter = createTRPCRouter({
               damage: stat.damage,
               visionScore: stat.visionScore,
               side: stat.side,
-              result: game.winnerTeamId === teamId ? 'WIN' as const : 'LOSS' as const,
+              result: playerResult,
               kda: stat.kda,
               csPerMin: stat.csPerMin,
               goldPerMin: stat.goldPerMin,
@@ -437,13 +488,108 @@ export const matchRouter = createTRPCRouter({
               killParticipation: stat.killParticipation,
               damageShare: stat.damageShare,
               goldShare: stat.goldShare,
+              damageTakenPerMin: stat.damageTakenPerMin,
+              rawDamageTaken: stat.rawDamageTaken,
+              rawSelfMitigated: stat.rawSelfMitigated,
               items: stat.items,
+            };
+          });
+
+          // Notes /100 (mode STRICT : nécessite les totaux d'équipe + durée).
+          const ratingStats: GameRatingStat[] = rows.map((row) => ({
+            playerId: row.playerId,
+            side: row.side,
+            role: row.role,
+            kills: row.kills,
+            deaths: row.deaths,
+            assists: row.assists,
+            killParticipation: row.killParticipation,
+            damageShare: row.damageShare,
+            goldShare: row.goldShare,
+            damagePerMin: row.damagePerMin,
+            goldPerMin: row.goldPerMin,
+            csPerMin: row.csPerMin,
+            visionScore: row.visionScore,
+            rawDamageTaken: row.rawDamageTaken,
+            rawSelfMitigated: row.rawSelfMitigated,
+            result: row.result,
+          }));
+          const notes = computeGameNotes({
+            stats: ratingStats,
+            teamStats: game.teamStats,
+            durationMinutes: game.durationSeconds ? game.durationSeconds / 60 : 0,
+          });
+
+          const playerStatsData = rows.map((row) => {
+            const note = notes.get(row.playerId);
+            let valueBefore: number | null = null;
+            let valueAfter: number | null = null;
+            let baselineAfter: number | null = null;
+            let volatilityAfter: number | null = null;
+
+            if (note !== undefined && isFirstCompletion) {
+              const state = engineStates.get(row.playerId)!;
+              const applied = applyNote(state, note);
+              valueBefore = Math.round(state.value);
+              valueAfter = Math.round(applied.value);
+              baselineAfter = applied.baseline;
+              volatilityAfter = applied.volatility;
+              engineStates.set(row.playerId, {
+                value: applied.value,
+                baseline: applied.baseline,
+                volatility: applied.volatility,
+              });
+              const first = valueApplications.get(row.playerId);
+              valueApplications.set(row.playerId, {
+                valueBefore: first?.valueBefore ?? valueBefore,
+                valueAfter,
+                note,
+              });
+            }
+
+            return {
+              ...row,
+              note: note ?? null,
+              valueBefore,
+              valueAfter,
+              baselineAfter,
+              volatilityAfter,
             };
           });
 
           await tx.playerMatchStats.createMany({
             data: playerStatsData,
           });
+        }
+      }
+
+      // Persiste l'état final du moteur + historique de valeur (1re complétion).
+      if (isFirstCompletion) {
+        for (const [playerId, state] of engineStates) {
+          if (!valueApplications.has(playerId)) continue; // joueur non noté
+          const application = valueApplications.get(playerId)!;
+          const finalValue = Math.round(state.value);
+
+          await tx.player.update({
+            where: { id: playerId },
+            data: {
+              marketValue: finalValue,
+              baseline: state.baseline,
+              volatility: state.volatility,
+            },
+          });
+
+          if (finalValue !== application.valueBefore) {
+            await tx.marketValueHistory.create({
+              data: {
+                playerId,
+                previousValue: application.valueBefore,
+                newValue: finalValue,
+                reason: 'Évolution automatique (performance)',
+                changedById: ctx.session.user.id,
+              },
+            });
+          }
         }
       }
 
@@ -679,6 +825,13 @@ export const matchRouter = createTRPCRouter({
             walletCredits,
             betsSettled,
             ratingUpdates,
+            valueUpdates: isFirstCompletion
+              ? [...valueApplications.entries()].map(([playerId, a]) => ({
+                  playerId,
+                  valueBefore: a.valueBefore,
+                  valueAfter: Math.round(engineStates.get(playerId)!.value),
+                }))
+              : [],
           },
         }),
       });

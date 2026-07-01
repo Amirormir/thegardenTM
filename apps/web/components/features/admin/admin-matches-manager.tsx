@@ -404,6 +404,7 @@ export function AdminMatchesManager() {
               playerId: player.id,
               teamId: sideTeamId,
               side,
+              role: replayPlayer.role,
               champion: replayPlayer.champion_internal,
               kills: replayPlayer.prisma.kills,
               deaths: replayPlayer.prisma.deaths,
@@ -419,6 +420,9 @@ export function AdminMatchesManager() {
               killParticipation: replayPlayer.enriched.kill_participation,
               damageShare: replayPlayer.enriched.damage_share,
               goldShare: replayPlayer.enriched.gold_share,
+              damageTakenPerMin: replayPlayer.enriched.damage_taken_per_min,
+              rawDamageTaken: replayPlayer.raw_damage_taken,
+              rawSelfMitigated: replayPlayer.raw_self_mitigated,
               items: replayPlayer.items,
             };
           });
@@ -432,6 +436,8 @@ export function AdminMatchesManager() {
           );
         }
 
+        const redReplay = parsed.teams.find((t) => t.side === 'RED')!;
+
         return {
           gameNumber: sequentialIndex + 1,
           blueTeamId: blueTeam.id,
@@ -439,9 +445,28 @@ export function AdminMatchesManager() {
           winnerTeamId,
           playedAt: new Date(),
           durationSeconds: parsed.game.duration_seconds,
+          // Le camp BLUE du replay correspond au blueTeam enregistré (le mapping
+          // blueIsHome aligne déjà joueurs et side), donc les totaux suivent.
+          teamStats: {
+            blue: {
+              totalGold: blueReplay.total_gold,
+              dragonKills: blueReplay.dragon_kills,
+              baronKills: blueReplay.baron_kills,
+              turretKills: blueReplay.turret_kills,
+              inhibitorKills: blueReplay.inhibitor_kills,
+            },
+            red: {
+              totalGold: redReplay.total_gold,
+              dragonKills: redReplay.dragon_kills,
+              baronKills: redReplay.baron_kills,
+              turretKills: redReplay.turret_kills,
+              inhibitorKills: redReplay.inhibitor_kills,
+            },
+          },
           playerStats: playerStats.map((s) => ({
             playerId: s.playerId,
             side: s.side,
+            role: s.role,
             champion: s.champion,
             kills: s.kills,
             deaths: s.deaths,
@@ -457,6 +482,9 @@ export function AdminMatchesManager() {
             killParticipation: s.killParticipation,
             damageShare: s.damageShare,
             goldShare: s.goldShare,
+            damageTakenPerMin: s.damageTakenPerMin,
+            rawDamageTaken: s.rawDamageTaken,
+            rawSelfMitigated: s.rawSelfMitigated,
             items: s.items,
           })),
         };

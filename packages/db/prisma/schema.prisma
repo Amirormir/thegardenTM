@@ -196,6 +196,10 @@ model Player {
   age                Int?
   nationality        String?
   marketValue        Int                  @default(0)
+  // Moteur d'évolution de valeur : forme moyenne mobile (0..100) et volatilité
+  // (EMA de |note - baseline|). `marketValue` porte la valeur, bornée [10M, 55M].
+  baseline           Float                @default(50)
+  volatility         Float                @default(8)
   salary             Int                  @default(0)
   cost               Int                  @default(1)
   isActive           Boolean              @default(true)
@@ -304,6 +308,18 @@ model MatchGame {
   winnerTeamId    String?
   playedAt        DateTime?
   durationSeconds Int?
+  // Snapshot des totaux d'équipe issus du replay, nécessaires aux sous-scores
+  // objectifs (#10) et au contexte de domination de la note (§4.4/§4.7).
+  blueTotalGold      Int?
+  redTotalGold       Int?
+  blueDragonKills    Int?
+  blueBaronKills     Int?
+  blueTurretKills    Int?
+  blueInhibitorKills Int?
+  redDragonKills     Int?
+  redBaronKills      Int?
+  redTurretKills     Int?
+  redInhibitorKills  Int?
   match           Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
   blueTeam        Team               @relation("BlueSideTeam", fields: [blueTeamId], references: [id], onDelete: Restrict)
   redTeam         Team               @relation("RedSideTeam", fields: [redTeamId], references: [id], onDelete: Restrict)
@@ -323,6 +339,9 @@ model PlayerMatchStats {
   matchGameId       String
   teamId            String
   champion          String
+  // Rôle joué dans cette game (par position, admin-corrigible), clé des
+  // baselines de la note. Nullable pour les lignes antérieures au système.
+  role              PlayerRole?
   kills             Int         @default(0)
   deaths            Int         @default(0)
   assists           Int         @default(0)
@@ -339,6 +358,18 @@ model PlayerMatchStats {
   killParticipation Float       @default(0)
   damageShare       Float       @default(0)
   goldShare         Float       @default(0)
+  // Champs bruts additionnels requis par la note (#9 tank) et le recompute.
+  damageTakenPerMin Float       @default(0)
+  rawDamageTaken    Int         @default(0)
+  rawSelfMitigated  Int         @default(0)
+  // Note de performance /100 + audit du moteur de valeur (§5.6 : idempotence
+  // & rejouabilité). `note` est recalculable ; les `*Before/After` ne sont
+  // écrits que lors de la 1re complétion de la game (pas de double application).
+  note              Float?
+  valueBefore       Int?
+  valueAfter        Int?
+  baselineAfter     Float?
+  volatilityAfter   Float?
   items             Int[]       @default([])
   player            Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
   matchGame         MatchGame   @relation(fields: [matchGameId], references: [id], onDelete: Cascade)
