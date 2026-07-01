@@ -133,6 +133,7 @@ export const matchRouter = createTRPCRouter({
                 side: true,
                 result: true,
                 items: true,
+                note: true,
                 player: {
                   select: {
                     id: true,

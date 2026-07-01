@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { ChampionIcon } from '@/components/ui/champion-icon';
 import { PlayerLink } from '@/components/ui/player-link';
+import { RatingBadge } from './rating-badge';
 
 interface PlayerStat {
   id: string;
@@ -12,6 +13,7 @@ interface PlayerStat {
   damage: number;
   side: string;
   result: 'WIN' | 'LOSS';
+  note?: number | null;
   player: {
     id: string;
     displayName: string;
@@ -23,7 +25,9 @@ export interface GameMvpCardProps {
   playerStats: PlayerStat[];
 }
 
+// La note /100 prime quand elle existe ; sinon repli sur le KDA (games legacy).
 function computeScore(s: PlayerStat): number {
+  if (s.note !== null && s.note !== undefined) return s.note;
   const kda = (s.kills + s.assists) / Math.max(s.deaths, 1);
   const winBonus = s.result === 'WIN' ? 1.15 : 1;
   return kda * winBonus;
@@ -57,10 +61,19 @@ export function GameMvpCard({ playerStats }: GameMvpCardProps) {
         </p>
       </div>
       <div className="ml-auto flex flex-col items-end gap-1">
-        <p className="font-display text-2xl text-accent tabular-nums">
-          {mvp.damage.toLocaleString('fr-FR')}
-        </p>
-        <p className="label-mono text-foreground-muted">§ Dégâts</p>
+        {mvp.note !== null && mvp.note !== undefined ? (
+          <>
+            <RatingBadge note={mvp.note} size="lg" />
+            <p className="label-mono text-foreground-muted">§ Note</p>
+          </>
+        ) : (
+          <>
+            <p className="font-display text-2xl text-accent tabular-nums">
+              {mvp.damage.toLocaleString('fr-FR')}
+            </p>
+            <p className="label-mono text-foreground-muted">§ Dégâts</p>
+          </>
+        )}
       </div>
     </aside>
   );

@@ -16,6 +16,7 @@ import { TeamAvatar } from '@/components/ui/team-avatar';
 import { GameStatBars } from '@/components/features/league/game-stat-bars';
 import { GamePlayerBars } from '@/components/features/league/game-player-bars';
 import { GameMvpCard } from '@/components/features/league/game-mvp-card';
+import { RatingBadge } from '@/components/features/league/rating-badge';
 import { MatchBetSlip } from '@/components/features/betting/match-bet-slip';
 import { cn } from '@/lib/utils/cn';
 import { formatDateTime } from '@/lib/utils/format';
@@ -286,6 +287,7 @@ export default async function MatchDetailPage({
                             <TableHead>Gold</TableHead>
                             <TableHead>Damage</TableHead>
                             <TableHead>Vision</TableHead>
+                            <TableHead>Note</TableHead>
                             <TableHead>Résultat</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -323,6 +325,9 @@ export default async function MatchDetailPage({
                                 {stat.damage.toLocaleString('fr-FR')}
                               </TableCell>
                               <TableCell className="tabular-nums">{stat.visionScore}</TableCell>
+                              <TableCell>
+                                <RatingBadge note={stat.note} />
+                              </TableCell>
                               <TableCell>
                                 <span
                                   className={cn(
