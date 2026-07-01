@@ -16,6 +16,30 @@ interface UploadTicket {
   exp: number;
 }
 
+function ensureDirectUploadTarget(ticket: UploadTicket): UploadTicket {
+  let uploadUrl: URL;
+  try {
+    uploadUrl = new URL(ticket.uploadUrl, window.location.href);
+  } catch {
+    throw new ReplayImportError("L'URL d'upload du replay est invalide.");
+  }
+
+  if (!['http:', 'https:'].includes(uploadUrl.protocol)) {
+    throw new ReplayImportError("L'URL d'upload du replay doit utiliser HTTP ou HTTPS.");
+  }
+
+  if (uploadUrl.origin === window.location.origin) {
+    throw new ReplayImportError(
+      "Configuration replay invalide : l'upload .rofl pointe vers l'application web au lieu du microservice replay.",
+    );
+  }
+
+  return {
+    ...ticket,
+    uploadUrl: uploadUrl.toString(),
+  };
+}
+
 async function fetchUploadTicket(): Promise<UploadTicket> {
   let response: Response;
   try {
@@ -37,7 +61,7 @@ async function fetchUploadTicket(): Promise<UploadTicket> {
     throw new ReplayImportError(detail, response.status);
   }
 
-  return (await response.json()) as UploadTicket;
+  return ensureDirectUploadTarget((await response.json()) as UploadTicket);
 }
 
 export async function importReplay(file: File): Promise<ParsedReplay> {
@@ -64,9 +88,7 @@ export async function importReplay(file: File): Promise<ParsedReplay> {
     response = await fetch(ticket.uploadUrl, {
       method: 'POST',
       body: formData,
-      ...(ticket.token
-        ? { headers: { Authorization: `Bearer ${ticket.token}` } }
-        : {}),
+      ...(ticket.token ? { headers: { Authorization: `Bearer ${ticket.token}` } } : {}),
     });
   } catch (cause) {
     console.error('[replay-client] upload fetch threw', cause);
@@ -97,9 +119,7 @@ export async function importReplay(file: File): Promise<ParsedReplay> {
   const parsed = parsedReplaySchema.safeParse(json);
   if (!parsed.success) {
     console.error('[replay-client] zod validation failed', parsed.error.issues);
-    throw new ReplayImportError(
-      'Réponse du service de replay invalide. Vérifie les versions.',
-    );
+    throw new ReplayImportError('Réponse du service de replay invalide. Vérifie les versions.');
   }
   console.log('[replay-client] success', {
     players: parsed.data.players.length,

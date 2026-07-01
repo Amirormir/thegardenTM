@@ -2,12 +2,15 @@ import { UserRole } from '@nexus/db';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { buildRateLimitHeaders, checkRateLimit } from '@/lib/rate-limit';
-import { createUploadTicket } from '@/lib/replay/ticket';
+import {
+  ReplayUploadConfigError,
+  createUploadTicket,
+  resolveReplayUploadTarget,
+} from '@/lib/replay/ticket';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const DEFAULT_REPLAY_SERVICE_URL = 'http://127.0.0.1:8000';
 const RATE_LIMIT_PER_HOUR = 12;
 
 function log(...args: unknown[]) {
@@ -19,7 +22,7 @@ function log(...args: unknown[]) {
  * microservice de replay (contourne la limite de 4,5 Mo de Vercel). Reserve aux
  * admins et rate-limite, exactement comme l'ancien proxy /parse.
  */
-export async function POST() {
+export async function POST(request: Request) {
   let session;
   try {
     session = await auth();
@@ -32,10 +35,7 @@ export async function POST() {
     return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
   }
   if (session.user.role !== UserRole.ADMIN) {
-    return NextResponse.json(
-      { error: `Forbidden (role=${session.user.role}).` },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: `Forbidden (role=${session.user.role}).` }, { status: 403 });
   }
 
   const rate = await checkRateLimit({
@@ -53,11 +53,21 @@ export async function POST() {
     );
   }
 
-  const serviceUrl = (process.env.REPLAY_SERVICE_URL ?? DEFAULT_REPLAY_SERVICE_URL).replace(
-    /\/$/,
-    '',
-  );
-  const uploadUrl = `${serviceUrl}/replays`;
+  let uploadUrl: string;
+  try {
+    ({ uploadUrl } = resolveReplayUploadTarget({
+      serviceUrl: process.env.REPLAY_SERVICE_URL,
+      requestHost: request.headers.get('host'),
+    }));
+  } catch (error) {
+    const message =
+      error instanceof ReplayUploadConfigError ? error.message : 'Configuration replay invalide.';
+    log('config error', { message });
+    return NextResponse.json(
+      { error: message },
+      { status: 500, headers: buildRateLimitHeaders(rate) },
+    );
+  }
 
   // En dev local le service tourne sans secret : on renvoie un ticket vide.
   const secret = process.env.REPLAY_UPLOAD_SECRET;
