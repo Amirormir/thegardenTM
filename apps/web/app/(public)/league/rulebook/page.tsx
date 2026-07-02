@@ -225,7 +225,7 @@ export default function LeagueRulebookPage() {
                   <>Chaque joueur possède une <strong className="text-foreground">valeur marchande (VM)</strong>.</>,
                   <>L&apos;échelle de la VM est calée sur celle utilisée dans le <strong className="text-foreground">sport classique</strong>.</>,
                   <>La <strong className="text-foreground">VM de base</strong> d&apos;un joueur correspond simplement à son cost.</>,
-                  <>La VM est toujours <strong className="text-foreground">bornée entre 10 M et 55 M</strong>.</>,
+                  <>Les valeurs ci-dessous sont des <strong className="text-foreground">VM de base</strong> : la VM d&apos;un joueur peut ensuite monter bien au-delà.</>,
                 ]}
               />
 
@@ -320,10 +320,6 @@ export default function LeagueRulebookPage() {
                     <strong className="text-foreground">Garde-fou</strong> : une très bonne (ou très
                     mauvaise) game fait <strong className="text-foreground">toujours</strong> bouger ta
                     valeur dans le bon sens, au moins un peu.
-                  </>,
-                  <>
-                    <strong className="text-foreground">Bornes</strong> : quoi qu&apos;il arrive, la VM
-                    reste comprise entre <strong className="text-foreground">10 M et 55 M</strong>.
                   </>,
                 ]}
               />
