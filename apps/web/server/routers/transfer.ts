@@ -264,12 +264,12 @@ export const transferRouter = createTRPCRouter({
           });
         }
 
-        // Prix plancher du transfert : au moins 50% de la valeur marchande.
+        // Prix plancher du transfert : au moins la valeur marchande du joueur.
         const minFee = getTransferFloor(player.marketValue);
         if (input.offeredFee < minFee) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
-            message: `Offre sous le minimum autorise (${minFee}, soit 50% de la valeur marchande de ${player.marketValue}).`,
+            message: `Offre sous le minimum autorise (${minFee}, soit la valeur marchande du joueur).`,
           });
         }
 

@@ -32,7 +32,7 @@ export const contractCreateSchema = z.object({
   playerId: z.string().min(1),
   teamId: z.string().min(1),
   salary: z.number().int().nonnegative(),
-  durationBo3: z.number().int().positive(),
+  durationBo3: z.number().int().min(5).max(18),
   releaseClause: z.number().int().positive(),
   transferFee: z.number().int().nonnegative().optional(),
   notes: z.string().max(500).optional(),
@@ -41,7 +41,7 @@ export const contractCreateSchema = z.object({
 export const contractUpdateSchema = z.object({
   id: z.string().min(1),
   salary: z.number().int().nonnegative().optional(),
-  durationBo3: z.number().int().positive().optional(),
+  durationBo3: z.number().int().min(5).max(18).optional(),
   releaseClause: z.number().int().positive().optional(),
   transferFee: z.number().int().nonnegative().optional(),
   notes: z.string().max(500).optional(),
@@ -66,7 +66,7 @@ export const contractAdminTerminateSchema = z.object({
 export const contractRenewSchema = z.object({
   id: z.string().min(1),
   salary: z.number().int().nonnegative(),
-  durationBo3: z.number().int().positive(),
+  durationBo3: z.number().int().min(5).max(18),
   releaseClause: z.number().int().positive(),
   transferFee: z.number().int().nonnegative().optional(),
   notes: z.string().max(500).optional(),

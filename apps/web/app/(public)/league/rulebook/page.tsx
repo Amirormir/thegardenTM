@@ -21,6 +21,14 @@ const PERFORMANCE_COMPENSATIONS = [
   { rank: '10e (dernier)', amount: '10,0 M' },
 ] as const;
 
+const COST_BASE_VALUES = [
+  { cost: '5', value: '55 M' },
+  { cost: '4', value: '40 M' },
+  { cost: '3', value: '30 M' },
+  { cost: '2', value: '20 M' },
+  { cost: '1', value: '10 M' },
+] as const;
+
 function RuleSection({
   id,
   title,
@@ -105,8 +113,11 @@ export default function LeagueRulebookPage() {
             <a href="#comportement" className="transition-colors hover:text-foreground">
               7. Comportement
             </a>
+            <a href="#remplacants" className="transition-colors hover:text-foreground">
+              8. Remplaçants
+            </a>
             <a href="#rappels" className="transition-colors hover:text-foreground">
-              8. Rappels et points en attente
+              9. Rappels et points en attente
             </a>
           </nav>
         </aside>
@@ -214,8 +225,30 @@ export default function LeagueRulebookPage() {
                   <>Chaque joueur possède une <strong className="text-foreground">valeur marchande (VM)</strong>.</>,
                   <>L&apos;échelle de la VM est calée sur celle utilisée dans le <strong className="text-foreground">sport classique</strong>.</>,
                   <>La <strong className="text-foreground">VM de base</strong> d&apos;un joueur correspond simplement à son cost.</>,
+                  <>La VM est toujours <strong className="text-foreground">bornée entre 10 M et 55 M</strong>.</>,
                 ]}
               />
+
+              <div className="overflow-x-auto border-t border-hairline">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cost</TableHead>
+                      <TableHead>VM de base</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {COST_BASE_VALUES.map((entry) => (
+                      <TableRow key={entry.cost}>
+                        <TableCell>Cost {entry.cost}</TableCell>
+                        <TableCell className="font-display tabular-nums text-foreground">
+                          {entry.value}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </RuleSubsection>
 
             <RuleSubsection title="3.2 Évolution de la VM">
@@ -231,9 +264,75 @@ export default function LeagueRulebookPage() {
                     L&apos;algorithme est aussi conçu pour punir les joueurs <strong className="text-foreground">irréguliers</strong> et les{' '}
                     <strong className="text-foreground">grosses baisses de performance</strong>.
                   </>,
-                  <>Les détails précis de l&apos;algorithme seront communiqués à l&apos;approche des matchs.</>,
                 ]}
               />
+            </RuleSubsection>
+
+            <RuleSubsection title="3.3 Comment marche l'algorithme (en clair)">
+              <p>
+                Pas besoin d&apos;être développeur. Derrière chaque joueur, on garde trois choses :
+                sa <strong className="text-foreground">valeur (VM)</strong>, son{' '}
+                <strong className="text-foreground">niveau habituel</strong> (la moyenne de tes
+                dernières perfs) et sa <strong className="text-foreground">régularité</strong> (est-ce
+                que tu es constant ou en dents de scie).
+              </p>
+
+              <p>
+                Après chaque game d&apos;<strong className="text-foreground">au moins 10 minutes</strong>{' '}
+                (les remakes/AFK ne comptent pas), l&apos;algo te donne une{' '}
+                <strong className="text-foreground">note sur 100</strong> à partir de tes stats :
+                KDA, participation aux kills, part des dégâts et de l&apos;or de ton équipe, CS/min,
+                score de vision, objectifs pris par l&apos;équipe (dragons, barons, tours) et la
+                victoire ou la défaite. Ta note est comparée à celle de{' '}
+                <strong className="text-foreground">ton adversaire direct au même poste</strong>.
+              </p>
+
+              <p>Ensuite ta valeur bouge selon trois idées simples :</p>
+              <RuleList
+                items={[
+                  <>
+                    <strong className="text-foreground">Retour vers ton vrai niveau</strong> : ta valeur
+                    glisse doucement vers le palier qui correspond à ton niveau habituel. Enchaîne les
+                    bonnes notes et ce niveau monte, donc ta valeur grimpe avec.
+                  </>,
+                  <>
+                    <strong className="text-foreground">La surprise du jour</strong> : jouer{' '}
+                    <strong className="text-foreground">au-dessus</strong> de ton niveau habituel te fait
+                    gagner de la valeur, jouer <strong className="text-foreground">en dessous</strong> t&apos;en
+                    fait perdre. Plus l&apos;écart est grand, plus le mouvement est fort.
+                  </>,
+                  <>
+                    <strong className="text-foreground">L&apos;effet richesse</strong> : plus tu es déjà
+                    cher, plus il est dur de monter encore ; plus tu es bas, plus il est dur de chuter
+                    encore. Ça évite que les valeurs s&apos;emballent dans un sens ou dans l&apos;autre.
+                  </>,
+                ]}
+              />
+
+              <RuleList
+                items={[
+                  <>
+                    <strong className="text-foreground">La régularité est récompensée</strong> : un joueur
+                    constant progresse de façon douce et sûre ; un joueur en dents de scie subit des
+                    variations plus violentes — une grosse contre-performance fait donc très mal.
+                  </>,
+                  <>
+                    <strong className="text-foreground">Garde-fou</strong> : une très bonne (ou très
+                    mauvaise) game fait <strong className="text-foreground">toujours</strong> bouger ta
+                    valeur dans le bon sens, au moins un peu.
+                  </>,
+                  <>
+                    <strong className="text-foreground">Bornes</strong> : quoi qu&apos;il arrive, la VM
+                    reste comprise entre <strong className="text-foreground">10 M et 55 M</strong>.
+                  </>,
+                ]}
+              />
+
+              <p className="text-sm text-foreground-muted">
+                En résumé : sois performant <strong className="text-foreground">et</strong> régulier
+                pour faire monter ta valeur durablement ; une seule très mauvaise game ne te coule pas,
+                mais l&apos;irrégularité finit par se payer.
+              </p>
             </RuleSubsection>
           </RuleSection>
 
@@ -271,10 +370,13 @@ export default function LeagueRulebookPage() {
                     lorsque le budget est réparti 50/50.
                   </>,
                   <>
-                    <strong className="text-foreground">Durée du contrat</strong> en BO, avec une durée minimum de 5 BO.
+                    <strong className="text-foreground">Durée du contrat</strong> en BO, comprise entre{' '}
+                    <strong className="text-foreground">5 et 18 BO</strong> (minimum 5, maximum 18).
                   </>,
                   <>
-                    <strong className="text-foreground">Clause libératoire</strong>.
+                    <strong className="text-foreground">Clause libératoire</strong>, qui ne peut jamais
+                    être inférieure à la <strong className="text-foreground">valeur marchande</strong> du
+                    joueur (voir section 5).
                   </>,
                 ]}
               />
@@ -314,9 +416,19 @@ export default function LeagueRulebookPage() {
               <RuleList
                 items={[
                   <>Il existe une <strong className="text-foreground">valeur minimale</strong> pour acheter un joueur.</>,
-                  <>Cette valeur est calculée à partir de la <strong className="text-foreground">VM du joueur</strong>.</>,
-                  <>Pour l&apos;instant, il faut au minimum <strong className="text-foreground">environ 50 % de la VM</strong> du joueur pour pouvoir l&apos;acheter.</>,
-                  <>Cette valeur peut changer.</>,
+                  <>
+                    Ce minimum est désormais égal à <strong className="text-foreground">100 % de la VM</strong>{' '}
+                    du joueur : on ne peut pas l&apos;acheter pour moins que sa valeur marchande.
+                  </>,
+                  <>
+                    De la même façon, la <strong className="text-foreground">clause libératoire</strong> ne
+                    peut jamais être fixée sous la VM du joueur.
+                  </>,
+                  <>
+                    Si la VM d&apos;un joueur augmente, sa clause <strong className="text-foreground">s&apos;ajuste
+                    automatiquement</strong> pour rester au moins égale à la nouvelle VM.
+                  </>,
+                  <>Cette valeur peut changer si le staff le décide.</>,
                 ]}
               />
             </RuleSubsection>
@@ -327,10 +439,14 @@ export default function LeagueRulebookPage() {
                   <>Les échanges sont autorisés.</>,
                   <>Ils respectent la même règle de fair-play financier que les achats classiques.</>,
                   <>
-                    Si une équipe veut échanger un joueur contre un joueur de VM plus faible, la VM du joueur échangé doit
-                    représenter au moins les 50 % requis.
+                    Pour récupérer un joueur, la contrepartie (joueur échangé + argent éventuel) doit
+                    couvrir <strong className="text-foreground">au moins 100 % de la VM</strong> du joueur visé.
                   </>,
-                  <>Sinon, l&apos;équipe acheteuse doit compléter avec de l&apos;argent dans le transfert.</>,
+                  <>
+                    Si le joueur proposé a une VM plus faible, l&apos;équipe acheteuse doit{' '}
+                    <strong className="text-foreground">compléter avec de l&apos;argent</strong> pour atteindre la VM
+                    du joueur convoité.
+                  </>,
                 ]}
               />
             </RuleSubsection>
@@ -426,17 +542,45 @@ export default function LeagueRulebookPage() {
             </RuleSubsection>
           </RuleSection>
 
-          <RuleSection id="rappels" title="8. Rappels et points en attente">
-            <RuleSubsection title="Subs / remplaçants">
+          <RuleSection id="remplacants" title="8. Remplaçants">
+            <RuleSubsection title="8.1 Prérequis de recrutement">
               <RuleList
                 items={[
-                  <>Sujet sensible, actuellement en discussion.</>,
-                  <>Les équipes sont invitées à ne pas recruter de remplaçants immédiatement.</>,
-                  <>Une règle claire sur leur recrutement sera publiée par le staff.</>,
+                  <>
+                    Il est <strong className="text-foreground">impossible de signer un remplaçant</strong>{' '}
+                    tant que l&apos;équipe n&apos;a pas déjà un{' '}
+                    <strong className="text-foreground">roster de 5 joueurs sous contrat</strong> pour les
+                    prochaines games.
+                  </>,
+                  <>Autrement dit : on complète d&apos;abord son cinq titulaire, ensuite seulement on recrute un sub.</>,
                 ]}
               />
             </RuleSubsection>
 
+            <RuleSubsection title="8.2 Cost du remplaçant">
+              <RuleList
+                items={[
+                  <>Le remplaçant n&apos;ouvre droit à <strong className="text-foreground">aucun cost supplémentaire</strong>.</>,
+                  <>
+                    Quand il entre en jeu, la composition alignée (les 5 joueurs sur le terrain) doit
+                    toujours respecter le <strong className="text-foreground">plafond de 15 cost</strong>.
+                  </>,
+                  <>
+                    Concrètement, pour faire jouer le sub, il faut <strong className="text-foreground">sortir un
+                    titulaire</strong> dont le cost permet de rester sous les 15.
+                  </>,
+                  <>
+                    Pour aligner une composition qui dépasse 15 cost, il faut passer par un{' '}
+                    <strong className="text-foreground">achat</strong> : soit payer la VM du remplaçant, soit
+                    acheter un joueur sur un autre poste via un transfert classique. Un joueur acheté de
+                    cette manière <strong className="text-foreground">n&apos;est plus soumis au plafond des 15</strong>.
+                  </>,
+                ]}
+              />
+            </RuleSubsection>
+          </RuleSection>
+
+          <RuleSection id="rappels" title="9. Rappels et points en attente">
             <RuleSubsection title="À venir">
               <RuleList
                 items={[

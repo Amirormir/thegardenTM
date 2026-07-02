@@ -207,9 +207,9 @@ describe('transfer router', () => {
       ).rejects.toThrow('Budget transfert insuffisant');
     });
 
-    it('rejects an offer below 50% of the player market value', async () => {
+    it('rejects an offer below the player market value', async () => {
       setupCreateMocks();
-      // marketValue 2,000,000 → plancher 1,000,000. Offre 500,000 sous le minimum.
+      // marketValue 2,000,000 → plancher 2,000,000 (100%). Offre 500,000 sous le minimum.
       (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'player-1',
         gameName: 'TestPlayer',

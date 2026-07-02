@@ -158,7 +158,7 @@ export function TransferOfferComposer({ buyerTeam, player }: TransferOfferCompos
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
               <span className="label-mono text-foreground-muted">
-                Minimum · {formatCurrency(minFee)} (50% valeur)
+                Minimum · {formatCurrency(minFee)} (valeur marchande)
               </span>
               {belowMin ? (
                 <span

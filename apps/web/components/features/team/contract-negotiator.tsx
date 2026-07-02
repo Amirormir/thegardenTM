@@ -206,13 +206,17 @@ export function ContractNegotiator({ teamId, team, player }: ContractNegotiatorP
 
           <div className="grid gap-5 md:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <label className="label-mono text-foreground-muted">Durée (BO3)</label>
+              <label className="label-mono text-foreground-muted">Durée (BO) · 5 à 18</label>
               <Input
                 type="number"
-                min={1}
-                max={200}
+                min={5}
+                max={18}
                 value={durationBo3}
-                onChange={(e) => setDurationBo3(Math.max(1, Number.parseInt(e.target.value || '1', 10)))}
+                onChange={(e) =>
+                  setDurationBo3(
+                    Math.min(18, Math.max(5, Number.parseInt(e.target.value || '5', 10))),
+                  )
+                }
                 required
               />
             </div>

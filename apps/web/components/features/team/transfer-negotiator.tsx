@@ -281,13 +281,17 @@ export function TransferNegotiator({ teamId, offer }: TransferNegotiatorProps) {
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="label-mono">Durée (BO3)</label>
+                <label className="label-mono">Durée (BO) · 5 à 18</label>
                 <Input
                   type="number"
-                  min={1}
-                  max={200}
+                  min={5}
+                  max={18}
                   value={durationBo3}
-                  onChange={(e) => setDurationBo3(Math.max(1, Number.parseInt(e.target.value || '1', 10)))}
+                  onChange={(e) =>
+                    setDurationBo3(
+                      Math.min(18, Math.max(5, Number.parseInt(e.target.value || '5', 10))),
+                    )
+                  }
                   required
                 />
               </div>
@@ -301,7 +305,7 @@ export function TransferNegotiator({ teamId, offer }: TransferNegotiatorProps) {
                   required
                 />
                 <span className="label-mono text-foreground-muted">
-                  Minimum · {formatCurrency(clauseFloor)} (50% valeur)
+                  Minimum · {formatCurrency(clauseFloor)} (valeur marchande)
                 </span>
               </div>
               <div className="flex flex-col gap-2">

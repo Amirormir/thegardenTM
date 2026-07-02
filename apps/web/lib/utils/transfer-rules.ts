@@ -24,11 +24,12 @@ export function getCostBaseValue(cost: number): number {
  * Plancher du prix de transfert et de la clause liberatoire, exprime en
  * fraction de la valeur marchande du joueur. Une offre ne peut pas descendre
  * sous ce seuil, et la clause liberatoire s'y aligne automatiquement.
+ * Fixe a 100% : le minimum vaut la valeur marchande entiere.
  */
-export const MIN_TRANSFER_VALUE_RATIO = 0.5;
+export const MIN_TRANSFER_VALUE_RATIO = 1;
 
 /**
- * Plancher entier (>= 50% de la valeur marchande). Arrondi au superieur pour
+ * Plancher entier (= 100% de la valeur marchande). Arrondi au superieur pour
  * garantir le respect strict du seuil.
  */
 export function getTransferFloor(marketValue: number): number {

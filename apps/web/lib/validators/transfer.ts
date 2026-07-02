@@ -35,7 +35,7 @@ export const transferAdminValidateSchema = z.object({
 export const transferStartContractSchema = z.object({
   id: z.string().min(1),
   salary: z.number().int().nonnegative(),
-  durationBo3: z.number().int().positive().max(200),
+  durationBo3: z.number().int().min(5).max(18),
   releaseClause: z.number().int().nonnegative(),
   notes: z.string().max(500).optional(),
 });
